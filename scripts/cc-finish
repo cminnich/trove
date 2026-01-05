@@ -1,0 +1,119 @@
+#!/bin/bash
+# Finish Claude Code session - squash merge to main and cleanup
+
+set -e
+
+# Configuration
+MAIN_REPO=$(git rev-parse --show-toplevel)
+WORKTREE_BASE="${MAIN_REPO}-work"
+BRANCH_PREFIX="cc"
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+# Usage
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <feature-name>"
+  echo ""
+  echo "Examples:"
+  echo "  $0 extraction-pipeline"
+  echo ""
+  exit 1
+fi
+
+FEATURE_NAME=$1
+BRANCH_NAME="${BRANCH_PREFIX}/${FEATURE_NAME}"
+WORKTREE_PATH="${WORKTREE_BASE}/${FEATURE_NAME}"
+
+echo -e "${BLUE}Finishing Claude Code session: $FEATURE_NAME${NC}"
+echo ""
+
+# Check if worktree exists
+if [ ! -d "$WORKTREE_PATH" ]; then
+  echo -e "${RED}✗ Worktree not found at: $WORKTREE_PATH${NC}"
+  exit 1
+fi
+
+# Check if branch exists
+if ! git show-ref --verify --quiet refs/heads/$BRANCH_NAME; then
+  echo -e "${RED}✗ Branch '$BRANCH_NAME' not found${NC}"
+  exit 1
+fi
+
+# Go to main repo
+cd "$MAIN_REPO"
+
+# Make sure main is up to date
+echo -e "${BLUE}Updating main branch...${NC}"
+git checkout main
+git pull --rebase origin main 2>/dev/null || echo "No remote configured or already up to date"
+
+# Check for uncommitted changes in worktree
+cd "$WORKTREE_PATH"
+if ! git diff-index --quiet HEAD --; then
+  echo -e "${YELLOW}⚠️  You have uncommitted changes in $WORKTREE_PATH${NC}"
+  echo ""
+  git status --short
+  echo ""
+  read -p "Commit these changes first? (y/n) " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "Enter commit message:"
+    read -r COMMIT_MSG
+    git add .
+    git commit -m "$COMMIT_MSG"
+  else
+    echo "Aborting. Commit or stash changes first."
+    exit 1
+  fi
+fi
+
+# Go back to main repo
+cd "$MAIN_REPO"
+
+# Squash merge the branch
+echo -e "${GREEN}✓${NC} Squash merging $BRANCH_NAME to main..."
+git merge --squash "$BRANCH_NAME"
+
+# Check if there are changes to commit
+if ! git diff-index --quiet HEAD --; then
+  echo ""
+  echo "Enter commit message for squashed changes:"
+  read -r SQUASH_MSG
+  git commit -m "$SQUASH_MSG
+
+🤖 Generated with Claude Code (https://claude.com/claude-code)
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+
+  echo -e "${GREEN}✓${NC} Committed squashed changes to main"
+else
+  echo -e "${YELLOW}No changes to commit${NC}"
+fi
+
+# Ask if should cleanup
+echo ""
+read -p "Remove worktree and branch? (y/n) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  echo -e "${GREEN}✓${NC} Removing worktree..."
+  git worktree remove "$WORKTREE_PATH" --force
+
+  echo -e "${GREEN}✓${NC} Deleting branch..."
+  git branch -D "$BRANCH_NAME"
+
+  echo ""
+  echo -e "${GREEN}✓ Session complete and cleaned up!${NC}"
+else
+  echo ""
+  echo "Worktree and branch kept. Clean up later with: cc-cleanup $FEATURE_NAME"
+fi
+
+echo ""
+echo "To push to remote:"
+echo "  git push origin main"
+echo ""

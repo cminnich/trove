@@ -1,0 +1,117 @@
+#!/bin/bash
+# Start a new Claude Code session in parallel worktree
+
+set -e
+
+# Configuration
+MAIN_REPO=$(git rev-parse --show-toplevel)
+WORKTREE_BASE="${MAIN_REPO}-work"
+BRANCH_PREFIX="cc"
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Usage
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <feature-name> [description]"
+  echo ""
+  echo "Examples:"
+  echo "  $0 extraction-pipeline \"Build Jina + Claude extraction\""
+  echo "  $0 collections-ui"
+  echo ""
+  exit 1
+fi
+
+FEATURE_NAME=$1
+DESCRIPTION=${2:-"Working on $FEATURE_NAME"}
+BRANCH_NAME="${BRANCH_PREFIX}/${FEATURE_NAME}"
+WORKTREE_PATH="${WORKTREE_BASE}/${FEATURE_NAME}"
+
+echo -e "${BLUE}Starting new Claude Code session...${NC}"
+echo ""
+
+# Check if worktree already exists
+if [ -d "$WORKTREE_PATH" ]; then
+  echo -e "${YELLOW}⚠️  Worktree already exists at: $WORKTREE_PATH${NC}"
+  echo "Resume existing session or remove it first with: cc-cleanup $FEATURE_NAME"
+  exit 1
+fi
+
+# Check if branch already exists
+if git show-ref --verify --quiet refs/heads/$BRANCH_NAME; then
+  echo -e "${YELLOW}⚠️  Branch '$BRANCH_NAME' already exists${NC}"
+  echo "Using existing branch..."
+else
+  echo -e "${GREEN}✓${NC} Creating new branch: $BRANCH_NAME"
+fi
+
+# Create worktree base directory if needed
+mkdir -p "$WORKTREE_BASE"
+
+# Create worktree
+echo -e "${GREEN}✓${NC} Creating worktree at: $WORKTREE_PATH"
+git worktree add -b "$BRANCH_NAME" "$WORKTREE_PATH" 2>/dev/null || git worktree add "$WORKTREE_PATH" "$BRANCH_NAME"
+
+# Copy context files from main (if they exist and aren't gitignored ephemeral files)
+echo -e "${GREEN}✓${NC} Setting up context files..."
+cd "$WORKTREE_PATH"
+
+# Create task-specific CONTEXT.md
+cat > CONTEXT.md << EOF
+# Session Context
+
+## Current State
+Branch: $BRANCH_NAME
+Working on: $DESCRIPTION
+
+## Active Work
+Task: $FEATURE_NAME
+
+## Recent Decisions
+- $(date +%Y-%m-%d): Started work on $FEATURE_NAME
+
+## Known Issues
+- None yet
+
+## Next Session
+Continue working on: $FEATURE_NAME
+
+## Notes
+This is a parallel Claude Code session. See main branch for other work.
+EOF
+
+# Create task-specific TODO if it doesn't exist
+if [ ! -f "TODO-${FEATURE_NAME}.md" ]; then
+  cat > "TODO-${FEATURE_NAME}.md" << EOF
+# TODO: $FEATURE_NAME
+
+## Current Task: $DESCRIPTION
+
+### Subtasks
+- [ ] Task 1
+- [ ] Task 2
+- [ ] Task 3
+
+## Notes
+- Add task-specific notes here
+EOF
+fi
+
+echo ""
+echo -e "${GREEN}✓ Ready to code!${NC}"
+echo ""
+echo "Next steps:"
+echo "  1. cd $WORKTREE_PATH"
+echo "  2. Open Claude Code in this directory"
+echo "  3. Start prompt:"
+echo ""
+echo -e "${BLUE}Read .clinerules and PROJECT.md to understand the project."
+echo "Read CONTEXT.md to see this session's task."
+echo "Read ~/Development/claude-code-system/GLOBAL_RULES.md for my coding principles."
+echo "Summarize what we're working on and create a plan.${NC}"
+echo ""
+echo "When done, integrate with: cc-finish $FEATURE_NAME"
+echo ""

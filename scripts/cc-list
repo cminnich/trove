@@ -1,0 +1,40 @@
+#!/bin/bash
+# List all active Claude Code worktrees
+
+set -e
+
+# Configuration
+MAIN_REPO=$(git rev-parse --show-toplevel)
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo -e "${BLUE}Active Claude Code Sessions:${NC}"
+echo ""
+
+# List all worktrees
+git worktree list
+
+echo ""
+echo -e "${BLUE}Feature Branches:${NC}"
+echo ""
+
+# List all cc/* branches
+git branch --list "cc/*" --format="%(refname:short)" | while read -r branch; do
+  # Get last commit message
+  last_commit=$(git log -1 --pretty=format:"%s" "$branch" 2>/dev/null || echo "No commits")
+  echo -e "${GREEN}$branch${NC}"
+  echo "  └─ $last_commit"
+  echo ""
+done
+
+# Check if any branches exist
+if ! git branch --list "cc/*" | grep -q .; then
+  echo "No feature branches found."
+  echo ""
+  echo "Start a new session with: cc-start <feature-name>"
+  echo ""
+fi

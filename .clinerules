@@ -1,0 +1,102 @@
+# Trove Development Rules
+
+## Global Context
+See ~/Development/claude-code-system/GLOBAL_RULES.md for universal principles.
+
+## Project Context
+Building an MVP for Trove - a personal knowledge graph/collection manager optimized for AI consumption.
+
+## Current Phase: POC
+- iPhone shortcut → save links to DB
+- AI extraction of product data (Jina + Claude)
+- Simple visualization by category/tag
+- Export optimized for LLM context (copy/paste)
+
+## Tech Stack (see STACK.md for details)
+- Next.js 15 (App Router)
+- TypeScript
+- Supabase (Postgres + Auth)
+- Tailwind CSS
+- Anthropic Claude API
+- Jina AI Reader (free tier)
+
+## Trove-Specific Patterns
+
+### AI Extraction Pipeline
+```typescript
+// Always store both raw markdown AND extracted JSON
+// Include confidence scores with all extractions
+// Handle failures gracefully (save partial data)
+
+const extraction = {
+  rawMarkdown: jinaOutput,
+  extracted: claudeOutput,
+  confidence: 0.85,
+  model: 'claude-sonnet-4-20250514',
+  extractedAt: new Date()
+};
+```
+
+### Database Schema Philosophy
+- **UUID primary keys** everywhere (future-proof for multi-user)
+- **Flexible attributes** via JSONB for item-specific data
+- **Store extraction metadata** (which model, when, confidence)
+- **Timestamps** on everything for debugging/analytics
+
+### Mobile-First Design
+```typescript
+// This is iPhone-primary - desktop is secondary
+// Test all UI on mobile viewport first
+// Deep links must work reliably from iOS share sheet
+```
+
+## File Organization
+```
+app/
+  api/
+    extract/         # Jina + Claude extraction
+  add/               # Deep link page for iOS shortcut
+  collections/       # Collection views
+
+lib/
+  supabase.ts        # Supabase client
+  extract.ts         # Extraction logic
+  types.ts           # Shared types
+
+components/
+  ui/                # Reusable UI components
+
+prompts/
+  extraction.txt     # Claude extraction prompt
+```
+
+## When Working on This Project
+
+1. Read PROJECT.md for current status and decisions
+2. Check TODO.md for next phase
+3. Test extraction with REAL URLs (don't mock)
+4. Always run TypeScript check before committing
+5. Mobile viewport first - this is for iPhone
+
+## Trove-Specific Constraints
+
+### What NOT to Do
+- Don't add features not in TODO.md (scope creep kills POCs)
+- Don't optimize prematurely (make it work first)
+- Don't add tests yet (POC phase - validate first)
+- Don't worry about auth yet (single-user for now)
+- Don't add animations/polish yet (functional first)
+
+### What to ALWAYS Do
+- Store raw markdown from Jina (debugging/reprocessing)
+- Include confidence scores (know when extraction is weak)
+- Handle extraction failures gracefully (partial data > nothing)
+- Test on actual iPhone (not just simulator)
+- Update PROJECT.md learnings as we discover gotchas
+
+## Success Criteria for POC
+- [ ] Can share link from Safari → saves to DB
+- [ ] AI extraction runs and saves structured data
+- [ ] Can view saved items grouped by category
+- [ ] Can export collection as formatted text for LLM
+- [ ] Works on iPhone
