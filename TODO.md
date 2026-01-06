@@ -1,18 +1,18 @@
 # TODO
 
-## Phase 1: Setup & Database (Start Here)
-- [ ] Initialize Next.js project
-- [ ] Set up Supabase project
-- [ ] Create database schema
-- [ ] Add environment variables
-- [ ] Test DB connection
+## Phase 1: Setup & Database ✅ COMPLETE
+- [x] Initialize Next.js project
+- [x] Set up Supabase project
+- [x] Create database schema
+- [x] Add environment variables
+- [x] Test DB connection
 
-## Phase 2: Extraction Pipeline
-- [ ] Create /api/extract endpoint
-- [ ] Implement Jina AI fetch
-- [ ] Implement Claude extraction
-- [ ] Add error handling
-- [ ] Test with 5 different URLs
+## Phase 2: Extraction Pipeline ✅ COMPLETE
+- [x] Create /api/extract endpoint
+- [x] Implement Jina AI fetch
+- [x] Implement Claude extraction
+- [x] Add error handling
+- [x] Test with 5 different URLs
 
 ## Phase 3: Deep Link Handler  
 - [ ] Create /add page
@@ -51,7 +51,9 @@
 - [ ] Basic animations
 
 ## Bugs / Issues
-- (none yet)
+- Some sites (REI, B&H Photo) fail extraction - likely due to JS-heavy pages or complex structures
+- Amazon extraction works but often misses price data
+- Jina AI reader may return 404 errors for some valid URLs
 
 ## Ideas for Later
 - Photo upload
