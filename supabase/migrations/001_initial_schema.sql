@@ -24,7 +24,7 @@ create table items (
   id uuid primary key default gen_random_uuid(),
 
   -- Source
-  source_url text,
+  source_url text unique, -- prevent duplicate URLs
   raw_markdown text, -- from Jina
 
   -- Extracted (from Claude)
@@ -46,6 +46,7 @@ create table items (
   -- Metadata
   confidence_score numeric, -- 0-1 from extraction
   extraction_model text, -- which model version
+  last_viewed_at timestamp, -- track staleness for price refresh
   created_at timestamp default now(),
   updated_at timestamp default now()
 );

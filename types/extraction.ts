@@ -29,4 +29,5 @@ export interface ExtractResponse {
     extraction_model: string;
   };
   error?: string;
+  needs_review?: boolean; // Flag for low confidence extractions (< 0.7)
 }

@@ -64,6 +64,7 @@ export type Database = {
           user_notes: string | null;
           confidence_score: number | null;
           extraction_model: string | null;
+          last_viewed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -83,6 +84,7 @@ export type Database = {
           user_notes?: string | null;
           confidence_score?: number | null;
           extraction_model?: string | null;
+          last_viewed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -102,6 +104,7 @@ export type Database = {
           user_notes?: string | null;
           confidence_score?: number | null;
           extraction_model?: string | null;
+          last_viewed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

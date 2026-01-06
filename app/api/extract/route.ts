@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { ProductExtractionSchema, type ExtractRequest, type ExtractResponse } from "@/types/extraction";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -8,6 +10,13 @@ const anthropic = new Anthropic({
 
 const JINA_READER_BASE = "https://r.jina.ai/";
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const LOW_CONFIDENCE_THRESHOLD = 0.7;
+
+// Load extraction prompt from file
+const EXTRACTION_PROMPT = readFileSync(
+  join(process.cwd(), "prompts", "extraction.txt"),
+  "utf-8"
+);
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,39 +69,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 2: Extract structured data using Claude
+    const promptContent = EXTRACTION_PROMPT.replace("{{MARKDOWN_CONTENT}}", markdown);
+
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
       max_tokens: 2048,
       messages: [
         {
           role: "user",
-          content: `You are a product data extraction assistant. Extract structured product information from the following webpage content.
-
-Be thorough and accurate. If information is not available, use null. For the confidence_score, rate how confident you are in the extraction quality from 0 to 1.
-
-For attributes, include any relevant product-specific details like:
-- Specifications (dimensions, weight, materials)
-- Variants (colors, sizes available)
-- Features or highlights
-- Condition (new, used, refurbished)
-
-Return ONLY valid JSON matching this exact schema:
-{
-  "title": "string (required)",
-  "brand": "string or null",
-  "price": "number or null (no currency symbols)",
-  "currency": "string or null (USD, EUR, GBP, etc.)",
-  "retailer": "string or null",
-  "image_url": "string or null (full URL)",
-  "category": "string or null",
-  "tags": "array of strings or null",
-  "attributes": "object with any additional properties",
-  "confidence_score": "number between 0 and 1"
-}
-
-Webpage content:
-
-${markdown}`,
+          content: promptContent,
         },
       ],
     });
@@ -118,6 +103,9 @@ ${markdown}`,
     // Validate with Zod schema
     const validated = ProductExtractionSchema.parse(extracted);
 
+    // Flag low confidence extractions for manual review
+    const needsReview = validated.confidence_score < LOW_CONFIDENCE_THRESHOLD;
+
     // Return successful response
     const response: ExtractResponse = {
       success: true,
@@ -127,6 +115,7 @@ ${markdown}`,
         raw_markdown: markdown,
         extraction_model: CLAUDE_MODEL,
       },
+      needs_review: needsReview,
     };
 
     return NextResponse.json(response);
