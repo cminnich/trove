@@ -75,6 +75,28 @@ Validate that the core loop works:
 - Clean markdown output
 - Fast
 
+## Architecture: Many-to-Many as Contextual Knowledge Engine
+
+The `collection_items` junction table is where items gain contextual meaning:
+- Same watch can be in "My Collection" (note: "daily driver") AND "Gift Ideas" (note: "for Dad")
+- Position allows manual ordering per collection
+- Notes are collection-specific, not global to the item
+
+### 4-Tier Data Hierarchy
+| Tier | Field | Location | Purpose |
+|------|-------|----------|---------|
+| 1. Librarian | `item_type` | items table | System anchor for AI reasoning |
+| 2. Department | `category` | items table | Retail-level metadata |
+| 3. Traits | `tags` | items table | Item-level descriptors |
+| 4. Context | `collections` | junction table | Organizational playlists |
+
+**Key Insight**: Objective facts (what it is) live on the item. Subjective context (why you saved it, where it fits) lives on the junction table.
+
+This separation enables AI reasoning like:
+- "What watches do I own?" → filter by collection
+- "What's similar to this watch?" → compare item attributes
+- "Why did I save this?" → read collection-specific notes
+
 ## Success Metrics (POC)
 - Can save 10 products via shortcut without friction
 - Extraction accuracy >80% (title, price, image)

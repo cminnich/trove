@@ -43,6 +43,24 @@ const extraction = {
 - **Store extraction metadata** (which model, when, confidence)
 - **Timestamps** on everything for debugging/analytics
 
+### 4-Tier Data Hierarchy ("Librarian vs. Assistant")
+| Tier | Field | Purpose |
+|------|-------|---------|
+| 1. Librarian | `item_type` | System anchor for AI reasoning (watch, wine, product) |
+| 2. Department | `category` | Retail-level metadata, objective filtering |
+| 3. Traits | `tags` | Item-level descriptors across all collections |
+| 4. Context | `collections` | Organizational playlists with context-specific notes |
+
+**Key Rule**: Objective facts live on items table. Subjective context lives on collection_items junction.
+
+### Extraction Philosophy
+- `item_type` is auto-detected by Claude - never hardcode domain lists
+- `attributes` is a flexible JSONB blob (`Record<string, unknown>`) - never create domain-specific Zod schemas
+- Never perform database migrations for new item domains - `item_type` is text, not enum
+- Trust Claude's world knowledge for domain detection and attribute extraction
+- Only enforce formatting conventions in the prompt (snake_case, units in key names)
+- Never enumerate domains or fields in the extraction prompt
+
 ### Mobile-First Design
 ```typescript
 // This is iPhone-primary - desktop is secondary

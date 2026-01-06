@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
         image_url: extracted.image_url,
         category: extracted.category,
         tags: extracted.tags,
+        item_type: extracted.item_type || "product",
         attributes: extracted.attributes || {},
         confidence_score: extracted.confidence_score,
         extraction_model: extracted.extraction_model,

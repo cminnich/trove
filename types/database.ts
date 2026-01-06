@@ -53,6 +53,7 @@ export type Database = {
           source_url: string | null;
           raw_markdown: string | null;
           title: string;
+          item_type: string;
           brand: string | null;
           price: number | null;
           currency: string | null;
@@ -73,6 +74,7 @@ export type Database = {
           source_url?: string | null;
           raw_markdown?: string | null;
           title: string;
+          item_type?: string;
           brand?: string | null;
           price?: number | null;
           currency?: string | null;
@@ -93,6 +95,7 @@ export type Database = {
           source_url?: string | null;
           raw_markdown?: string | null;
           title?: string;
+          item_type?: string;
           brand?: string | null;
           price?: number | null;
           currency?: string | null;

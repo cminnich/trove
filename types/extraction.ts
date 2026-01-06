@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // Zod schema for product extraction
 export const ProductExtractionSchema = z.object({
+  item_type: z.string().default("product").describe("System-level type (watch, wine, product, etc.)"),
   title: z.string().describe("The product name or title"),
   brand: z.string().nullable().describe("The brand or manufacturer"),
   price: z.number().nullable().describe("The price as a number (without currency symbols)"),
