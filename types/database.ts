@@ -50,7 +50,6 @@ export type Database = {
       items: {
         Row: {
           id: string;
-          collection_id: string | null;
           source_url: string | null;
           raw_markdown: string | null;
           title: string;
@@ -70,7 +69,6 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          collection_id?: string | null;
           source_url?: string | null;
           raw_markdown?: string | null;
           title: string;
@@ -90,7 +88,6 @@ export type Database = {
         };
         Update: {
           id?: string;
-          collection_id?: string | null;
           source_url?: string | null;
           raw_markdown?: string | null;
           title?: string;
@@ -107,6 +104,29 @@ export type Database = {
           extraction_model?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      collection_items: {
+        Row: {
+          collection_id: string;
+          item_id: string;
+          added_at: string;
+          position: number | null;
+          notes: string | null;
+        };
+        Insert: {
+          collection_id: string;
+          item_id: string;
+          added_at?: string;
+          position?: number | null;
+          notes?: string | null;
+        };
+        Update: {
+          collection_id?: string;
+          item_id?: string;
+          added_at?: string;
+          position?: number | null;
+          notes?: string | null;
         };
       };
     };

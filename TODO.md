@@ -14,21 +14,37 @@
 - [x] Add error handling
 - [x] Test with 5 different URLs
 
-## Phase 3: Deep Link Handler  
+## Phase 2B: Database Integration & Many-to-Many Schema ✅ COMPLETE
+- [x] Migrate schema to many-to-many (items ↔ collections)
+- [x] Create collection_items junction table with metadata
+- [x] Update TypeScript database types
+- [x] Create /api/items POST endpoint (save extracted data)
+- [x] Create /api/collections CRUD endpoints
+- [x] Create /api/collections/[id]/items GET/POST endpoints
+- [x] Test items in multiple collections
+- [x] Verify collection-specific notes and position
+- [x] Update documentation
+
+## Phase 3: Deep Link Handler
 - [ ] Create /add page
 - [ ] Handle URL parameter
 - [ ] Show extraction loading state
 - [ ] Show extracted data for confirmation
-- [ ] Save to database
-- [ ] Success confirmation
+- [ ] Allow selecting multiple collections (checkboxes)
+- [ ] Save to database via POST /api/items
+- [ ] Success confirmation with collection list
 
 ## Phase 4: Collections View
 - [ ] Create /collections page
-- [ ] List all collections
-- [ ] Create new collection
-- [ ] View items in collection
-- [ ] Filter by category
-- [ ] Sort options
+- [ ] List all collections with item counts
+- [ ] Create new collection modal
+- [ ] View items in a specific collection
+- [ ] Show collection-specific notes on items
+- [ ] Reorder items within collection (drag-and-drop or position input)
+- [ ] Add/remove items from current collection
+- [ ] Show which collections each item belongs to
+- [ ] Filter by category/tags
+- [ ] Sort options (by position, added_at, price, etc.)
 
 ## Phase 5: AI Export
 - [ ] Add "Copy for AI" button

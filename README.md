@@ -148,24 +148,47 @@ trove/
 
 ### Database Schema
 
-The database includes three main tables:
+The database uses a **many-to-many relationship** for items and collections:
 - **users** - User accounts (for future)
 - **collections** - Organize items (like playlists)
 - **items** - Products/things with extracted metadata
+- **collection_items** - Junction table linking items to collections with metadata (position, notes, added_at)
+
+**Key features:**
+- Items can belong to multiple collections (e.g., gift-ideas, inventory, kid1-wishlist)
+- Items can exist in zero collections ("inbox" workflow)
+- Collection-specific metadata: position (manual ordering), notes (context-specific annotations)
 
 See `supabase/migrations/001_initial_schema.sql` for the full schema.
 
-### API Flow
+### API Endpoints
+
+**Extraction:**
+- `POST /api/extract` - Extract product data from URL (Jina + Claude)
+- `POST /api/items` - Create item from URL and optionally add to collections
+
+**Collections:**
+- `GET /api/collections` - List all collections
+- `POST /api/collections` - Create a new collection
+- `GET /api/collections/[id]` - Get collection details
+- `PATCH /api/collections/[id]` - Update collection
+- `DELETE /api/collections/[id]` - Delete collection
+
+**Collection Items:**
+- `GET /api/collections/[id]/items` - List items in collection (with metadata)
+- `POST /api/collections/[id]/items` - Add existing item to collection
+
+### Capture Flow
 
 ```
 1. User shares URL via shortcut
 2. Deep link opens: /add?url={encoded_url}
-3. Frontend calls: POST /api/extract
-4. Server fetches markdown from Jina
-5. Server sends to Claude for extraction
-6. Returns structured JSON
-7. Frontend shows confirmation UI
-8. User saves to collection
+3. Frontend calls: POST /api/items with URL + collection IDs
+4. Server calls /api/extract internally (Jina + Claude)
+5. Server saves item to database
+6. Server adds item to specified collections with metadata
+7. Returns item data + collection assignments
+8. Frontend shows success confirmation
 ```
 
 ## Success Metrics (POC)

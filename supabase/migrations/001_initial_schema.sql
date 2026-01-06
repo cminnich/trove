@@ -22,7 +22,6 @@ create table collections (
 -- Items table (the products)
 create table items (
   id uuid primary key default gen_random_uuid(),
-  collection_id uuid references collections(id) on delete cascade,
 
   -- Source
   source_url text,
@@ -51,11 +50,27 @@ create table items (
   updated_at timestamp default now()
 );
 
+-- Junction table for many-to-many relationship between items and collections
+create table collection_items (
+  collection_id uuid references collections(id) on delete cascade,
+  item_id uuid references items(id) on delete cascade,
+
+  -- Metadata
+  added_at timestamp default now(),
+  position integer, -- for manual ordering within collection (nullable for flexibility)
+  notes text, -- collection-specific notes (e.g., "gift for kid1" vs "already own")
+
+  -- Composite primary key prevents duplicate entries
+  primary key (collection_id, item_id)
+);
+
 -- Indexes for performance
-create index items_collection_id_idx on items(collection_id);
 create index items_category_idx on items(category);
 create index items_tags_idx on items using gin(tags);
 create index collections_user_id_idx on collections(user_id);
+create index collection_items_item_id_idx on collection_items(item_id);
+create index collection_items_collection_id_idx on collection_items(collection_id);
+create index collection_items_position_idx on collection_items(collection_id, position);
 
 -- Updated_at trigger function
 create or replace function update_updated_at_column()
