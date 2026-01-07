@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -9,13 +9,13 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
 }
 
 // Client for use in client components (uses Publishable Key)
-export const supabase = createClient<Database>(
+export const supabase: SupabaseClient<Database> = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 // Server client with Secret Key (for server-side only operations with privileged access)
-export function getServerClient() {
+export function getServerClient(): SupabaseClient<Database> {
   if (!process.env.SUPABASE_SECRET_KEY) {
     throw new Error("Missing env.SUPABASE_SECRET_KEY");
   }

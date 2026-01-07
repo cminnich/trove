@@ -64,14 +64,16 @@ export async function POST(req: NextRequest) {
 
     const supabase = getServerClient();
 
+    const insertData: Database["public"]["Tables"]["collections"]["Insert"] = {
+      name: body.name,
+      description: body.description,
+      type: body.type,
+      user_id: null, // POC: no user auth yet
+    };
+
     const { data, error } = await supabase
       .from("collections")
-      .insert({
-        name: body.name,
-        description: body.description,
-        type: body.type,
-        user_id: null, // POC: no user auth yet
-      })
+      .insert(insertData as any)
       .select()
       .single();
 

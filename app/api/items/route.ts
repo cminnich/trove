@@ -79,25 +79,26 @@ export async function POST(req: NextRequest) {
     const extracted = extractionResult.data;
 
     // Step 3: Save item to database
+    const insertData: Database["public"]["Tables"]["items"]["Insert"] = {
+      source_url: extracted.source_url,
+      raw_markdown: extracted.raw_markdown,
+      title: extracted.title,
+      brand: extracted.brand,
+      price: extracted.price,
+      currency: extracted.currency,
+      retailer: extracted.retailer,
+      image_url: extracted.image_url,
+      category: extracted.category,
+      tags: extracted.tags,
+      item_type: extracted.item_type || "product",
+      attributes: extracted.attributes || {},
+      confidence_score: extracted.confidence_score,
+      extraction_model: extracted.extraction_model,
+    };
 
     const { data: item, error: itemError } = await supabase
       .from("items")
-      .insert({
-        source_url: extracted.source_url,
-        raw_markdown: extracted.raw_markdown,
-        title: extracted.title,
-        brand: extracted.brand,
-        price: extracted.price,
-        currency: extracted.currency,
-        retailer: extracted.retailer,
-        image_url: extracted.image_url,
-        category: extracted.category,
-        tags: extracted.tags,
-        item_type: extracted.item_type || "product",
-        attributes: extracted.attributes || {},
-        confidence_score: extracted.confidence_score,
-        extraction_model: extracted.extraction_model,
-      })
+      .insert(insertData as any)
       .select()
       .single();
 
@@ -114,18 +115,20 @@ export async function POST(req: NextRequest) {
 
     // Step 4: Add item to collections if specified
     const addedCollections: string[] = [];
+    const savedItem = item as Database["public"]["Tables"]["items"]["Row"];
 
     if (body.collections && body.collections.length > 0) {
-      const collectionItems = body.collections.map((col) => ({
-        item_id: item.id,
-        collection_id: col.id,
-        position: col.position,
-        notes: col.notes,
-      }));
+      const collectionItems: Database["public"]["Tables"]["collection_items"]["Insert"][] =
+        body.collections.map((col) => ({
+          item_id: savedItem.id,
+          collection_id: col.id,
+          position: col.position,
+          notes: col.notes,
+        }));
 
       const { error: junctionError } = await supabase
         .from("collection_items")
-        .insert(collectionItems);
+        .insert(collectionItems as any);
 
       if (junctionError) {
         // Item was saved but collection assignment failed

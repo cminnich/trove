@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import type { Database } from '@/types/database'
 
 type Item = Database['public']['Tables']['items']['Row']
@@ -12,7 +12,7 @@ type AddState =
   | { status: 'success'; item: Item; isDuplicate?: boolean; needsReview?: boolean }
   | { status: 'error'; error: string; canRetry?: boolean }
 
-export default function AddPage() {
+function AddPageContent() {
   const searchParams = useSearchParams()
   const urlParam = searchParams?.get('url')
   const [state, setState] = useState<AddState>({ status: 'idle' })
@@ -144,6 +144,15 @@ export default function AddPage() {
         </form>
       </div>
     </main>
+  )
+}
+
+// Wrap in Suspense for useSearchParams
+export default function AddPage() {
+  return (
+    <Suspense fallback={<LoadingView />}>
+      <AddPageContent />
+    </Suspense>
   )
 }
 

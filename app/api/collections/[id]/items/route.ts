@@ -11,6 +11,14 @@ interface ItemWithCollectionMetadata extends Item {
   notes: string | null;
 }
 
+// Type for the joined query result
+type CollectionItemWithItem = {
+  added_at: string;
+  position: number | null;
+  notes: string | null;
+  items: Item;
+}
+
 interface CollectionItemsResponse {
   success: boolean;
   data?: ItemWithCollectionMetadata[];
@@ -60,10 +68,9 @@ export async function GET(
     }
 
     // Flatten the nested structure
-    const items: ItemWithCollectionMetadata[] = data.map((ci) => {
-      const item = ci.items as unknown as Item;
+    const items: ItemWithCollectionMetadata[] = (data as CollectionItemWithItem[]).map((ci) => {
       return {
-        ...item,
+        ...ci.items,
         added_at: ci.added_at,
         position: ci.position,
         notes: ci.notes,
@@ -114,12 +121,16 @@ export async function POST(
 
     if (existing) {
       // Item already in collection - update metadata instead
+      const existingItem = existing as Database["public"]["Tables"]["collection_items"]["Row"];
+      const updateData: Database["public"]["Tables"]["collection_items"]["Update"] = {
+        position: body.position !== undefined ? body.position : existingItem.position,
+        notes: body.notes !== undefined ? body.notes : existingItem.notes,
+      };
+
       const { data, error } = await supabase
         .from("collection_items")
-        .update({
-          position: body.position !== undefined ? body.position : existing.position,
-          notes: body.notes !== undefined ? body.notes : existing.notes,
-        })
+        // @ts-expect-error - Supabase type inference issue
+        .update(updateData)
         .eq("collection_id", collection_id)
         .eq("item_id", body.item_id)
         .select()
@@ -140,14 +151,16 @@ export async function POST(
     }
 
     // Add item to collection
+    const insertData: Database["public"]["Tables"]["collection_items"]["Insert"] = {
+      collection_id,
+      item_id: body.item_id,
+      position: body.position,
+      notes: body.notes,
+    };
+
     const { data, error } = await supabase
       .from("collection_items")
-      .insert({
-        collection_id,
-        item_id: body.item_id,
-        position: body.position,
-        notes: body.notes,
-      })
+      .insert(insertData as any)
       .select()
       .single();
 

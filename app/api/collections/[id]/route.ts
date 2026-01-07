@@ -81,6 +81,7 @@ export async function PATCH(
 
     const { data, error } = await supabase
       .from("collections")
+      // @ts-expect-error - Supabase type inference issue
       .update(updateData)
       .eq("id", id)
       .select()
