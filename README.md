@@ -126,6 +126,9 @@ npm run build       # Production build
 npm run start       # Start production server
 npm run lint        # Run ESLint
 npm run type-check  # TypeScript validation
+npm run test        # Run all tests
+npm run test:watch  # Run tests in watch mode
+npm run test:ui     # Run tests with UI
 ```
 
 ### Project Structure
@@ -191,6 +194,37 @@ See `supabase/migrations/001_initial_schema.sql` for the full schema.
 8. Frontend shows success confirmation
 ```
 
+### Testing
+
+Trove includes comprehensive test coverage using **Vitest**.
+
+**Quick start:**
+```bash
+npm run test        # Run all tests (unit tests)
+npm run test:watch  # Auto-rerun tests on file changes
+```
+
+**Test types:**
+- **Unit tests** - Schema validation, business logic (no external dependencies)
+- **Integration tests** - API endpoint testing (requires dev server + API keys)
+
+**Run integration tests:**
+```bash
+# Terminal 1
+npm run dev
+
+# Terminal 2
+npm run test tests/integration
+```
+
+See [tests/README.md](tests/README.md) for comprehensive testing documentation.
+
+**Current test coverage:**
+- ✅ 18 schema validation tests (ProductExtractionSchema)
+- ✅ 9 API integration tests (/api/extract endpoint)
+- 📝 Items CRUD tests (planned)
+- 📝 Collections CRUD tests (planned)
+
 ## Success Metrics (POC)
 
 - Can save 10 products via shortcut without friction
@@ -198,8 +232,26 @@ See `supabase/migrations/001_initial_schema.sql` for the full schema.
 - Collection view is usable on iPhone
 - AI export is useful for actual Claude chat
 
+## Deployment
+
+Trove is optimized for deployment on **Vercel** (Next.js's native platform).
+
+**Quick Deploy:**
+1. Push to GitHub
+2. Import to Vercel
+3. Add environment variables (Anthropic API, Supabase)
+4. Deploy in one click
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide, including:
+- One-click Vercel deployment
+- Environment variables setup
+- iOS Shortcut configuration for testing
+- Monitoring and debugging
+- Cost estimation
+
 ## Documentation
 
+- [DEPLOYMENT.md](DEPLOYMENT.md) - **Deployment guide for Vercel (start here for testing)**
 - [PROJECT.md](PROJECT.md) - Project vision, goals, and roadmap
 - [STACK.md](STACK.md) - Detailed tech stack information
 - [SETUP.md](SETUP.md) - Detailed setup instructions
