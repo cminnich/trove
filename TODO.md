@@ -33,17 +33,18 @@
 - [ ] Implement URL deduplication check (24hr cache window)
 - [ ] Add RLS policies preparation notes for future auth
 
-## Phase 3: Deep Link Handler - "Shadow Save" (iPhone Share Sheet)
-- [ ] Create /add page with mobile-first responsive design
-- [ ] Handle URL parameter from iOS Shortcut
-- [ ] **Shadow Save**: Immediately save item with "extracting..." status
-- [ ] Start extraction in background (non-blocking)
-- [ ] Show instant success confirmation ("Saved! Extracting details...")
-- [ ] Poll or webhook to update UI when extraction completes
-- [ ] Collection selector (checkboxes) - defaults to "Inbox"
-- [ ] Handle low confidence items (needs_review flag) with visual indicator
-- [ ] Allow quick edit of collection assignments
-- [ ] Test full flow: iOS Share Sheet → Instant Save → Background Extraction
+## Phase 3: /add Page - iOS Shortcuts Integration ✅ COMPLETE
+- [x] Create /add page with mobile-first responsive design
+- [x] Handle URL parameter from iOS Shortcut (?url=...)
+- [x] **Browser-based flow**: Show loading → POST /api/items → Show success
+- [x] Loading state with animation (3-10s extraction duration)
+- [x] Success view with extracted item preview
+- [x] Handle low confidence items (needs_review flag) with visual warning
+- [x] Error handling with retry functionality
+- [x] Duplicate URL detection (saves API cost)
+- [x] Test full flow: iOS Share Sheet → Browser → Extraction → Success
+
+**Note:** Original plan included "Shadow Save" (instant save with background extraction and polling). After UX analysis, chose simpler synchronous browser-based flow with rich loading feedback for the 3-10 second extraction duration.
 
 ## Phase 4: Collections View (Mobile-First)
 - [ ] **Mobile-responsive CSS** - Touch-friendly, works on iPhone primarily

@@ -33,7 +33,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 1: Extract product data from URL
+    // Step 1: Check for duplicate URL (saves API costs)
+    const supabase = getServerClient();
+    const { data: existingItem } = await supabase
+      .from('items')
+      .select('id, title, created_at, image_url, price, currency, brand, item_type, confidence_score')
+      .eq('source_url', body.url)
+      .single();
+
+    if (existingItem) {
+      return NextResponse.json({
+        success: true,
+        duplicate: true,
+        data: existingItem
+      });
+    }
+
+    // Step 2: Extract product data from URL
     const extractResponse = await fetch(`${req.nextUrl.origin}/api/extract`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -62,8 +78,7 @@ export async function POST(req: NextRequest) {
 
     const extracted = extractionResult.data;
 
-    // Step 2: Save item to database
-    const supabase = getServerClient();
+    // Step 3: Save item to database
 
     const { data: item, error: itemError } = await supabase
       .from("items")
@@ -97,7 +112,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 3: Add item to collections if specified
+    // Step 4: Add item to collections if specified
     const addedCollections: string[] = [];
 
     if (body.collections && body.collections.length > 0) {
@@ -127,7 +142,7 @@ export async function POST(req: NextRequest) {
       addedCollections.push(...body.collections.map((c) => c.id));
     }
 
-    // Step 4: Return success response
+    // Step 5: Return success response
     return NextResponse.json({
       success: true,
       data: {
