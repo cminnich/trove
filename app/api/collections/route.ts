@@ -16,12 +16,13 @@ interface CollectionResponse {
   error?: string;
 }
 
-// GET /api/collections - List all collections
+// GET /api/collections - List all collections with thumbnails and item counts
 export async function GET() {
   try {
     const supabase = getServerClient();
 
-    const { data, error } = await supabase
+    // Get all collections first
+    const { data: collections, error } = await supabase
       .from("collections")
       .select("*")
       .order("created_at", { ascending: false });
@@ -34,9 +35,40 @@ export async function GET() {
       );
     }
 
+    // For each collection, fetch item count and first 4 thumbnails
+    const collectionsWithMetadata = await Promise.all(
+      (collections as Collection[]).map(async (collection) => {
+        const { data: items } = await supabase
+          .from("collection_items")
+          .select(`
+            items!inner (
+              image_url
+            )
+          `)
+          .eq("collection_id", collection.id)
+          .limit(4);
+
+        const thumbnails = items
+          ?.map((item: any) => item.items?.image_url)
+          .filter((url): url is string => !!url) || [];
+
+        // Get total item count
+        const { count } = await supabase
+          .from("collection_items")
+          .select("*", { count: "exact", head: true })
+          .eq("collection_id", collection.id);
+
+        return {
+          ...collection,
+          thumbnail_urls: thumbnails,
+          item_count: count || 0,
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      data,
+      data: collectionsWithMetadata,
     } as CollectionResponse);
   } catch (error) {
     console.error("Error fetching collections:", error);
@@ -51,6 +83,9 @@ export async function GET() {
 }
 
 // POST /api/collections - Create a new collection
+// NOTE: This endpoint uses server client which bypasses RLS.
+// For production, consider moving collection creation to client-side
+// or implementing proper auth context on the server.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as CreateCollectionRequest;
@@ -64,11 +99,14 @@ export async function POST(req: NextRequest) {
 
     const supabase = getServerClient();
 
+    // TODO: Get authenticated user ID from request headers or JWT
+    // For now, owner_id will be null (orphaned collection)
     const insertData: Database["public"]["Tables"]["collections"]["Insert"] = {
       name: body.name,
       description: body.description,
       type: body.type,
-      user_id: null, // POC: no user auth yet
+      owner_id: null, // TODO: Set to authenticated user ID
+      visibility: 'private', // Default to private
     };
 
     const { data, error } = await supabase

@@ -33,19 +33,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 1: Check for duplicate URL (saves API costs)
+    // Step 1: Check for recent extraction (within 24 hours) to prevent duplicate API costs
     const supabase = getServerClient();
-    const { data: existingItem } = await supabase
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: recentItems } = await supabase
       .from('items')
       .select('id, title, created_at, image_url, price, currency, brand, item_type, confidence_score')
       .eq('source_url', body.url)
-      .single();
+      .gte('created_at', oneDayAgo)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-    if (existingItem) {
+    if (recentItems && recentItems.length > 0) {
+      const existingItem = recentItems[0];
       return NextResponse.json({
         success: true,
         duplicate: true,
-        data: existingItem
+        data: existingItem,
+        message: 'Item extracted recently (within 24 hours)'
       });
     }
 

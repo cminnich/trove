@@ -44,10 +44,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(req.url);
+    const sortBy = searchParams.get("sort") || "position";
+
     const supabase = getServerClient();
 
     // Query items with collection metadata via JOIN
-    const { data, error } = await supabase
+    let query = supabase
       .from("collection_items")
       .select(`
         added_at,
@@ -55,9 +58,12 @@ export async function GET(
         notes,
         items (*)
       `)
-      .eq("collection_id", id)
-      .order("position", { ascending: true, nullsFirst: false })
-      .order("added_at", { ascending: false });
+      .eq("collection_id", id);
+
+    // Apply sorting based on sort parameter
+    // Note: We need to fetch all data first, then sort in memory for item fields
+    // because Supabase doesn't support ordering by nested fields directly
+    const { data, error } = await query;
 
     if (error) {
       console.error("Failed to fetch collection items:", error);
@@ -68,7 +74,7 @@ export async function GET(
     }
 
     // Flatten the nested structure
-    const items: ItemWithCollectionMetadata[] = (data as CollectionItemWithItem[]).map((ci) => {
+    let items: ItemWithCollectionMetadata[] = (data as CollectionItemWithItem[]).map((ci) => {
       return {
         ...ci.items,
         added_at: ci.added_at,
@@ -76,6 +82,48 @@ export async function GET(
         notes: ci.notes,
       };
     });
+
+    // Sort in memory based on sort parameter
+    switch (sortBy) {
+      case "position":
+        items.sort((a, b) => {
+          if (a.position === null) return 1;
+          if (b.position === null) return -1;
+          return a.position - b.position;
+        });
+        break;
+      case "recent":
+        items.sort((a, b) => new Date(b.added_at).getTime() - new Date(a.added_at).getTime());
+        break;
+      case "price_asc":
+        items.sort((a, b) => {
+          if (a.price === null) return 1;
+          if (b.price === null) return -1;
+          return a.price - b.price;
+        });
+        break;
+      case "price_desc":
+        items.sort((a, b) => {
+          if (a.price === null) return 1;
+          if (b.price === null) return -1;
+          return b.price - a.price;
+        });
+        break;
+      case "category":
+        items.sort((a, b) => {
+          if (!a.category) return 1;
+          if (!b.category) return -1;
+          return a.category.localeCompare(b.category);
+        });
+        break;
+      default:
+        // Default to position sort
+        items.sort((a, b) => {
+          if (a.position === null) return 1;
+          if (b.position === null) return -1;
+          return a.position - b.position;
+        });
+    }
 
     return NextResponse.json({
       success: true,

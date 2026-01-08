@@ -1,48 +1,60 @@
 export type Database = {
   public: {
     Tables: {
-      users: {
+      profiles: {
         Row: {
           id: string;
           email: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          email?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string | null;
-          created_at?: string;
-        };
-      };
-      collections: {
-        Row: {
-          id: string;
-          user_id: string | null;
-          name: string;
-          description: string | null;
-          type: string | null;
+          phone: string | null;
+          avatar_url: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
-          id?: string;
-          user_id?: string | null;
-          name: string;
-          description?: string | null;
-          type?: string | null;
+          id: string;
+          email?: string | null;
+          phone?: string | null;
+          avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          user_id?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          avatar_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      collections: {
+        Row: {
+          id: string;
+          owner_id: string | null;
+          name: string;
+          description: string | null;
+          type: string | null;
+          visibility: 'public' | 'private';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string | null;
+          name: string;
+          description?: string | null;
+          type?: string | null;
+          visibility?: 'public' | 'private';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string | null;
           name?: string;
           description?: string | null;
           type?: string | null;
+          visibility?: 'public' | 'private';
           created_at?: string;
           updated_at?: string;
         };
@@ -62,7 +74,6 @@ export type Database = {
           category: string | null;
           tags: string[] | null;
           attributes: Record<string, unknown>;
-          user_notes: string | null;
           confidence_score: number | null;
           extraction_model: string | null;
           last_viewed_at: string | null;
@@ -83,7 +94,6 @@ export type Database = {
           category?: string | null;
           tags?: string[] | null;
           attributes?: Record<string, unknown>;
-          user_notes?: string | null;
           confidence_score?: number | null;
           extraction_model?: string | null;
           last_viewed_at?: string | null;
@@ -104,7 +114,6 @@ export type Database = {
           category?: string | null;
           tags?: string[] | null;
           attributes?: Record<string, unknown>;
-          user_notes?: string | null;
           confidence_score?: number | null;
           extraction_model?: string | null;
           last_viewed_at?: string | null;
@@ -133,6 +142,41 @@ export type Database = {
           added_at?: string;
           position?: number | null;
           notes?: string | null;
+        };
+      };
+      collection_access: {
+        Row: {
+          id: string;
+          collection_id: string;
+          invited_identity: string;
+          user_id: string | null;
+          access_level: 'viewer' | 'editor';
+          expires_at: string | null;
+          granted_by: string;
+          granted_at: string;
+          claimed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          collection_id: string;
+          invited_identity: string;
+          user_id?: string | null;
+          access_level: 'viewer' | 'editor';
+          expires_at?: string | null;
+          granted_by: string;
+          granted_at?: string;
+          claimed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          collection_id?: string;
+          invited_identity?: string;
+          user_id?: string | null;
+          access_level?: 'viewer' | 'editor';
+          expires_at?: string | null;
+          granted_by?: string;
+          granted_at?: string;
+          claimed_at?: string | null;
         };
       };
     };
