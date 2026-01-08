@@ -46,7 +46,7 @@ create table items (
   collection_id uuid references collections(id),
   
   -- Source
-  source_url text,
+  source_url text, -- indexed but not unique (allows periodic re-extraction)
   raw_markdown text, -- from Jina
   
   -- Extracted (from Claude)
@@ -61,10 +61,7 @@ create table items (
   
   -- Flexible attributes
   attributes jsonb default '{}',
-  
-  -- Notes
-  user_notes text,
-  
+
   -- Metadata
   confidence_score numeric, -- 0-1 from extraction
   extraction_model text, -- which model version
@@ -98,7 +95,13 @@ SUPABASE_SECRET_KEY=sb_secret_...     # Secret Key (server-side only)
     "react-dom": "^19",
     "@supabase/supabase-js": "^2.39.0",
     "@anthropic-ai/sdk": "^0.32.1",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^9.0.1",
+    "@dnd-kit/utilities": "^3.2.2",
+    "swr": "^2.2.7",
+    "zustand": "^5.0.3",
+    "lucide-react": "^0.469.0"
   },
   "devDependencies": {
     "typescript": "^5",
@@ -112,16 +115,46 @@ SUPABASE_SECRET_KEY=sb_secret_...     # Secret Key (server-side only)
 }
 ```
 
+**Phase 4 Dependencies:**
+- **@dnd-kit** - Touch-optimized drag-and-drop library (core, sortable, utilities)
+- **swr** - Server state management with caching and revalidation
+- **zustand** - Lightweight client state management for UI state
+- **lucide-react** - Icon library for UI components
+
 ## Deployment
 - **Hosting**: Vercel (free tier)
 - **Database**: Supabase (free tier)
 - **Domain**: TBD (trove.app?)
+
+## Testing
+
+### Playwright (Browser Automation)
+- **MCP Integration** - Playwright tools available via Claude Code MCP server
+- **Usage**: Default testing approach for all UI features and user flows
+- **When to use**:
+  - Validating capture flow (/add page)
+  - Testing extraction results display
+  - Verifying responsive layouts
+  - Testing collection views and interactions
+  - Validating form submissions and API responses
+- **Requires**: Dev server running (`npm run dev`)
+- **Access**: Claude Code can use Playwright tools directly (no setup needed)
+
+### Vitest (Unit/Integration Tests)
+- Unit tests for schemas, utilities, business logic
+- Integration tests for API endpoints
+- See `tests/README.md` for details
 
 ## Development
 ```bash
 npm run dev         # Start dev server (localhost:3000)
 npm run build       # Production build
 npm run type-check  # TypeScript validation
+
+# Testing
+npm run test        # Unit tests (Vitest)
+npm run test:watch  # Auto-rerun tests on file changes
+# Playwright: Available via Claude Code MCP (no separate command)
 ```
 
 ## API Patterns

@@ -43,11 +43,15 @@ Validate that the core loop works:
 ### What We're NOT Building Yet
 - Native iOS app (just PWA + shortcut)
 - Photo upload (URL only for POC)
-- Auth/multi-user (single user - you)
-- Sharing collections
 - Price tracking
 - Bulk import
 - Mobile app polish
+
+### Recently Implemented
+- **Multi-user authentication** via Supabase Auth (Google OAuth)
+- **Row-Level Security (RLS)** for data isolation
+- **Collection sharing** with email/phone invitations
+- **Public/private collections** with visibility controls
 
 ## Tech Decisions
 
@@ -116,5 +120,10 @@ This separation enables AI reasoning like:
 
 ## Learnings (will update as we go)
 - TBD
+
+## Detailed Documentation
+
+For in-depth information about specific features:
+- **[AUTH_SHARING.md](./AUTH_SHARING.md)** - Complete authentication and sharing system design, including multi-user architecture, RLS policies, and future roadmap
 
 ## Next Steps (see TODO.md)

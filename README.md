@@ -196,7 +196,35 @@ See `supabase/migrations/001_initial_schema.sql` for the full schema.
 
 ### Testing
 
-Trove includes comprehensive test coverage using **Vitest**.
+Trove uses a **multi-layered testing approach** with Playwright as the default for UI validation.
+
+#### Playwright (Browser Automation) - **Default for UI Testing**
+
+**MCP Integration**: Available directly through Claude Code via Playwright MCP server.
+
+**Usage Pattern:**
+1. Start dev server: `npm run dev`
+2. Claude Code uses Playwright tools to:
+   - Navigate to pages (`/add`, `/collections`)
+   - Take snapshots and screenshots
+   - Click buttons, fill forms, test interactions
+   - Verify responsive layouts
+   - Validate extraction results display
+   - Test complete user flows
+
+**When to use Playwright:**
+- ✅ Any UI feature or component
+- ✅ User flows (capture → extract → save)
+- ✅ Form validation and submission
+- ✅ Responsive layout verification
+- ✅ Visual regression testing
+
+**Example test scenarios:**
+- Capture flow: Load /add?url=... → verify extraction → save to collection
+- Collections view: List items → filter by category → verify display
+- Responsive: Resize viewport to 375x667 → verify mobile layout
+
+#### Vitest (Unit/Integration Tests)
 
 **Quick start:**
 ```bash
@@ -224,6 +252,10 @@ See [tests/README.md](tests/README.md) for comprehensive testing documentation.
 - ✅ 9 API integration tests (/api/extract endpoint)
 - 📝 Items CRUD tests (planned)
 - 📝 Collections CRUD tests (planned)
+
+#### Testing Philosophy
+
+**Default to Playwright** for any feature involving UI, user interaction, or visual verification. Use Vitest for pure logic, schemas, and API contracts. Playwright provides the most value for a UI-heavy application like Trove.
 
 ## Success Metrics (POC)
 
