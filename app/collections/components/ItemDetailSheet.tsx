@@ -28,6 +28,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
   const [notes, setNotes] = useState('')
   const [category, setCategory] = useState('')
   const [tags, setTags] = useState<string[]>([])
+  const [imageUrl, setImageUrl] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
       setNotes(item.notes || '')
       setCategory(item.category || '')
       setTags(item.tags || [])
+      setImageUrl(item.image_url || '')
     }
   }, [item])
 
@@ -45,12 +47,16 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
   const handleSave = async () => {
     setSaving(true)
     try {
-      // Update item fields (category, tags)
-      if (category !== item.category || JSON.stringify(tags) !== JSON.stringify(item.tags || [])) {
+      // Update item fields (category, tags, image_url)
+      if (
+        category !== item.category ||
+        JSON.stringify(tags) !== JSON.stringify(item.tags || []) ||
+        imageUrl !== (item.image_url || '')
+      ) {
         await fetch(`/api/items/${item.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ category, tags }),
+          body: JSON.stringify({ category, tags, image_url: imageUrl || null }),
         })
       }
 
@@ -80,6 +86,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
     setNotes(item.notes || '')
     setCategory(item.category || '')
     setTags(item.tags || [])
+    setImageUrl(item.image_url || '')
     setEditMode(false)
   }
 
@@ -92,15 +99,45 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
         )}
 
         {/* Image */}
-        {item.image_url && (
+        {(item.image_url || imageUrl || editMode) && (
           <div className="w-full aspect-square max-h-96 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center">
-            <img
-              src={item.image_url}
-              alt={item.title}
-              className="w-full h-full object-contain"
-            />
+            {(editMode && imageUrl) || item.image_url ? (
+              <img
+                src={editMode ? (imageUrl || item.image_url) : item.image_url}
+                alt={item.title}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%239ca3af"%3EImage not found%3C/text%3E%3C/svg%3E'
+                }}
+              />
+            ) : (
+              <div className="text-center text-gray-400 p-8">
+                <p className="text-sm">No image yet</p>
+                <p className="text-xs mt-2">Add an image URL below</p>
+              </div>
+            )}
           </div>
         )}
+
+        {/* Image URL - Editable */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Image URL
+          </label>
+          {editMode ? (
+            <input
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              placeholder="https://example.com/image.jpg"
+            />
+          ) : (
+            <p className="text-gray-900 dark:text-gray-100 text-sm truncate">
+              {item.image_url || <span className="text-gray-400">No image</span>}
+            </p>
+          )}
+        </div>
 
         {/* Title & Brand */}
         <div>
