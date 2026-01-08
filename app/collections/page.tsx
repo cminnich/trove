@@ -1,17 +1,24 @@
 'use client'
 
+import { useState } from 'react'
 import { useCollections } from '@/app/hooks/useCollections'
 import { CollectionGrid } from './components/CollectionGrid'
 import { EmptyState } from './components/EmptyState'
+import { CreateCollectionSheet } from './components/CreateCollectionSheet'
 import { useRouter } from 'next/navigation'
 
 export default function CollectionsPage() {
-  const { collections, isLoading, isError, error } = useCollections()
+  const { collections, isLoading, isError, error, mutate } = useCollections()
   const router = useRouter()
+  const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false)
 
   const handleCreateCollection = () => {
-    // TODO: Open create collection modal/sheet
-    console.log('Create collection clicked')
+    setIsCreateSheetOpen(true)
+  }
+
+  const handleCreateSuccess = () => {
+    // Refresh collections data after successful creation
+    mutate()
   }
 
   return (
@@ -76,6 +83,13 @@ export default function CollectionsPage() {
           </svg>
         </button>
       )}
+
+      {/* Create Collection Sheet */}
+      <CreateCollectionSheet
+        open={isCreateSheetOpen}
+        onClose={() => setIsCreateSheetOpen(false)}
+        onSuccess={handleCreateSuccess}
+      />
     </div>
   )
 }
