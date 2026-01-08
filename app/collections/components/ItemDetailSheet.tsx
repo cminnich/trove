@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { BottomSheet } from '@/app/components/BottomSheet'
 import { ConfidenceBadge } from '@/app/components/ConfidenceBadge'
+import { TagChipSelector } from './TagChipSelector'
 import { ExternalLink, Save, X } from 'lucide-react'
 import type { Database } from '@/types/database'
 
@@ -141,19 +142,17 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
         </div>
 
         {/* Tags - Editable */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Tags
-          </label>
-          {editMode ? (
-            <input
-              type="text"
-              value={tags.join(', ')}
-              onChange={(e) => setTags(e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              placeholder="tag1, tag2, tag3"
-            />
-          ) : (
+        {editMode ? (
+          <TagChipSelector
+            value={tags}
+            onChange={setTags}
+            disabled={saving}
+          />
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tags
+            </label>
             <div className="flex flex-wrap gap-2">
               {item.tags && item.tags.length > 0 ? (
                 item.tags.map((tag, i) => (
@@ -168,8 +167,8 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
                 <span className="text-gray-400">No tags</span>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Item Type & Retailer */}
         <div className="grid grid-cols-2 gap-4">
