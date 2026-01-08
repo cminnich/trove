@@ -33,26 +33,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 1: Check for recent extraction (within 24 hours) to prevent duplicate API costs
+    // Step 1: Check if this URL has been extracted before
     const supabase = getServerClient();
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: recentItems } = await supabase
+    const { data: existingItems }: {
+      data: Database["public"]["Tables"]["items"]["Row"][] | null;
+    } = await supabase
       .from('items')
-      .select('id, title, created_at, image_url, price, currency, brand, item_type, confidence_score')
+      .select('*')
       .eq('source_url', body.url)
-      .gte('created_at', oneDayAgo)
-      .order('created_at', { ascending: false })
+      .order('last_extracted_at', { ascending: false, nullsFirst: false })
       .limit(1);
 
-    if (recentItems && recentItems.length > 0) {
-      const existingItem = recentItems[0];
-      return NextResponse.json({
-        success: true,
-        duplicate: true,
-        data: existingItem,
-        message: 'Item extracted recently (within 24 hours)'
-      });
+    const existingItem: Database["public"]["Tables"]["items"]["Row"] | null =
+      existingItems && existingItems.length > 0 ? existingItems[0] : null;
+
+    // If item exists and was extracted recently (within 24 hours), return it without re-extracting
+    if (existingItem && existingItem.last_extracted_at) {
+      const lastExtractedAt = new Date(existingItem.last_extracted_at);
+      if (lastExtractedAt > new Date(oneDayAgo)) {
+        return NextResponse.json({
+          success: true,
+          duplicate: true,
+          data: existingItem,
+          message: 'Item extracted recently (within 24 hours)'
+        });
+      }
     }
 
     // Step 2: Extract product data from URL
@@ -84,39 +91,154 @@ export async function POST(req: NextRequest) {
 
     const extracted = extractionResult.data;
 
-    // Step 3: Save item to database
-    const insertData: Database["public"]["Tables"]["items"]["Insert"] = {
-      source_url: extracted.source_url,
-      raw_markdown: extracted.raw_markdown,
-      title: extracted.title,
-      brand: extracted.brand,
-      price: extracted.price,
-      currency: extracted.currency,
-      retailer: extracted.retailer,
-      image_url: extracted.image_url,
-      category: extracted.category,
-      tags: extracted.tags,
-      item_type: extracted.item_type || "product",
-      attributes: extracted.attributes || {},
-      confidence_score: extracted.confidence_score,
-      extraction_model: extracted.extraction_model,
-    };
+    // Step 3: Save or update item and create snapshot
+    let item: Database["public"]["Tables"]["items"]["Row"];
 
-    const { data: item, error: itemError } = await supabase
-      .from("items")
-      .insert(insertData as any)
-      .select()
-      .single();
+    if (existingItem) {
+      // Item exists - create a new snapshot and update the item
+      const snapshotData: Database["public"]["Tables"]["item_snapshots"]["Insert"] = {
+        item_id: existingItem.id,
+        price: extracted.price,
+        currency: extracted.currency,
+        image_url: extracted.image_url,
+        raw_markdown: extracted.raw_markdown,
+        captured_at: new Date().toISOString(),
+      };
 
-    if (itemError || !item) {
-      console.error("Failed to save item:", itemError);
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Failed to save item: ${itemError?.message || "Unknown error"}`
-        } as CreateItemResponse,
-        { status: 500 }
-      );
+      const { data: snapshot, error: snapshotError }: {
+        data: Database["public"]["Tables"]["item_snapshots"]["Row"] | null;
+        error: any;
+      } = await supabase
+        .from("item_snapshots")
+        .insert(snapshotData as any)
+        .select()
+        .single();
+
+      if (snapshotError || !snapshot) {
+        console.error("Failed to create snapshot:", snapshotError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Failed to create snapshot: ${snapshotError?.message || "Unknown error"}`
+          } as CreateItemResponse,
+          { status: 500 }
+        );
+      }
+
+      // Update the item with latest data and snapshot reference
+      const updateData: Database["public"]["Tables"]["items"]["Update"] = {
+        raw_markdown: extracted.raw_markdown,
+        title: extracted.title,
+        brand: extracted.brand,
+        price: extracted.price,
+        currency: extracted.currency,
+        retailer: extracted.retailer,
+        image_url: extracted.image_url,
+        category: extracted.category,
+        tags: extracted.tags,
+        item_type: extracted.item_type || "product",
+        attributes: extracted.attributes || {},
+        confidence_score: extracted.confidence_score,
+        extraction_model: extracted.extraction_model,
+        last_extracted_at: new Date().toISOString(),
+        current_snapshot_id: snapshot.id,
+      };
+
+      const { data: updatedItem, error: updateError }: {
+        data: Database["public"]["Tables"]["items"]["Row"] | null;
+        error: any;
+      } = await (supabase
+        .from("items")
+        // @ts-expect-error - Supabase RLS type inference issue
+        .update(updateData)
+        .eq("id", existingItem.id)
+        .select()
+        .single() as any);
+
+      if (updateError || !updatedItem) {
+        console.error("Failed to update item:", updateError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Failed to update item: ${updateError?.message || "Unknown error"}`
+          } as CreateItemResponse,
+          { status: 500 }
+        );
+      }
+
+      item = updatedItem;
+    } else {
+      // New item - create both item and first snapshot
+      const insertData: Database["public"]["Tables"]["items"]["Insert"] = {
+        source_url: extracted.source_url,
+        raw_markdown: extracted.raw_markdown,
+        title: extracted.title,
+        brand: extracted.brand,
+        price: extracted.price,
+        currency: extracted.currency,
+        retailer: extracted.retailer,
+        image_url: extracted.image_url,
+        category: extracted.category,
+        tags: extracted.tags,
+        item_type: extracted.item_type || "product",
+        attributes: extracted.attributes || {},
+        confidence_score: extracted.confidence_score,
+        extraction_model: extracted.extraction_model,
+        last_extracted_at: new Date().toISOString(),
+      };
+
+      const { data: newItem, error: itemError }: {
+        data: Database["public"]["Tables"]["items"]["Row"] | null;
+        error: any;
+      } = await supabase
+        .from("items")
+        .insert(insertData as any)
+        .select()
+        .single();
+
+      if (itemError || !newItem) {
+        console.error("Failed to save item:", itemError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Failed to save item: ${itemError?.message || "Unknown error"}`
+          } as CreateItemResponse,
+          { status: 500 }
+        );
+      }
+
+      // Create the first snapshot
+      const snapshotData: Database["public"]["Tables"]["item_snapshots"]["Insert"] = {
+        item_id: newItem.id,
+        price: extracted.price,
+        currency: extracted.currency,
+        image_url: extracted.image_url,
+        raw_markdown: extracted.raw_markdown,
+        captured_at: new Date().toISOString(),
+      };
+
+      const { data: snapshot, error: snapshotError }: {
+        data: Database["public"]["Tables"]["item_snapshots"]["Row"] | null;
+        error: any;
+      } = await supabase
+        .from("item_snapshots")
+        .insert(snapshotData as any)
+        .select()
+        .single();
+
+      if (snapshotError || !snapshot) {
+        console.error("Failed to create snapshot:", snapshotError);
+        // Item was created but snapshot failed - continue anyway
+      } else {
+        // Update item with current_snapshot_id
+        await (supabase
+          .from("items")
+          // @ts-expect-error - Supabase RLS type inference issue
+          .update({ current_snapshot_id: snapshot.id })
+          .eq("id", newItem.id) as any);
+      }
+
+      item = newItem;
     }
 
     // Step 4: Add item to collections if specified

@@ -77,6 +77,8 @@ export type Database = {
           confidence_score: number | null;
           extraction_model: string | null;
           last_viewed_at: string | null;
+          last_extracted_at: string | null;
+          current_snapshot_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -97,6 +99,8 @@ export type Database = {
           confidence_score?: number | null;
           extraction_model?: string | null;
           last_viewed_at?: string | null;
+          last_extracted_at?: string | null;
+          current_snapshot_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -117,8 +121,42 @@ export type Database = {
           confidence_score?: number | null;
           extraction_model?: string | null;
           last_viewed_at?: string | null;
+          last_extracted_at?: string | null;
+          current_snapshot_id?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      item_snapshots: {
+        Row: {
+          id: string;
+          item_id: string;
+          price: number | null;
+          currency: string | null;
+          image_url: string | null;
+          raw_markdown: string | null;
+          captured_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          item_id: string;
+          price?: number | null;
+          currency?: string | null;
+          image_url?: string | null;
+          raw_markdown?: string | null;
+          captured_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          item_id?: string;
+          price?: number | null;
+          currency?: string | null;
+          image_url?: string | null;
+          raw_markdown?: string | null;
+          captured_at?: string;
+          created_at?: string;
         };
       };
       collection_items: {

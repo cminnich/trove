@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { BottomSheet } from '@/app/components/BottomSheet'
 import { ConfidenceBadge } from '@/app/components/ConfidenceBadge'
 import { TagChipSelector } from './TagChipSelector'
-import { ExternalLink, Save, X } from 'lucide-react'
+import { ExternalLink, Save, X, Clock } from 'lucide-react'
 import type { Database } from '@/types/database'
 
 type Item = Database['public']['Tables']['items']['Row']
+type Snapshot = Database['public']['Tables']['item_snapshots']['Row']
 
 interface ItemWithCollectionMetadata extends Item {
   added_at: string
@@ -30,6 +31,9 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
   const [tags, setTags] = useState<string[]>([])
   const [imageUrl, setImageUrl] = useState('')
   const [saving, setSaving] = useState(false)
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [loadingSnapshots, setLoadingSnapshots] = useState(false)
+  const [showPriceHistory, setShowPriceHistory] = useState(false)
 
   useEffect(() => {
     if (item) {
@@ -37,6 +41,22 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
       setCategory(item.category || '')
       setTags(item.tags || [])
       setImageUrl(item.image_url || '')
+
+      // Fetch snapshots for this item
+      setLoadingSnapshots(true)
+      fetch(`/api/items/${item.id}/snapshots`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+            setSnapshots(data.data)
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch snapshots:', err)
+        })
+        .finally(() => {
+          setLoadingSnapshots(false)
+        })
     }
   }, [item])
 
@@ -103,7 +123,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
           <div className="w-full aspect-square max-h-96 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center">
             {(editMode && imageUrl) || item.image_url ? (
               <img
-                src={editMode ? (imageUrl || item.image_url) : item.image_url}
+                src={editMode ? (imageUrl || item.image_url || '') : (item.image_url || '')}
                 alt={item.title}
                 className="w-full h-full object-contain"
                 onError={(e) => {
@@ -151,10 +171,86 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
 
         {/* Price */}
         {item.price && item.currency && (
-          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 font-mono">
-            {item.currency === 'USD' && '$'}
-            {item.price.toLocaleString()}
-            {item.currency !== 'USD' && ` ${item.currency}`}
+          <div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 font-mono">
+              {item.currency === 'USD' && '$'}
+              {item.price.toLocaleString()}
+              {item.currency !== 'USD' && ` ${item.currency}`}
+            </div>
+
+            {/* Price History Indicator */}
+            {snapshots.length > 1 && (
+              <div className="mt-2">
+                <button
+                  onClick={() => setShowPriceHistory(!showPriceHistory)}
+                  className="inline-flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  <Clock className="w-4 h-4" />
+                  <span>{snapshots.length} price snapshots captured</span>
+                </button>
+
+                {/* Price History Display */}
+                {showPriceHistory && (
+                  <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Price History</h3>
+                    <div className="space-y-2">
+                      {snapshots.map((snapshot, index) => {
+                        const isLatest = index === 0
+                        const capturedDate = new Date(snapshot.captured_at)
+                        const previousSnapshot = snapshots[index + 1]
+                        let priceChange: 'up' | 'down' | 'same' | null = null
+
+                        if (previousSnapshot && snapshot.price !== null && previousSnapshot.price !== null) {
+                          if (snapshot.price > previousSnapshot.price) {
+                            priceChange = 'up'
+                          } else if (snapshot.price < previousSnapshot.price) {
+                            priceChange = 'down'
+                          } else {
+                            priceChange = 'same'
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={snapshot.id}
+                            className={`flex items-center justify-between p-2 rounded ${isLatest ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'bg-white dark:bg-gray-900'}`}
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-medium text-gray-900 dark:text-gray-100">
+                                  {snapshot.currency === 'USD' && '$'}
+                                  {snapshot.price?.toLocaleString() || 'N/A'}
+                                  {snapshot.currency !== 'USD' && snapshot.currency && ` ${snapshot.currency}`}
+                                </span>
+                                {priceChange === 'down' && (
+                                  <span className="text-xs text-green-600 dark:text-green-400">↓ Price drop</span>
+                                )}
+                                {priceChange === 'up' && (
+                                  <span className="text-xs text-red-600 dark:text-red-400">↑ Price increase</span>
+                                )}
+                                {isLatest && (
+                                  <span className="text-xs px-2 py-0.5 bg-indigo-600 text-white rounded-full">Current</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {capturedDate.toLocaleDateString()} at {capturedDate.toLocaleTimeString()}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Last Extracted Indicator */}
+            {item.last_extracted_at && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Last captured: {new Date(item.last_extracted_at).toLocaleDateString()}
+              </p>
+            )}
           </div>
         )}
 
