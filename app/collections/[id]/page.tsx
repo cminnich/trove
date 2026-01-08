@@ -12,7 +12,7 @@ import { EmptyState } from '../components/EmptyState'
 import { SortSheet } from '../components/SortSheet'
 import { ItemDetailSheet } from '../components/ItemDetailSheet'
 import { useItemDetailStore } from '@/app/stores/useItemDetailStore'
-import { ArrowLeft, SortAsc, GripVertical, X } from 'lucide-react'
+import { ArrowLeft, SortAsc, GripVertical, X, Share2, Check } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
@@ -35,6 +35,9 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   const [sortSheetOpen, setSortSheetOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [showEditToast, setShowEditToast] = useState(false)
+  const [showShareToast, setShowShareToast] = useState(false)
+  const [shareToastMessage, setShareToastMessage] = useState('')
+  const [showVisibilityDialog, setShowVisibilityDialog] = useState(false)
   const { items, isLoading, isError, error, mutate, reorder } = useCollectionItems(id, sortOrder)
   const { isOpen, itemId, openItemDetail, closeItemDetail } = useItemDetailStore()
   const autoExitTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -108,12 +111,113 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
     await reorder(itemPositions)
   }
 
+  const handleShareForAI = async () => {
+    if (!collection) return
+
+    // Check if collection is public
+    if (collection.visibility !== 'public') {
+      setShowVisibilityDialog(true)
+      return
+    }
+
+    // Generate the public URL
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    const contextUrl = `${baseUrl}/api/v1/collections/${id}/context`
+
+    // Copy to clipboard
+    try {
+      await navigator.clipboard.writeText(contextUrl)
+      setShareToastMessage('Link copied to clipboard!')
+      setShowShareToast(true)
+      setTimeout(() => setShowShareToast(false), 3000)
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+      setShareToastMessage('Failed to copy link')
+      setShowShareToast(true)
+      setTimeout(() => setShowShareToast(false), 3000)
+    }
+  }
+
+  const handleMakePublic = async () => {
+    try {
+      // Update collection visibility to 'public'
+      const response = await fetch(`/api/collections/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          visibility: 'public',
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update collection visibility')
+      }
+
+      // Revalidate collection data
+      mutate()
+
+      // Close dialog
+      setShowVisibilityDialog(false)
+
+      // Show success message and auto-share
+      setShareToastMessage('Collection is now public!')
+      setShowShareToast(true)
+      setTimeout(() => {
+        setShowShareToast(false)
+        // Auto-trigger share after making public
+        handleShareForAI()
+      }, 1500)
+    } catch (error) {
+      console.error('Failed to make collection public:', error)
+      setShareToastMessage('Failed to update collection')
+      setShowShareToast(true)
+      setTimeout(() => setShowShareToast(false), 3000)
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
-      {/* Toast Notification */}
+      {/* Toast Notifications */}
       {showEditToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-100 dark:bg-amber-900/90 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 px-6 py-3 rounded-lg shadow-lg animate-fade-in">
           Switch to &quot;Position&quot; sort to reorder items
+        </div>
+      )}
+
+      {showShareToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
+          <Check className="w-5 h-5" />
+          <span>{shareToastMessage}</span>
+        </div>
+      )}
+
+      {/* Visibility Dialog */}
+      {showVisibilityDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowVisibilityDialog(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Collection is Private
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              This collection is currently private. To share it with AI agents, you can make it public or generate a secure share link.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleMakePublic}
+                className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+              >
+                Make Public
+              </button>
+              <button
+                onClick={() => setShowVisibilityDialog(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -158,6 +262,16 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Share for AI Button */}
+            <button
+              onClick={handleShareForAI}
+              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2"
+              title="Share collection context with AI agents"
+            >
+              <Share2 className="w-4 h-4" />
+              <span className="text-sm hidden sm:inline">Share for AI</span>
+            </button>
+
             {/* Edit Button - Only show when sort is position and view is grid */}
             {sortOrder === 'position' && viewMode === 'grid' && !editMode && items.length > 0 && (
               <button

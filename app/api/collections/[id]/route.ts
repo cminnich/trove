@@ -14,6 +14,7 @@ interface UpdateCollectionRequest {
   name?: string;
   description?: string;
   type?: string;
+  visibility?: 'public' | 'private';
 }
 
 // GET /api/collections/[id] - Get a specific collection
@@ -65,7 +66,7 @@ export async function PATCH(
     const body = await req.json() as UpdateCollectionRequest;
 
     // Validate that at least one field is being updated
-    if (!body.name && !body.description && !body.type) {
+    if (!body.name && !body.description && !body.type && !body.visibility) {
       return NextResponse.json(
         { success: false, error: "No fields to update" } as CollectionResponse,
         { status: 400 }
@@ -78,6 +79,7 @@ export async function PATCH(
     if (body.name !== undefined) updateData.name = body.name;
     if (body.description !== undefined) updateData.description = body.description;
     if (body.type !== undefined) updateData.type = body.type;
+    if (body.visibility !== undefined) updateData.visibility = body.visibility;
 
     const { data, error } = await supabase
       .from("collections")
