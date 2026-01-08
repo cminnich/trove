@@ -44,19 +44,21 @@ export async function GET(
     const supabase = getServerClient();
 
     // Fetch collection to check visibility
-    const { data: collection, error: collectionError } = await supabase
+    const { data: collectionData, error: collectionError } = await supabase
       .from("collections")
       .select("*")
       .eq("id", id)
       .single();
 
-    if (collectionError) {
+    if (collectionError || !collectionData) {
       console.error("Failed to fetch collection:", collectionError);
       return NextResponse.json(
         { error: "Collection not found" },
         { status: 404 }
       );
     }
+
+    const collection = collectionData as Collection;
 
     // Privacy check: Only allow access if collection is public
     // TODO: Add share_token validation when sharing feature is implemented (Phase 8/9)
