@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Logo } from '@/app/components/Logo'
+import { AnimatedLogo } from '@/app/components/AnimatedLogo'
 
 const navLinks = [
   { name: 'Collections', href: '/collections' },
@@ -21,7 +21,7 @@ export function DesktopNav() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <Logo size={40} />
+            <AnimatedLogo size={40} />
             <span className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               Trove
             </span>
