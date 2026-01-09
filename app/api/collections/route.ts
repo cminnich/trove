@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerClient } from "@/lib/supabase";
+import { getAuthenticatedServerClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
 
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
@@ -17,14 +18,46 @@ interface CollectionResponse {
 }
 
 // GET /api/collections - List all collections with thumbnails and item counts
+// Automatically ensures Inbox collection exists
 export async function GET() {
   try {
-    const supabase = getServerClient();
+    // Get authenticated user
+    const { client, user, error: authError } = await getAuthenticatedServerClient();
 
-    // Get all collections first
-    const { data: collections, error } = await supabase
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" } as CollectionResponse,
+        { status: 401 }
+      );
+    }
+
+    // Ensure Inbox collection exists for this user
+    const { data: existingInbox } = await client
+      .from("collections")
+      .select("id")
+      .eq("owner_id", user.id)
+      .eq("name", "Inbox")
+      .eq("type", "inbox")
+      .maybeSingle();
+
+    if (!existingInbox) {
+      // Create Inbox collection
+      await client
+        .from("collections")
+        .insert({
+          name: "Inbox",
+          type: "inbox",
+          description: "Default collection for new items",
+          owner_id: user.id,
+          visibility: "private",
+        });
+    }
+
+    // Get all collections owned by this user
+    const { data: collections, error } = await client
       .from("collections")
       .select("*")
+      .eq("owner_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -34,6 +67,9 @@ export async function GET() {
         { status: 500 }
       );
     }
+
+    // Use server client for aggregations (bypasses RLS for performance)
+    const supabase = getServerClient();
 
     // For each collection, fetch item count and first 4 thumbnails
     const collectionsWithMetadata = await Promise.all(
@@ -83,9 +119,6 @@ export async function GET() {
 }
 
 // POST /api/collections - Create a new collection
-// NOTE: This endpoint uses server client which bypasses RLS.
-// For production, consider moving collection creation to client-side
-// or implementing proper auth context on the server.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as CreateCollectionRequest;
@@ -97,19 +130,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = getServerClient();
+    // Get authenticated user
+    const { client, user, error: authError } = await getAuthenticatedServerClient();
 
-    // TODO: Get authenticated user ID from request headers or JWT
-    // For now, owner_id will be null (orphaned collection)
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" } as CollectionResponse,
+        { status: 401 }
+      );
+    }
+
     const insertData: Database["public"]["Tables"]["collections"]["Insert"] = {
       name: body.name,
       description: body.description,
       type: body.type,
-      owner_id: null, // TODO: Set to authenticated user ID
+      owner_id: user.id,
       visibility: 'private', // Default to private
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("collections")
       .insert(insertData as any)
       .select()

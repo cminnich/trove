@@ -11,8 +11,7 @@ import { CollectionSelector } from './components/CollectionSelector'
 import { ExtractedItemCard } from './components/ExtractedItemCard'
 import { RecentlyTroved } from './components/RecentlyTroved'
 import { CaptureActions } from './components/CaptureActions'
-import { ensureInboxCollection } from '@/lib/inbox'
-import { supabase } from '@/lib/supabase'
+import { getClient } from '@/lib/supabase-client'
 
 type Item = Database['public']['Tables']['items']['Row']
 type Collection = Database['public']['Tables']['collections']['Row']
@@ -49,6 +48,8 @@ function AddPageContent() {
 
   // Check auth session on mount
   useEffect(() => {
+    const supabase = getClient()
+
     async function checkAuth() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -80,20 +81,16 @@ function AddPageContent() {
       }
 
       try {
-        // Ensure Inbox collection exists
-        await ensureInboxCollection(supabase)
+        // Fetch all collections via API endpoint (respects authentication)
+        // Note: API automatically ensures Inbox collection exists
+        const response = await fetch('/api/collections')
+        const result = await response.json()
 
-        // Fetch all collections
-        const { data, error } = await supabase
-          .from('collections')
-          .select('*')
-          .order('created_at', { ascending: false })
-
-        if (error) {
-          console.error('Error fetching collections:', error)
+        if (!result.success || result.error) {
+          console.error('Error fetching collections:', result.error)
           setCollections([])
         } else {
-          const collections = data as Collection[] || []
+          const collections = result.data as Collection[] || []
           setCollections(collections)
 
           // Auto-select Inbox if it exists and no collections selected yet
@@ -479,6 +476,7 @@ function SignInView({ urlParam }: { urlParam: string | null }) {
 
       // Preserve the current URL (including query params) for redirect
       const currentUrl = window.location.href
+      const supabase = getClient()
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
