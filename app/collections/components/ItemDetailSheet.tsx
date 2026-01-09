@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { BottomSheet } from '@/app/components/BottomSheet'
 import { ConfidenceBadge } from '@/app/components/ConfidenceBadge'
 import { TagChipSelector } from './TagChipSelector'
-import { ExternalLink, Save, X, Clock } from 'lucide-react'
+import { ExternalLink, Save, X, Clock, FolderOpen, Plus, Trash2, AlertTriangle } from 'lucide-react'
+import { useUserCollections } from '@/app/hooks/useUserCollections'
+import { useCollections } from '@/app/hooks/useCollections'
 import type { Database } from '@/types/database'
 
 type Item = Database['public']['Tables']['items']['Row']
@@ -34,6 +36,19 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [loadingSnapshots, setLoadingSnapshots] = useState(false)
   const [showPriceHistory, setShowPriceHistory] = useState(false)
+  const [syncNotes, setSyncNotes] = useState(false)
+  const [showCollectionsManager, setShowCollectionsManager] = useState(false)
+  const [addingToCollection, setAddingToCollection] = useState(false)
+  const [removingFromCollection, setRemovingFromCollection] = useState<string | null>(null)
+
+  // Fetch user collections containing this item
+  const { userCollections, mutate: mutateUserCollections, isLoading: loadingUserCollections } = useUserCollections(item?.id ?? null)
+
+  // Fetch all user collections
+  const { collections: allCollections } = useCollections()
+
+  // Collection count: show at least 1 if we know it's in the current collection
+  const collectionCount = loadingUserCollections ? 1 : Math.max(userCollections.length, 1)
 
   useEffect(() => {
     if (item) {
@@ -62,6 +77,20 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
 
   if (!item) return null
 
+  // Check if notes are inconsistent across collections
+  const hasInconsistentNotes = () => {
+    if (userCollections.length <= 1) return false
+    const uniqueNotes = new Set(userCollections.map(c => c.notes || ''))
+    return uniqueNotes.size > 1
+  }
+
+  const notesAreInconsistent = hasInconsistentNotes()
+
+  // Get collections not containing this item
+  const availableCollections = allCollections.filter(
+    c => !userCollections.find(uc => uc.id === c.id)
+  )
+
   const needsReview = item.confidence_score !== null && item.confidence_score < 0.7
 
   const handleSave = async () => {
@@ -80,25 +109,111 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
         })
       }
 
-      // Update collection-specific notes
+      // Update notes
       if (notes !== (item.notes || '')) {
-        await fetch(`/api/collections/${collectionId}/items`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            item_id: item.id,
-            notes,
-          }),
-        })
+        if (syncNotes && userCollections.length > 0) {
+          // Sync notes across all user collections
+          const collectionIds = userCollections.map(c => c.id)
+          await fetch(`/api/items/${item.id}/user-notes`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              notes,
+              collection_ids: collectionIds,
+            }),
+          })
+        } else {
+          // Update notes only for current collection
+          await fetch(`/api/collections/${collectionId}/items`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              item_id: item.id,
+              notes,
+            }),
+          })
+        }
       }
 
       setEditMode(false)
+      mutateUserCollections()
       onUpdate?.()
     } catch (error) {
       console.error('Failed to update item:', error)
       alert('Failed to save changes. Please try again.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSyncAllNotes = async () => {
+    if (!userCollections.length) return
+    setSaving(true)
+    try {
+      const collectionIds = userCollections.map(c => c.id)
+      await fetch(`/api/items/${item.id}/user-notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notes,
+          collection_ids: collectionIds,
+        }),
+      })
+      mutateUserCollections()
+      onUpdate?.()
+    } catch (error) {
+      console.error('Failed to sync notes:', error)
+      alert('Failed to sync notes. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleAddToCollection = async (targetCollectionId: string) => {
+    setAddingToCollection(true)
+    try {
+      const response = await fetch(`/api/collections/${targetCollectionId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          item_id: item.id,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to add item to collection')
+      }
+
+      // Wait for the mutation to complete before clearing loading state
+      await mutateUserCollections()
+      onUpdate?.()
+    } catch (error) {
+      console.error('Failed to add to collection:', error)
+      alert('Failed to add item to collection. Please try again.')
+    } finally {
+      setAddingToCollection(false)
+    }
+  }
+
+  const handleRemoveFromCollection = async (targetCollectionId: string) => {
+    setRemovingFromCollection(targetCollectionId)
+    try {
+      const response = await fetch(`/api/collections/${targetCollectionId}/items/${item.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to remove item from collection')
+      }
+
+      // Wait for the mutation to complete before clearing loading state
+      await mutateUserCollections()
+      onUpdate?.()
+    } catch (error) {
+      console.error('Failed to remove from collection:', error)
+      alert('Failed to remove item from collection. Please try again.')
+    } finally {
+      setRemovingFromCollection(null)
     }
   }
 
@@ -112,7 +227,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Item Details">
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="item-detail-sheet">
         {/* Confidence Badge */}
         {needsReview && (
           <ConfidenceBadge score={item.confidence_score ?? undefined} needsReview={needsReview} size="md" />
@@ -323,21 +438,142 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
           )}
         </div>
 
+        {/* Collections Manager */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <button
+            onClick={() => setShowCollectionsManager(!showCollectionsManager)}
+            className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            data-testid="collections-manager-toggle"
+          >
+            <FolderOpen className="w-4 h-4" />
+            <span>In {collectionCount} collection{collectionCount !== 1 ? 's' : ''}</span>
+          </button>
+
+          {showCollectionsManager && (
+            <div className="mt-4 space-y-3">
+              {/* Current Collections */}
+              <div data-testid="current-collections">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  CURRENT COLLECTIONS
+                </label>
+                {loadingUserCollections ? (
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-500">
+                    Loading collections...
+                  </div>
+                ) : userCollections.length === 0 ? (
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-500">
+                    No collections found
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {userCollections.map((collection) => (
+                      <div
+                        key={collection.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                      >
+                        <span className="text-sm text-gray-900 dark:text-gray-100 font-medium">
+                          {collection.name}
+                        </span>
+                        {userCollections.length > 1 && (
+                          <button
+                            onClick={() => handleRemoveFromCollection(collection.id)}
+                            disabled={removingFromCollection === collection.id}
+                            className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
+                            title="Remove from collection"
+                            data-testid={`remove-from-${collection.name}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Available Collections */}
+              {availableCollections.length > 0 && (
+                <div data-testid="available-collections">
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    ADD TO COLLECTION
+                  </label>
+                  <div className="space-y-2">
+                    {availableCollections.map((collection) => (
+                      <button
+                        key={collection.id}
+                        onClick={() => handleAddToCollection(collection.id)}
+                        disabled={addingToCollection}
+                        className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                        data-testid={`add-to-collection-${collection.name}`}
+                      >
+                        <span className="text-sm text-gray-900 dark:text-gray-100">
+                          {collection.name}
+                        </span>
+                        <Plus className="w-4 h-4 text-gray-400" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Collection Notes - Editable */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Notes (Collection-Specific)
           </label>
+
+          {/* Inconsistent Notes Warning */}
+          {notesAreInconsistent && !editMode && (
+            <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg" data-testid="inconsistent-notes-warning">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                    Notes are inconsistent across your collections
+                  </p>
+                  <button
+                    onClick={handleSyncAllNotes}
+                    disabled={saving}
+                    className="mt-2 text-xs text-amber-700 dark:text-amber-300 hover:underline disabled:opacity-50"
+                    data-testid="sync-all-notes-button"
+                  >
+                    Sync all to this version
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {editMode ? (
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none"
-              placeholder="Add notes specific to this collection..."
-            />
+            <>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none"
+                placeholder="Add notes specific to this collection..."
+                data-testid="notes-textarea"
+              />
+
+              {/* Sync Toggle */}
+              {userCollections.length > 1 && (
+                <label className="mt-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={syncNotes}
+                    onChange={(e) => setSyncNotes(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    data-testid="sync-notes-checkbox"
+                  />
+                  <span>Sync note across my {userCollections.length} collections</span>
+                </label>
+              )}
+            </>
           ) : (
-            <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+            <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap" data-testid="item-notes">
               {item.notes || <span className="text-gray-400">No notes</span>}
             </p>
           )}
@@ -393,6 +629,8 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
                 onClick={handleSave}
                 disabled={saving}
                 className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                data-testid="save-item-button"
+                data-saving={saving ? 'true' : undefined}
               >
                 <Save className="w-4 h-4" />
                 {saving ? 'Saving...' : 'Save Changes'}
@@ -401,6 +639,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
                 onClick={handleCancel}
                 disabled={saving}
                 className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                data-testid="cancel-edit-button"
               >
                 <X className="w-4 h-4" />
                 Cancel
@@ -410,6 +649,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
             <button
               onClick={() => setEditMode(true)}
               className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+              data-testid="edit-item-button"
             >
               Edit Item
             </button>
