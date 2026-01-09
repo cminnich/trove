@@ -474,14 +474,14 @@ function SignInView({ urlParam }: { urlParam: string | null }) {
     try {
       setSigningIn(true)
 
-      // Preserve the current URL (including query params) for redirect
-      const currentUrl = window.location.href
+      // Build redirect URL using current origin to ensure correct domain in production
+      const redirectUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`
       const supabase = getClient()
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: currentUrl
+          redirectTo: redirectUrl
         }
       })
 
