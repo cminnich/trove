@@ -31,6 +31,20 @@ export async function getAuthenticatedServerClient() {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
+        set(name: string, value: string, options: any) {
+          try {
+            cookieStore.set(name, value, options);
+          } catch (error) {
+            // Ignore errors from read-only cookie store in some contexts
+          }
+        },
+        remove(name: string, options: any) {
+          try {
+            cookieStore.set(name, '', { ...options, maxAge: 0 });
+          } catch (error) {
+            // Ignore errors from read-only cookie store in some contexts
+          }
+        },
       },
     }
   );

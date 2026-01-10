@@ -65,7 +65,7 @@ export async function PATCH(
     }
 
     // Check if all requested collections are owned by the user
-    const ownedCollectionIds = collections?.map((c) => c.id) || [];
+    const ownedCollectionIds = collections?.map((c: any) => c.id) || [];
     const unauthorizedCollections = body.collection_ids.filter(
       (id) => !ownedCollectionIds.includes(id)
     );
@@ -81,7 +81,7 @@ export async function PATCH(
     }
 
     // Update notes for all specified collections
-    const { error: updateError } = await client
+    const { error: updateError } = await (client as any)
       .from("collection_items")
       .update({ notes: body.notes })
       .eq("item_id", itemId)

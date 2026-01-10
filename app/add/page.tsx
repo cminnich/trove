@@ -474,8 +474,9 @@ function SignInView({ urlParam }: { urlParam: string | null }) {
     try {
       setSigningIn(true)
 
-      // Build redirect URL using current origin to ensure correct domain in production
-      const redirectUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`
+      // Build redirect URL through auth callback to properly set cookies
+      const currentPath = `${window.location.pathname}${window.location.search}`
+      const redirectUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(currentPath)}`
       const supabase = getClient()
 
       const { error } = await supabase.auth.signInWithOAuth({

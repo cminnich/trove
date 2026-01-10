@@ -1,4 +1,4 @@
-import { test as base } from '@playwright/test'
+import { test as base, Page } from '@playwright/test'
 
 /**
  * Authentication fixture for Playwright tests
@@ -11,11 +11,11 @@ import { test as base } from '@playwright/test'
  */
 
 type AuthFixtures = {
-  authenticatedPage: any
+  authenticatedPage: Page
 }
 
 export const test = base.extend<AuthFixtures>({
-  authenticatedPage: async ({ page }, use) => {
+  authenticatedPage: async ({ page }: { page: Page }, use) => {
     // TODO: Implement authentication flow
     // For now, this is a placeholder that assumes you have auth set up
     // Example:

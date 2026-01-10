@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerClient } from "@/lib/supabase";
+import { getAuthenticatedServerClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
 
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
@@ -24,9 +24,19 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = getServerClient();
 
-    const { data, error } = await supabase
+    // Authenticate user
+    const { client, user, error: authError } = await getAuthenticatedServerClient();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" } as CollectionResponse,
+        { status: 401 }
+      );
+    }
+
+    // Query using authenticated client - RLS automatically enforces access control
+    const { data, error } = await client
       .from("collections")
       .select("*")
       .eq("id", id)
@@ -73,7 +83,15 @@ export async function PATCH(
       );
     }
 
-    const supabase = getServerClient();
+    // Authenticate user
+    const { client, user, error: authError } = await getAuthenticatedServerClient();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" } as CollectionResponse,
+        { status: 401 }
+      );
+    }
 
     const updateData: Partial<Database["public"]["Tables"]["collections"]["Update"]> = {};
     if (body.name !== undefined) updateData.name = body.name;
@@ -81,7 +99,8 @@ export async function PATCH(
     if (body.type !== undefined) updateData.type = body.type;
     if (body.visibility !== undefined) updateData.visibility = body.visibility;
 
-    const { data, error } = await supabase
+    // Query using authenticated client - RLS automatically enforces ownership
+    const { data, error } = await client
       .from("collections")
       // @ts-expect-error - Supabase type inference issue
       .update(updateData)
@@ -120,9 +139,19 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabase = getServerClient();
 
-    const { error } = await supabase
+    // Authenticate user
+    const { client, user, error: authError } = await getAuthenticatedServerClient();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" } as CollectionResponse,
+        { status: 401 }
+      );
+    }
+
+    // Query using authenticated client - RLS automatically enforces ownership
+    const { error } = await client
       .from("collections")
       .delete()
       .eq("id", id);

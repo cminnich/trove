@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerClient } from "@/lib/supabase";
+import { getAuthenticatedServerClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
 
 interface ReorderRequest {
@@ -27,7 +27,32 @@ export async function PATCH(
       );
     }
 
-    const supabase = getServerClient();
+    // Authenticate user
+    const { client, user, error: authError } = await getAuthenticatedServerClient();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" } as ReorderResponse,
+        { status: 401 }
+      );
+    }
+
+    // Verify user has write access to this collection
+    const { data: collection, error: accessError } = await client
+      .from("collections")
+      .select("id")
+      .eq("id", collection_id)
+      .single();
+
+    if (accessError || !collection) {
+      return NextResponse.json(
+        { success: false, error: "Collection not found or access denied" } as ReorderResponse,
+        { status: 404 }
+      );
+    }
+
+    // Use authenticated client - RLS enforces write permissions
+    const supabase = client;
 
     // Update each item's position
     // Note: We do this in a loop since Supabase doesn't support batch updates with different values

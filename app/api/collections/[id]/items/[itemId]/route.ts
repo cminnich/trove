@@ -46,7 +46,10 @@ export async function DELETE(
       );
     }
 
-    if (collection.owner_id !== user.id) {
+    // Type assertion needed for Supabase select with specific columns
+    const typedCollection = collection as { id: string; owner_id: string; name: string };
+
+    if (typedCollection.owner_id !== user.id) {
       return NextResponse.json(
         { success: false, error: "You do not have permission to modify this collection" } as DeleteItemResponse,
         { status: 403 }
@@ -109,7 +112,7 @@ export async function DELETE(
             description: "Default collection for items without a home",
             type: "wishlist",
             visibility: "private",
-          })
+          } as any)
           .select()
           .single();
 
@@ -124,15 +127,23 @@ export async function DELETE(
         inbox = newInbox;
       }
 
+      // Ensure inbox is not null (TypeScript guard)
+      if (!inbox) {
+        return NextResponse.json(
+          { success: false, error: "Failed to get or create Inbox collection" } as DeleteItemResponse,
+          { status: 500 }
+        );
+      }
+
       // Add item to Inbox
       const { error: addToInboxError } = await client
         .from("collection_items")
         .insert({
-          collection_id: inbox.id,
+          collection_id: (inbox as Collection).id,
           item_id: itemId,
           notes: null,
           position: null,
-        });
+        } as any);
 
       if (addToInboxError) {
         console.error("Failed to add item to Inbox:", addToInboxError);
@@ -143,7 +154,7 @@ export async function DELETE(
       }
 
       addedToInbox = true;
-      inboxCollectionId = inbox.id;
+      inboxCollectionId = (inbox as Collection).id;
     }
 
     return NextResponse.json({

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedServerClient } from "@/lib/supabase-server";
 import { getServerClient } from "@/lib/supabase";
 import type { Database } from "@/types/database";
 
@@ -33,7 +34,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 1: Check if this URL has been extracted before
+    // Authenticate user - only authenticated users can create items
+    const { client, user, error: authError } = await getAuthenticatedServerClient();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized - please sign in to add items" } as CreateItemResponse,
+        { status: 401 }
+      );
+    }
+
+    // Step 1: Check if this URL has been extracted before (items are public, can use service client for read)
     const supabase = getServerClient();
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
@@ -108,7 +119,7 @@ export async function POST(req: NextRequest) {
       const { data: snapshot, error: snapshotError }: {
         data: Database["public"]["Tables"]["item_snapshots"]["Row"] | null;
         error: any;
-      } = await supabase
+      } = await client
         .from("item_snapshots")
         .insert(snapshotData as any)
         .select()
@@ -147,7 +158,7 @@ export async function POST(req: NextRequest) {
       const { data: updatedItem, error: updateError }: {
         data: Database["public"]["Tables"]["items"]["Row"] | null;
         error: any;
-      } = await (supabase
+      } = await (client
         .from("items")
         // @ts-expect-error - Supabase RLS type inference issue
         .update(updateData)
@@ -190,7 +201,7 @@ export async function POST(req: NextRequest) {
       const { data: newItem, error: itemError }: {
         data: Database["public"]["Tables"]["items"]["Row"] | null;
         error: any;
-      } = await supabase
+      } = await client
         .from("items")
         .insert(insertData as any)
         .select()
@@ -220,7 +231,7 @@ export async function POST(req: NextRequest) {
       const { data: snapshot, error: snapshotError }: {
         data: Database["public"]["Tables"]["item_snapshots"]["Row"] | null;
         error: any;
-      } = await supabase
+      } = await client
         .from("item_snapshots")
         .insert(snapshotData as any)
         .select()
@@ -231,7 +242,7 @@ export async function POST(req: NextRequest) {
         // Item was created but snapshot failed - continue anyway
       } else {
         // Update item with current_snapshot_id
-        await (supabase
+        await (client
           .from("items")
           // @ts-expect-error - Supabase RLS type inference issue
           .update({ current_snapshot_id: snapshot.id })
@@ -254,7 +265,7 @@ export async function POST(req: NextRequest) {
           notes: col.notes,
         }));
 
-      const { error: junctionError } = await supabase
+      const { error: junctionError } = await client
         .from("collection_items")
         .insert(collectionItems as any);
 

@@ -50,7 +50,7 @@ export async function GET() {
           description: "Default collection for new items",
           owner_id: user.id,
           visibility: "private",
-        });
+        } as any);
     }
 
     // Get all collections owned by this user

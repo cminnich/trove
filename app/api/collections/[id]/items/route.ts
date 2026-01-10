@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedServerClient } from "@/lib/supabase-server";
 import { getServerClient } from "@/lib/supabase";
 import type { Database } from "@/types/database";
 
@@ -47,6 +48,31 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const sortBy = searchParams.get("sort") || "position";
 
+    // Authenticate user
+    const { client, user, error: authError } = await getAuthenticatedServerClient();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" } as CollectionItemsResponse,
+        { status: 401 }
+      );
+    }
+
+    // Verify user has access to this collection (RLS enforces this)
+    const { data: collection, error: accessError } = await client
+      .from("collections")
+      .select("id")
+      .eq("id", id)
+      .single();
+
+    if (accessError || !collection) {
+      return NextResponse.json(
+        { success: false, error: "Collection not found or access denied" } as CollectionItemsResponse,
+        { status: 404 }
+      );
+    }
+
+    // Now safe to use service client for performance
     const supabase = getServerClient();
 
     // Query items with collection metadata via JOIN
@@ -157,7 +183,33 @@ export async function POST(
       );
     }
 
-    const supabase = getServerClient();
+    // Authenticate user
+    const { client, user, error: authError } = await getAuthenticatedServerClient();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" } as AddItemResponse,
+        { status: 401 }
+      );
+    }
+
+    // Verify user has write access to this collection (must be owner or editor)
+    // Use authenticated client - RLS will enforce write permissions
+    const { data: collection, error: accessError } = await client
+      .from("collections")
+      .select("id")
+      .eq("id", collection_id)
+      .single();
+
+    if (accessError || !collection) {
+      return NextResponse.json(
+        { success: false, error: "Collection not found or access denied" } as AddItemResponse,
+        { status: 404 }
+      );
+    }
+
+    // Use authenticated client for writes - RLS automatically enforces permissions
+    const supabase = client;
 
     // Check if item already exists in collection
     const { data: existing } = await supabase

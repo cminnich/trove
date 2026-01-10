@@ -30,7 +30,7 @@ export function AnimatedLogo({
       transition: {
         duration: 4 + i,
         repeat: Infinity,
-        ease: "easeInOut"
+        ease: "easeInOut" as const
       }
     }),
     hover: {
@@ -38,7 +38,7 @@ export function AnimatedLogo({
       filter: "brightness(1.4) blur(4px)",
       transition: { type: "spring", stiffness: 300, damping: 20 }
     }
-  }
+  } as const
 
   return (
     <div
