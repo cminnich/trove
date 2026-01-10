@@ -41,16 +41,14 @@ export async function GET() {
       .maybeSingle();
 
     if (!existingInbox) {
-      // Create Inbox collection
-      await client
-        .from("collections")
-        .insert({
-          name: "Inbox",
-          type: "inbox",
-          description: "Default collection for new items",
-          owner_id: user.id,
-          visibility: "private",
-        } as any);
+      // Create Inbox collection using SECURITY DEFINER function
+      // This ensures proper RLS context while creating the default collection
+      await client.rpc('create_user_collection', {
+        collection_name: "Inbox",
+        collection_description: "Default collection for new items",
+        collection_type: "inbox",
+        collection_visibility: "private",
+      });
     }
 
     // Get all collections owned by this user
@@ -140,22 +138,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const insertData: Database["public"]["Tables"]["collections"]["Insert"] = {
-      name: body.name,
-      description: body.description,
-      type: body.type,
-      owner_id: user.id,
-      visibility: 'private', // Default to private
-    };
+    // Use database function to create collection with proper RLS context
+    // This uses SECURITY DEFINER to bypass RLS while ensuring the user is authenticated
+    // and owner_id is correctly set. This is the same pattern used for read operations
+    // (user_can_read_collection, user_can_write_collection) in migration 005.
+    const { data: collectionId, error: rpcError } = await client.rpc(
+      'create_user_collection',
+      {
+        collection_name: body.name,
+        collection_description: body.description || null,
+        collection_type: body.type || null,
+        collection_visibility: 'private',
+      }
+    );
 
+    if (rpcError) {
+      console.error("Failed to create collection:", rpcError);
+      return NextResponse.json(
+        { success: false, error: rpcError.message } as CollectionResponse,
+        { status: 500 }
+      );
+    }
+
+    // Fetch the created collection to return full data
     const { data, error } = await client
       .from("collections")
-      .insert(insertData as any)
       .select()
+      .eq("id", collectionId)
       .single();
 
     if (error) {
-      console.error("Failed to create collection:", error);
+      console.error("Failed to fetch created collection:", error);
       return NextResponse.json(
         { success: false, error: error.message } as CollectionResponse,
         { status: 500 }
