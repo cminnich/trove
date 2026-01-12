@@ -30,7 +30,7 @@ export function ItemCard({ item, variant = 'grid', onClick }: ItemCardProps) {
             {item.image_url ? (
               <img
                 src={item.image_url}
-                alt={item.title}
+                alt={item.title || 'Item image'}
                 className="w-full h-full object-contain"
                 loading="lazy"
               />
@@ -97,7 +97,7 @@ export function ItemCard({ item, variant = 'grid', onClick }: ItemCardProps) {
         {item.image_url ? (
           <img
             src={item.image_url}
-            alt={item.title}
+            alt={item.title || 'Item image'}
             className="w-full h-full object-contain"
             loading="lazy"
           />

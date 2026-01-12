@@ -78,7 +78,7 @@ export function SortableItemCard({ item, editMode, isDragging, onClick }: Sortab
           {item.image_url ? (
             <img
               src={item.image_url}
-              alt={item.title}
+              alt={item.title || 'Item image'}
               className="w-full h-full object-contain"
               loading="lazy"
             />

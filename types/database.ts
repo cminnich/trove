@@ -64,7 +64,7 @@ export type Database = {
           id: string;
           source_url: string | null;
           raw_markdown: string | null;
-          title: string;
+          title: string | null;
           item_type: string;
           brand: string | null;
           price: number | null;
@@ -76,6 +76,10 @@ export type Database = {
           attributes: Record<string, unknown>;
           confidence_score: number | null;
           extraction_model: string | null;
+          extraction_status: 'pending' | 'processing' | 'complete' | 'failed';
+          extraction_error: string | null;
+          extraction_started_at: string | null;
+          extraction_completed_at: string | null;
           last_viewed_at: string | null;
           last_extracted_at: string | null;
           current_snapshot_id: string | null;
@@ -86,7 +90,7 @@ export type Database = {
           id?: string;
           source_url?: string | null;
           raw_markdown?: string | null;
-          title: string;
+          title?: string | null;
           item_type?: string;
           brand?: string | null;
           price?: number | null;
@@ -98,6 +102,10 @@ export type Database = {
           attributes?: Record<string, unknown>;
           confidence_score?: number | null;
           extraction_model?: string | null;
+          extraction_status?: 'pending' | 'processing' | 'complete' | 'failed';
+          extraction_error?: string | null;
+          extraction_started_at?: string | null;
+          extraction_completed_at?: string | null;
           last_viewed_at?: string | null;
           last_extracted_at?: string | null;
           current_snapshot_id?: string | null;
@@ -108,7 +116,7 @@ export type Database = {
           id?: string;
           source_url?: string | null;
           raw_markdown?: string | null;
-          title?: string;
+          title?: string | null;
           item_type?: string;
           brand?: string | null;
           price?: number | null;
@@ -120,6 +128,10 @@ export type Database = {
           attributes?: Record<string, unknown>;
           confidence_score?: number | null;
           extraction_model?: string | null;
+          extraction_status?: 'pending' | 'processing' | 'complete' | 'failed';
+          extraction_error?: string | null;
+          extraction_started_at?: string | null;
+          extraction_completed_at?: string | null;
           last_viewed_at?: string | null;
           last_extracted_at?: string | null;
           current_snapshot_id?: string | null;

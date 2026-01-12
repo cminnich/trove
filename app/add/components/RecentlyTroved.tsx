@@ -53,7 +53,7 @@ export function RecentlyTroved({ items, loading = false, onItemClick }: Recently
               <div className="w-full h-24 overflow-hidden bg-gray-100 dark:bg-gray-700">
                 <img
                   src={item.image_url}
-                  alt={item.title}
+                  alt={item.title || 'Item image'}
                   className="w-full h-full object-contain group-hover:scale-105 transition-transform"
                 />
               </div>

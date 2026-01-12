@@ -311,7 +311,7 @@ function SuccessView({
           {item.image_url && (
             <img
               src={item.image_url}
-              alt={item.title}
+              alt={item.title || 'Item image'}
               className="w-full h-48 object-contain mb-4 rounded"
             />
           )}
