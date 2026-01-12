@@ -1,5 +1,10 @@
+'use client'
+
+import { useState } from 'react'
 import type { Database } from '@/types/database'
 import { ConfidenceBadge } from '@/app/components/ConfidenceBadge'
+import { getItemDisplayTitle, formatUrlForDisplay } from '@/lib/url-formatter'
+import { RefreshCw, AlertCircle } from 'lucide-react'
 
 type Item = Database['public']['Tables']['items']['Row']
 
@@ -13,24 +18,61 @@ interface ItemCardProps {
   item: ItemWithCollectionMetadata
   variant?: 'grid' | 'list'
   onClick?: () => void
+  onUpdate?: () => void
 }
 
-export function ItemCard({ item, variant = 'grid', onClick }: ItemCardProps) {
+export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCardProps) {
+  const [retrying, setRetrying] = useState(false)
   const needsReview = item.confidence_score !== null && item.confidence_score < 0.7
+  
+  // Check if extraction needs retry
+  const isStuck = item.extraction_status === 'processing' &&
+    item.extraction_started_at &&
+    new Date().getTime() - new Date(item.extraction_started_at).getTime() > 60000
+  const needsRetry = item.extraction_status === 'failed' || isStuck
+  
+  const displayTitle = getItemDisplayTitle(item.title, item.source_url)
+  const formattedUrl = formatUrlForDisplay(item.source_url, 30)
+  
+  // Get display type - use formatted URL instead of "article"
+  const displayType = item.item_type === 'article' && !item.title 
+    ? formattedUrl || 'article'
+    : item.item_type
+
+  const handleRetry = async (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click
+    setRetrying(true)
+    try {
+      const response = await fetch(`/api/items/${item.id}/re-extract`, {
+        method: 'POST',
+      })
+      const data = await response.json()
+      if (data.success) {
+        onUpdate?.()
+      } else {
+        alert(data.error || 'Failed to retry extraction')
+      }
+    } catch (error) {
+      console.error('Failed to retry extraction:', error)
+      alert('Failed to retry extraction. Please try again.')
+    } finally {
+      setRetrying(false)
+    }
+  }
 
   if (variant === 'list') {
     return (
-      <button
-        onClick={onClick}
-        className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors p-4 text-left"
-      >
+      <div className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors p-4">
         <div className="flex gap-4">
           {/* Thumbnail */}
-          <div className="flex-shrink-0 w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden flex items-center justify-center">
+          <div 
+            className="flex-shrink-0 w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden flex items-center justify-center cursor-pointer"
+            onClick={onClick}
+          >
             {item.image_url ? (
               <img
                 src={item.image_url}
-                alt={item.title || 'Item image'}
+                alt={displayTitle}
                 className="w-full h-full object-contain"
                 loading="lazy"
               />
@@ -40,10 +82,28 @@ export function ItemCard({ item, variant = 'grid', onClick }: ItemCardProps) {
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1 truncate">
-              {item.title}
-            </h3>
+          <div className="flex-1 min-w-0" onClick={onClick}>
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate flex-1 cursor-pointer">
+                {displayTitle}
+              </h3>
+              {needsRetry && (
+                <button
+                  onClick={handleRetry}
+                  disabled={retrying}
+                  className="flex-shrink-0 p-1.5 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors disabled:opacity-50"
+                  title={item.extraction_status === 'failed' ? 'Retry extraction' : 'Retry stuck extraction'}
+                >
+                  {retrying ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : item.extraction_status === 'failed' ? (
+                    <AlertCircle className="w-4 h-4" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+            </div>
             {item.brand && (
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{item.brand}</p>
             )}
@@ -60,9 +120,9 @@ export function ItemCard({ item, variant = 'grid', onClick }: ItemCardProps) {
                   {item.category}
                 </span>
               )}
-              {item.item_type && (
+              {displayType && (
                 <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded capitalize">
-                  {item.item_type}
+                  {displayType}
                 </span>
               )}
               {needsReview && (
@@ -73,61 +133,81 @@ export function ItemCard({ item, variant = 'grid', onClick }: ItemCardProps) {
             </div>
           </div>
         </div>
-      </button>
+      </div>
     )
   }
 
   // Grid variant
   return (
-    <button
-      onClick={onClick}
-      className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors p-4 text-left"
-    >
-      {/* Confidence Badge */}
-      {needsReview && (
-        <div className="mb-3">
-          <span className="text-xs px-2 py-1 bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded">
-            ⚠️ Review
-          </span>
-        </div>
+    <div className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors p-4 relative">
+      {/* Retry Button - Top Right */}
+      {needsRetry && (
+        <button
+          onClick={handleRetry}
+          disabled={retrying}
+          className="absolute top-2 right-2 p-1.5 bg-white dark:bg-gray-800 rounded-full shadow-sm text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors disabled:opacity-50 z-10"
+          title={item.extraction_status === 'failed' ? 'Retry extraction' : 'Retry stuck extraction'}
+        >
+          {retrying ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : item.extraction_status === 'failed' ? (
+            <AlertCircle className="w-4 h-4" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+        </button>
       )}
 
-      {/* Image */}
-      <div className="w-full aspect-square bg-gray-100 dark:bg-gray-700 rounded overflow-hidden flex items-center justify-center mb-3">
-        {item.image_url ? (
-          <img
-            src={item.image_url}
-            alt={item.title || 'Item image'}
-            className="w-full h-full object-contain"
-            loading="lazy"
-          />
-        ) : (
-          <div className="text-6xl text-gray-300 dark:text-gray-600">📦</div>
+      <button
+        onClick={onClick}
+        className="w-full text-left"
+      >
+        {/* Confidence Badge */}
+        {needsReview && (
+          <div className="mb-3">
+            <span className="text-xs px-2 py-1 bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded">
+              ⚠️ Review
+            </span>
+          </div>
         )}
-      </div>
 
-      {/* Details */}
-      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
-        {item.title}
-      </h3>
+        {/* Image */}
+        <div className="w-full aspect-square bg-gray-100 dark:bg-gray-700 rounded overflow-hidden flex items-center justify-center mb-3">
+          {item.image_url ? (
+            <img
+              src={item.image_url}
+              alt={displayTitle}
+              className="w-full h-full object-contain"
+              loading="lazy"
+            />
+          ) : (
+            <div className="text-6xl text-gray-300 dark:text-gray-600">📦</div>
+          )}
+        </div>
 
-      {item.brand && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{item.brand}</p>
-      )}
+        {/* Details */}
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
+          {displayTitle}
+        </h3>
 
-      {item.price && item.currency && (
-        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 font-mono mb-2">
-          {item.currency === 'USD' && '$'}
-          {item.price.toLocaleString()}
-          {item.currency !== 'USD' && ` ${item.currency}`}
-        </p>
-      )}
+        {item.brand && (
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{item.brand}</p>
+        )}
 
-      {item.item_type && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-          {item.item_type}
-        </p>
-      )}
-    </button>
+        {item.price && item.currency && (
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 font-mono mb-2">
+            {item.currency === 'USD' && '$'}
+            {item.price.toLocaleString()}
+            {item.currency !== 'USD' && ` ${item.currency}`}
+          </p>
+        )}
+
+        {displayType && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+            {displayType}
+          </p>
+        )}
+      </button>
+    </div>
   )
 }

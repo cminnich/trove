@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import { ConfidenceBadge } from '@/app/components/ConfidenceBadge'
 import type { Database } from '@/types/database'
+import { getItemDisplayTitle, formatUrlForDisplay } from '@/lib/url-formatter'
 
 type Item = Database['public']['Tables']['items']['Row']
 
@@ -35,6 +36,11 @@ export function SortableItemCard({ item, editMode, isDragging, onClick }: Sortab
   }
 
   const needsReview = item.confidence_score !== null && item.confidence_score < 0.7
+  const displayTitle = getItemDisplayTitle(item.title, item.source_url)
+  const formattedUrl = formatUrlForDisplay(item.source_url, 30)
+  const displayType = item.item_type === 'article' && !item.title 
+    ? formattedUrl || 'article'
+    : item.item_type
 
   return (
     <div
@@ -78,7 +84,7 @@ export function SortableItemCard({ item, editMode, isDragging, onClick }: Sortab
           {item.image_url ? (
             <img
               src={item.image_url}
-              alt={item.title || 'Item image'}
+              alt={displayTitle}
               className="w-full h-full object-contain"
               loading="lazy"
             />
@@ -89,7 +95,7 @@ export function SortableItemCard({ item, editMode, isDragging, onClick }: Sortab
 
         {/* Details */}
         <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
-          {item.title}
+          {displayTitle}
         </h3>
 
         {item.brand && (
@@ -104,9 +110,9 @@ export function SortableItemCard({ item, editMode, isDragging, onClick }: Sortab
           </p>
         )}
 
-        {item.item_type && (
+        {displayType && (
           <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-            {item.item_type}
+            {displayType}
           </p>
         )}
       </button>

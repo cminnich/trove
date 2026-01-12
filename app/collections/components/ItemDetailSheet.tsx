@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { BottomSheet } from '@/app/components/BottomSheet'
 import { ConfidenceBadge } from '@/app/components/ConfidenceBadge'
 import { TagChipSelector } from './TagChipSelector'
-import { ExternalLink, Save, X, Clock, FolderOpen, Plus, Trash2, AlertTriangle } from 'lucide-react'
+import { ExternalLink, Save, X, Clock, FolderOpen, Plus, Trash2, AlertTriangle, RefreshCw } from 'lucide-react'
 import { useUserCollections } from '@/app/hooks/useUserCollections'
 import { useCollections } from '@/app/hooks/useCollections'
 import type { Database } from '@/types/database'
+import { getItemDisplayTitle, formatUrlForDisplay } from '@/lib/url-formatter'
 
 type Item = Database['public']['Tables']['items']['Row']
 type Snapshot = Database['public']['Tables']['item_snapshots']['Row']
@@ -40,6 +41,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
   const [showCollectionsManager, setShowCollectionsManager] = useState(false)
   const [addingToCollection, setAddingToCollection] = useState(false)
   const [removingFromCollection, setRemovingFromCollection] = useState<string | null>(null)
+  const [retrying, setRetrying] = useState(false)
 
   // Fetch user collections containing this item
   const { userCollections, mutate: mutateUserCollections, isLoading: loadingUserCollections } = useUserCollections(item?.id ?? null)
@@ -92,6 +94,39 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
   )
 
   const needsReview = item.confidence_score !== null && item.confidence_score < 0.7
+  
+  // Check if extraction needs retry
+  const isStuck = item.extraction_status === 'processing' &&
+    item.extraction_started_at &&
+    new Date().getTime() - new Date(item.extraction_started_at).getTime() > 60000
+  const needsRetry = item.extraction_status === 'failed' || isStuck
+  
+  const displayTitle = getItemDisplayTitle(item.title, item.source_url)
+  const formattedUrl = formatUrlForDisplay(item.source_url, 50)
+
+  const handleRetry = async () => {
+    setRetrying(true)
+    try {
+      const response = await fetch(`/api/items/${item.id}/re-extract`, {
+        method: 'POST',
+      })
+      const data = await response.json()
+      if (data.success) {
+        onUpdate?.()
+        // Close and reopen to refresh data
+        setTimeout(() => {
+          onUpdate?.()
+        }, 1000)
+      } else {
+        alert(data.error || 'Failed to retry extraction')
+      }
+    } catch (error) {
+      console.error('Failed to retry extraction:', error)
+      alert('Failed to retry extraction. Please try again.')
+    } finally {
+      setRetrying(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -228,6 +263,44 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
   return (
     <BottomSheet open={open} onClose={onClose} title="Item Details">
       <div className="space-y-6" data-testid="item-detail-sheet">
+        {/* Extraction Status & Retry */}
+        {needsRetry && (
+          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                  {item.extraction_status === 'failed' 
+                    ? 'Extraction failed'
+                    : 'Extraction appears to be stuck'}
+                </p>
+                {item.extraction_error && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                    {item.extraction_error}
+                  </p>
+                )}
+                <button
+                  onClick={handleRetry}
+                  disabled={retrying}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {retrying ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Retrying...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      Retry Extraction
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Confidence Badge */}
         {needsReview && (
           <ConfidenceBadge score={item.confidence_score ?? undefined} needsReview={needsReview} size="md" />
@@ -277,7 +350,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
         {/* Title & Brand */}
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {item.title}
+            {displayTitle}
           </h2>
           {item.brand && (
             <p className="text-lg text-gray-600 dark:text-gray-400">{item.brand}</p>
@@ -425,7 +498,9 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Type
               </label>
-              <p className="text-gray-900 dark:text-gray-100 capitalize">{item.item_type}</p>
+              <p className="text-gray-900 dark:text-gray-100 capitalize">
+                {item.item_type === 'article' && !item.title ? (formattedUrl || 'article') : item.item_type}
+              </p>
             </div>
           )}
           {item.retailer && (
