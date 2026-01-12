@@ -31,78 +31,64 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const excludeCollectionId = searchParams.get('excludeCollection')
 
-    // Step 1: Get all collections owned by the user
-    const { data: userCollections, error: collectionsError } = await client
-      .from('collections')
-      .select('*')
-      .eq('user_id', user.id)
-
-    if (collectionsError) {
-      console.error('Error fetching user collections:', collectionsError)
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch collections' } as UserItemsResponse,
-        { status: 500 }
-      )
-    }
-
-    const collectionIds = (userCollections as Collection[] | null)?.map(c => c.id) || []
-
-    if (collectionIds.length === 0) {
-      return NextResponse.json({
-        success: true,
-        data: []
-      } as UserItemsResponse)
-    }
-
-    // Step 2: Get all collection_items for user's collections
-    const { data: collectionItems, error: itemsError } = await client
+    // Fetch all collection_items that belong to user's collections
+    // Join with items to get full item details
+    // Join with collections to filter by user_id
+    let query = client
       .from('collection_items')
-      .select('*')
-      .in('collection_id', collectionIds)
+      .select(`
+        item_id,
+        items!inner (
+          id,
+          url,
+          title,
+          brand,
+          price,
+          currency,
+          image_url,
+          category,
+          retailer,
+          tags,
+          metadata,
+          created_at,
+          updated_at,
+          user_id
+        ),
+        collections!inner (
+          user_id
+        )
+      `)
+      .eq('collections.user_id', user.id)
 
-    if (itemsError) {
-      console.error('Error fetching collection items:', itemsError)
+    // Exclude items from specific collection if provided
+    if (excludeCollectionId) {
+      query = query.neq('collection_id', excludeCollectionId)
+    }
+
+    const { data: collectionItemsWithDetails, error: queryError } = await query
+
+    if (queryError) {
+      console.error('Error fetching items:', queryError)
       return NextResponse.json(
         { success: false, error: 'Failed to fetch items' } as UserItemsResponse,
         { status: 500 }
       )
     }
 
-    // Step 3: Extract unique item IDs, filtering out excluded collection
-    const itemIdSet = new Set<string>()
-    const typedCollectionItems = (collectionItems as CollectionItem[] | null) || []
-    for (const record of typedCollectionItems) {
-      // Skip if this item is from the excluded collection
-      if (excludeCollectionId && record.collection_id === excludeCollectionId) {
-        continue
+    // Extract unique items (same item might be in multiple collections)
+    const itemsMap = new Map<string, Item>()
+
+    if (collectionItemsWithDetails) {
+      for (const record of collectionItemsWithDetails) {
+        // @ts-expect-error - Supabase join typing
+        const item = record.items as Item
+        if (item && !itemsMap.has(item.id)) {
+          itemsMap.set(item.id, item)
+        }
       }
-      itemIdSet.add(record.item_id)
     }
 
-    const itemIds = Array.from(itemIdSet)
-
-    if (itemIds.length === 0) {
-      return NextResponse.json({
-        success: true,
-        data: []
-      } as UserItemsResponse)
-    }
-
-    // Step 4: Fetch full item details
-    const { data: items, error: fullItemsError } = await client
-      .from('items')
-      .select('*')
-      .in('id', itemIds)
-
-    if (fullItemsError) {
-      console.error('Error fetching full items:', fullItemsError)
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch item details' } as UserItemsResponse,
-        { status: 500 }
-      )
-    }
-
-    const uniqueItems = (items as Item[] | null) || []
+    const uniqueItems = Array.from(itemsMap.values())
 
     // Sort by most recently created
     uniqueItems.sort((a, b) =>

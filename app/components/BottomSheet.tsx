@@ -96,7 +96,7 @@ export function BottomSheet({ open, onClose, children, title }: BottomSheetProps
     >
       <div
         ref={sheetRef}
-        className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl shadow-2xl transition-transform duration-300 ease-out max-h-[90vh] md:max-h-[80vh] flex flex-col"
+        className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl shadow-2xl transition-transform duration-300 ease-out max-h-[95vh] md:max-h-[90vh] flex flex-col"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

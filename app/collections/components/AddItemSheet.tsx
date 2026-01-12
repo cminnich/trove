@@ -166,7 +166,7 @@ export function AddItemSheet({ open, onClose, collectionId, onSuccess }: AddItem
 
         {/* Items List */}
         {!loading && filteredItems.length > 0 && (
-          <div className="space-y-2 max-h-96 overflow-y-auto">
+          <div className="space-y-2 overflow-y-auto">
             {filteredItems.map((item) => {
               const isSelected = selectedItems.has(item.id)
               return (
