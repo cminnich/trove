@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import type { Database } from '@/types/database'
 import type { CaptureContext } from '@/types/capture'
+import { CreateCollectionSheet } from '@/app/collections/components/CreateCollectionSheet'
 
 type Collection = Database['public']['Tables']['collections']['Row']
 
@@ -11,6 +13,7 @@ interface CollectionSelectorProps {
   onChange: (context: CaptureContext) => void
   disabled?: boolean
   loading?: boolean
+  onCollectionsChange?: () => void
 }
 
 /**
@@ -22,8 +25,11 @@ export function CollectionSelector({
   value,
   onChange,
   disabled = false,
-  loading = false
+  loading = false,
+  onCollectionsChange
 }: CollectionSelectorProps) {
+  const [createSheetOpen, setCreateSheetOpen] = useState(false)
+
   const toggleCollection = (collectionId: string) => {
     if (disabled) return
 
@@ -36,6 +42,20 @@ export function CollectionSelector({
         : [...value.selectedCollections, collectionId],
       isDirty: true
     })
+  }
+
+  const handleCreateCollection = (collection?: { id: string; name: string }) => {
+    // Refresh collections list
+    onCollectionsChange?.()
+
+    // Auto-select the newly created collection if provided
+    if (collection) {
+      onChange({
+        ...value,
+        selectedCollections: [...value.selectedCollections, collection.id],
+        isDirty: true
+      })
+    }
   }
 
   const isSelected = (collectionId: string) => value.selectedCollections.includes(collectionId)
@@ -89,9 +109,10 @@ export function CollectionSelector({
           )
         })}
 
-        {/* TODO: Implement "Create New Collection" functionality */}
+        {/* Create New Collection Button */}
         <button
           type="button"
+          onClick={() => setCreateSheetOpen(true)}
           disabled={disabled}
           className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -104,6 +125,13 @@ export function CollectionSelector({
           Select at least one collection (or add notes above)
         </p>
       )}
+
+      {/* Create Collection Sheet */}
+      <CreateCollectionSheet
+        open={createSheetOpen}
+        onClose={() => setCreateSheetOpen(false)}
+        onSuccess={handleCreateCollection}
+      />
     </div>
   )
 }

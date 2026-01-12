@@ -72,41 +72,42 @@ function AddPageContent() {
   }, [])
 
   // Fetch collections and ensure Inbox exists (only when authenticated)
-  useEffect(() => {
-    async function loadCollections() {
-      // Only load collections if user is authenticated
-      if (!user) {
-        setCollectionsLoading(false)
-        return
-      }
-
-      try {
-        // Fetch all collections via API endpoint (respects authentication)
-        // Note: API automatically ensures Inbox collection exists
-        const response = await fetch('/api/collections')
-        const result = await response.json()
-
-        if (!result.success || result.error) {
-          console.error('Error fetching collections:', result.error)
-          setCollections([])
-        } else {
-          const collections = result.data as Collection[] || []
-          setCollections(collections)
-
-          // Auto-select Inbox if it exists and no collections selected yet
-          const inbox = collections.find(c => c.type === 'inbox')
-          if (inbox && context.selectedCollections.length === 0) {
-            updateContext({ selectedCollections: [inbox.id] })
-          }
-        }
-      } catch (error) {
-        console.error('Error loading collections:', error)
-        setCollections([])
-      } finally {
-        setCollectionsLoading(false)
-      }
+  const loadCollections = async () => {
+    // Only load collections if user is authenticated
+    if (!user) {
+      setCollectionsLoading(false)
+      return
     }
 
+    try {
+      setCollectionsLoading(true)
+      // Fetch all collections via API endpoint (respects authentication)
+      // Note: API automatically ensures Inbox collection exists
+      const response = await fetch('/api/collections')
+      const result = await response.json()
+
+      if (!result.success || result.error) {
+        console.error('Error fetching collections:', result.error)
+        setCollections([])
+      } else {
+        const collections = result.data as Collection[] || []
+        setCollections(collections)
+
+        // Auto-select Inbox if it exists and no collections selected yet
+        const inbox = collections.find(c => c.type === 'inbox')
+        if (inbox && context.selectedCollections.length === 0) {
+          updateContext({ selectedCollections: [inbox.id] })
+        }
+      }
+    } catch (error) {
+      console.error('Error loading collections:', error)
+      setCollections([])
+    } finally {
+      setCollectionsLoading(false)
+    }
+  }
+
+  useEffect(() => {
     loadCollections()
   }, [user]) // Re-run when user changes
 
@@ -223,6 +224,7 @@ function AddPageContent() {
           onChange={updateContext}
           disabled={isSaving}
           loading={collectionsLoading}
+          onCollectionsChange={loadCollections}
         />
 
         {/* Extracted Item Card */}

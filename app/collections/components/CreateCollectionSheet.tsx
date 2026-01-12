@@ -6,7 +6,7 @@ import { BottomSheet } from '@/app/components/BottomSheet'
 interface CreateCollectionSheetProps {
   open: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (collection?: { id: string; name: string }) => void
 }
 
 export function CreateCollectionSheet({
@@ -56,8 +56,9 @@ export function CreateCollectionSheet({
       setType('')
       setError(null)
 
-      // Notify parent component of success
-      onSuccess()
+      // Notify parent component of success with the created collection
+      const createdCollection = data.data
+      onSuccess(createdCollection ? { id: createdCollection.id, name: createdCollection.name } : undefined)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')

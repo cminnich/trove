@@ -11,6 +11,7 @@ import { ViewToggle } from '../components/ViewToggle'
 import { EmptyState } from '../components/EmptyState'
 import { SortSheet } from '../components/SortSheet'
 import { ItemDetailSheet } from '../components/ItemDetailSheet'
+import { AddItemSheet } from '../components/AddItemSheet'
 import { useItemDetailStore } from '@/app/stores/useItemDetailStore'
 import { ArrowLeft, SortAsc, GripVertical, X, Share2, Check } from 'lucide-react'
 import Link from 'next/link'
@@ -38,6 +39,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   const [showShareToast, setShowShareToast] = useState(false)
   const [shareToastMessage, setShareToastMessage] = useState('')
   const [showVisibilityDialog, setShowVisibilityDialog] = useState(false)
+  const [addItemSheetOpen, setAddItemSheetOpen] = useState(false)
   const { items, isLoading, isError, error, mutate, reorder } = useCollectionItems(id, sortOrder)
   const { isOpen, itemId, openItemDetail, closeItemDetail } = useItemDetailStore()
   const autoExitTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -84,8 +86,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   }
 
   const handleAddItem = () => {
-    console.log('Add item to collection')
-    // TODO: Navigate to /add with collection pre-selected
+    setAddItemSheetOpen(true)
   }
 
   const handleItemUpdate = () => {
@@ -351,6 +352,14 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         item={selectedItem || null}
         collectionId={id}
         onUpdate={handleItemUpdate}
+      />
+
+      {/* Add Item Sheet */}
+      <AddItemSheet
+        open={addItemSheetOpen}
+        onClose={() => setAddItemSheetOpen(false)}
+        collectionId={id}
+        onSuccess={handleItemUpdate}
       />
     </div>
   )
