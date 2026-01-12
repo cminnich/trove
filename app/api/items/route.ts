@@ -168,7 +168,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 4: Return 202 Accepted immediately
-    const response = NextResponse.json({
+    // Database trigger will automatically invoke Edge Function for extraction
+    return NextResponse.json({
       success: true,
       status: 'pending',
       data: {
@@ -176,14 +177,6 @@ export async function POST(req: NextRequest) {
         collections: addedCollections,
       },
     } as CreateItemResponse, { status: 202 });
-
-    // Step 5: Trigger background extraction (Phase 1 - still in API route)
-    // In Phase 2, this will be handled by database trigger + Edge Function
-    performBackgroundExtraction(pendingItem.id, body.url, req.nextUrl.origin).catch(error => {
-      console.error("Background extraction failed:", error);
-    });
-
-    return response;
 
   } catch (error) {
     console.error("Error creating item:", error);
@@ -194,166 +187,5 @@ export async function POST(req: NextRequest) {
       } as CreateItemResponse,
       { status: 500 }
     );
-  }
-}
-
-/**
- * Background extraction function (Phase 1 implementation)
- *
- * In Phase 2, this logic will move to Supabase Edge Function
- * and be triggered automatically via database trigger.
- */
-async function performBackgroundExtraction(itemId: string, url: string, origin: string) {
-  try {
-    // Get service client for updating item
-    const supabase = getServerClient();
-
-    // Update status to 'processing'
-    const processingUpdate: Database["public"]["Tables"]["items"]["Update"] = {
-      extraction_status: 'processing',
-      extraction_started_at: new Date().toISOString(),
-    };
-    await supabase
-      .from('items')
-      // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
-      .update(processingUpdate)
-      .eq('id', itemId);
-
-    // Call extraction API
-    const extractResponse = await fetch(`${origin}/api/extract`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
-
-    if (!extractResponse.ok) {
-      const errorData = await extractResponse.json();
-      // Update item with failed status
-      const failedUpdate: Database["public"]["Tables"]["items"]["Update"] = {
-        extraction_status: 'failed',
-        extraction_error: errorData.error || 'Extraction failed',
-        extraction_completed_at: new Date().toISOString(),
-      };
-      await supabase
-        .from('items')
-        // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
-        .update(failedUpdate)
-        .eq('id', itemId);
-      return;
-    }
-
-    const extractionResult = await extractResponse.json();
-
-    if (!extractionResult.success || !extractionResult.data) {
-      const noDataUpdate: Database["public"]["Tables"]["items"]["Update"] = {
-        extraction_status: 'failed',
-        extraction_error: 'Extraction did not return valid data',
-        extraction_completed_at: new Date().toISOString(),
-      };
-      await supabase
-        .from('items')
-        // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
-        .update(noDataUpdate)
-        .eq('id', itemId);
-      return;
-    }
-
-    const extracted = extractionResult.data;
-
-    // Update item with extracted data
-    const updateData: Database["public"]["Tables"]["items"]["Update"] = {
-      raw_markdown: extracted.raw_markdown,
-      title: extracted.title,
-      brand: extracted.brand,
-      price: extracted.price,
-      currency: extracted.currency,
-      retailer: extracted.retailer,
-      image_url: extracted.image_url,
-      category: extracted.category,
-      tags: extracted.tags,
-      item_type: extracted.item_type || "article",
-      attributes: extracted.attributes || {},
-      confidence_score: extracted.confidence_score,
-      extraction_model: extracted.extraction_model,
-      extraction_status: 'complete',
-      extraction_completed_at: new Date().toISOString(),
-      last_extracted_at: new Date().toISOString(),
-    };
-
-    const { data: updatedItemRaw, error: updateError } = await supabase
-      .from('items')
-      // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
-      .update(updateData)
-      .eq('id', itemId)
-      .select()
-      .single();
-
-    const updatedItem = updatedItemRaw as Database["public"]["Tables"]["items"]["Row"] | null;
-
-    if (updateError) {
-      console.error("Failed to update item with extraction results:", updateError);
-      const saveFailedUpdate: Database["public"]["Tables"]["items"]["Update"] = {
-        extraction_status: 'failed',
-        extraction_error: `Failed to save extraction results: ${updateError.message}`,
-        extraction_completed_at: new Date().toISOString(),
-      };
-      await supabase
-        .from('items')
-        // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
-        .update(saveFailedUpdate)
-        .eq('id', itemId);
-      return;
-    }
-
-    // Create snapshot for the extracted data
-    if (updatedItem) {
-      const snapshotData: Database["public"]["Tables"]["item_snapshots"]["Insert"] = {
-        item_id: updatedItem.id,
-        price: extracted.price,
-        currency: extracted.currency,
-        image_url: extracted.image_url,
-        raw_markdown: extracted.raw_markdown,
-        captured_at: new Date().toISOString(),
-      };
-
-      const { data: snapshot } = await supabase
-        .from("item_snapshots")
-        .insert(snapshotData as any)
-        .select()
-        .single();
-
-      // Update item with snapshot reference
-      if (snapshot) {
-        const snapshotUpdate: Database["public"]["Tables"]["items"]["Update"] = {
-          current_snapshot_id: (snapshot as Database["public"]["Tables"]["item_snapshots"]["Row"]).id
-        };
-        await supabase
-          .from("items")
-          // @ts-expect-error - Snapshot reference update
-          .update(snapshotUpdate)
-          .eq("id", itemId);
-      }
-    }
-
-    console.log(`✓ Background extraction completed for item ${itemId}`);
-  } catch (error) {
-    console.error(`Background extraction failed for item ${itemId}:`, error);
-
-    // Try to mark as failed
-    try {
-      const supabase = getServerClient();
-      const catchFailedUpdate: Database["public"]["Tables"]["items"]["Update"] = {
-        extraction_status: 'failed',
-        extraction_error: error instanceof Error ? error.message : 'Unknown error',
-        extraction_completed_at: new Date().toISOString(),
-      };
-      await supabase
-        .from('items')
-        // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
-        .update(catchFailedUpdate)
-        .eq('id', itemId);
-    } catch (updateError) {
-      console.error(`Failed to update item status to failed:`, updateError);
-    }
   }
 }
