@@ -43,7 +43,7 @@ export async function GET() {
     if (!existingInbox) {
       // Create Inbox collection using SECURITY DEFINER function
       // This ensures proper RLS context while creating the default collection
-      await client.rpc('create_user_collection', {
+      await (client as any).rpc('create_user_collection', {
         collection_name: "Inbox",
         collection_description: "Default collection for new items",
         collection_type: "inbox",
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
     // This uses SECURITY DEFINER to bypass RLS while ensuring the user is authenticated
     // and owner_id is correctly set. This is the same pattern used for read operations
     // (user_can_read_collection, user_can_write_collection) in migration 005.
-    const { data: collectionId, error: rpcError } = await client.rpc(
+    const { data: collectionId, error: rpcError } = await (client as any).rpc(
       'create_user_collection',
       {
         collection_name: body.name,

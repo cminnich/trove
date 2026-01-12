@@ -158,13 +158,12 @@ export async function POST(req: NextRequest) {
       const { data: updatedItem, error: updateError }: {
         data: Database["public"]["Tables"]["items"]["Row"] | null;
         error: any;
-      } = await (client
+      } = await ((client as any)
         .from("items")
-        // @ts-expect-error - Supabase RLS type inference issue
         .update(updateData)
         .eq("id", existingItem.id)
         .select()
-        .single() as any);
+        .single());
 
       if (updateError || !updatedItem) {
         console.error("Failed to update item:", updateError);
@@ -242,11 +241,10 @@ export async function POST(req: NextRequest) {
         // Item was created but snapshot failed - continue anyway
       } else {
         // Update item with current_snapshot_id
-        await (client
+        await ((client as any)
           .from("items")
-          // @ts-expect-error - Supabase RLS type inference issue
           .update({ current_snapshot_id: snapshot.id })
-          .eq("id", newItem.id) as any);
+          .eq("id", newItem.id));
       }
 
       item = newItem;

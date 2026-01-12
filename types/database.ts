@@ -218,6 +218,9 @@ export type Database = {
         };
       };
     };
+    Views: {
+      [_ in never]: never;
+    };
     Functions: {
       create_user_collection: {
         Args: {
@@ -228,6 +231,12 @@ export type Database = {
         };
         Returns: string;
       };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 };

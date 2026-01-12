@@ -227,14 +227,13 @@ export async function POST(
         notes: body.notes !== undefined ? body.notes : existingItem.notes,
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await ((supabase as any)
         .from("collection_items")
-        // @ts-expect-error - Supabase type inference issue
         .update(updateData)
         .eq("collection_id", collection_id)
         .eq("item_id", body.item_id)
         .select()
-        .single();
+        .single());
 
       if (error) {
         console.error("Failed to update collection item:", error);

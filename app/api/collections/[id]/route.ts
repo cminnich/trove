@@ -100,13 +100,12 @@ export async function PATCH(
     if (body.visibility !== undefined) updateData.visibility = body.visibility;
 
     // Query using authenticated client - RLS automatically enforces ownership
-    const { data, error } = await client
+    const { data, error } = await ((client as any)
       .from("collections")
-      // @ts-expect-error - Supabase type inference issue
       .update(updateData)
       .eq("id", id)
       .select()
-      .single();
+      .single());
 
     if (error) {
       console.error("Failed to update collection:", error);

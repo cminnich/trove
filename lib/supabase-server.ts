@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/database";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 /**
  * Server-only Supabase utilities
@@ -13,7 +14,11 @@ import type { Database } from "@/types/database";
 
 // Authenticated server client for API routes that respects RLS
 // Returns both the client and the authenticated user
-export async function getAuthenticatedServerClient() {
+export async function getAuthenticatedServerClient(): Promise<{
+  client: SupabaseClient<Database>;
+  user: User | null;
+  error: any;
+}> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
     throw new Error("Missing env.NEXT_PUBLIC_SUPABASE_URL");
   }
