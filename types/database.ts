@@ -218,5 +218,16 @@ export type Database = {
         };
       };
     };
+    Functions: {
+      create_user_collection: {
+        Args: {
+          collection_name: string;
+          collection_description?: string | null;
+          collection_type?: string | null;
+          collection_visibility?: string;
+        };
+        Returns: string;
+      };
+    };
   };
 };
