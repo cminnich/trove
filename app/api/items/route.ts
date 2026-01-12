@@ -209,12 +209,14 @@ async function performBackgroundExtraction(itemId: string, url: string, origin: 
     const supabase = getServerClient();
 
     // Update status to 'processing'
+    const processingUpdate: Database["public"]["Tables"]["items"]["Update"] = {
+      extraction_status: 'processing',
+      extraction_started_at: new Date().toISOString(),
+    };
     await supabase
       .from('items')
-      .update({
-        extraction_status: 'processing',
-        extraction_started_at: new Date().toISOString(),
-      } as any)
+      // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
+      .update(processingUpdate)
       .eq('id', itemId);
 
     // Call extraction API
@@ -227,13 +229,15 @@ async function performBackgroundExtraction(itemId: string, url: string, origin: 
     if (!extractResponse.ok) {
       const errorData = await extractResponse.json();
       // Update item with failed status
+      const failedUpdate: Database["public"]["Tables"]["items"]["Update"] = {
+        extraction_status: 'failed',
+        extraction_error: errorData.error || 'Extraction failed',
+        extraction_completed_at: new Date().toISOString(),
+      };
       await supabase
         .from('items')
-        .update({
-          extraction_status: 'failed',
-          extraction_error: errorData.error || 'Extraction failed',
-          extraction_completed_at: new Date().toISOString(),
-        } as any)
+        // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
+        .update(failedUpdate)
         .eq('id', itemId);
       return;
     }
@@ -241,13 +245,15 @@ async function performBackgroundExtraction(itemId: string, url: string, origin: 
     const extractionResult = await extractResponse.json();
 
     if (!extractionResult.success || !extractionResult.data) {
+      const noDataUpdate: Database["public"]["Tables"]["items"]["Update"] = {
+        extraction_status: 'failed',
+        extraction_error: 'Extraction did not return valid data',
+        extraction_completed_at: new Date().toISOString(),
+      };
       await supabase
         .from('items')
-        .update({
-          extraction_status: 'failed',
-          extraction_error: 'Extraction did not return valid data',
-          extraction_completed_at: new Date().toISOString(),
-        } as any)
+        // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
+        .update(noDataUpdate)
         .eq('id', itemId);
       return;
     }
@@ -274,22 +280,27 @@ async function performBackgroundExtraction(itemId: string, url: string, origin: 
       last_extracted_at: new Date().toISOString(),
     };
 
-    const { data: updatedItem, error: updateError } = await supabase
+    const { data: updatedItemRaw, error: updateError } = await supabase
       .from('items')
-      .update(updateData as any)
+      // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
+      .update(updateData)
       .eq('id', itemId)
       .select()
       .single();
 
+    const updatedItem = updatedItemRaw as Database["public"]["Tables"]["items"]["Row"] | null;
+
     if (updateError) {
       console.error("Failed to update item with extraction results:", updateError);
+      const saveFailedUpdate: Database["public"]["Tables"]["items"]["Update"] = {
+        extraction_status: 'failed',
+        extraction_error: `Failed to save extraction results: ${updateError.message}`,
+        extraction_completed_at: new Date().toISOString(),
+      };
       await supabase
         .from('items')
-        .update({
-          extraction_status: 'failed',
-          extraction_error: `Failed to save extraction results: ${updateError.message}`,
-          extraction_completed_at: new Date().toISOString(),
-        } as any)
+        // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
+        .update(saveFailedUpdate)
         .eq('id', itemId);
       return;
     }
@@ -313,9 +324,13 @@ async function performBackgroundExtraction(itemId: string, url: string, origin: 
 
       // Update item with snapshot reference
       if (snapshot) {
+        const snapshotUpdate: Database["public"]["Tables"]["items"]["Update"] = {
+          current_snapshot_id: (snapshot as Database["public"]["Tables"]["item_snapshots"]["Row"]).id
+        };
         await supabase
           .from("items")
-          .update({ current_snapshot_id: snapshot.id } as any)
+          // @ts-expect-error - Snapshot reference update
+          .update(snapshotUpdate)
           .eq("id", itemId);
       }
     }
@@ -327,13 +342,15 @@ async function performBackgroundExtraction(itemId: string, url: string, origin: 
     // Try to mark as failed
     try {
       const supabase = getServerClient();
+      const catchFailedUpdate: Database["public"]["Tables"]["items"]["Update"] = {
+        extraction_status: 'failed',
+        extraction_error: error instanceof Error ? error.message : 'Unknown error',
+        extraction_completed_at: new Date().toISOString(),
+      };
       await supabase
         .from('items')
-        .update({
-          extraction_status: 'failed',
-          extraction_error: error instanceof Error ? error.message : 'Unknown error',
-          extraction_completed_at: new Date().toISOString(),
-        } as any)
+        // @ts-expect-error - New columns added in migration 008, types will sync after migration runs
+        .update(catchFailedUpdate)
         .eq('id', itemId);
     } catch (updateError) {
       console.error(`Failed to update item status to failed:`, updateError);
