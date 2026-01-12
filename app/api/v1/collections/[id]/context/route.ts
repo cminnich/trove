@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerClient } from "@/lib/supabase";
 import type { Database } from "@/types/database";
+import type { CollectionOverview } from "@/types/collection-overview";
 
 type Item = Database["public"]["Tables"]["items"]["Row"];
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
@@ -110,8 +111,18 @@ export async function GET(
         return a.position - b.position;
       });
 
+    // Fetch AI overview if valid
+    let overview: CollectionOverview | null = null;
+    if (collection.ai_overview_valid && collection.ai_overview) {
+      try {
+        overview = JSON.parse(collection.ai_overview) as CollectionOverview;
+      } catch (error) {
+        console.error("Failed to parse AI overview:", error);
+      }
+    }
+
     // Generate Markdown + JSON hybrid format
-    const contextMarkdown = generateContextMarkdown(collection, items);
+    const contextMarkdown = generateContextMarkdown(collection, items, overview);
 
     // Return as plain text with markdown content type
     return new NextResponse(contextMarkdown, {
@@ -135,16 +146,19 @@ export async function GET(
  *
  * Structure:
  * 1. Collection metadata (name, description, item count)
- * 2. Items list with **Tier 4 User Notes** most prominent
- * 3. Embedded JSON for each item with full metadata
+ * 2. AI Curator's Analysis (if available)
+ * 3. Items list with **Tier 4 User Notes** most prominent
+ * 4. Embedded JSON for each item with full metadata
  *
  * @param collection Collection metadata
  * @param items Items with collection-specific context
+ * @param overview AI-generated collection overview (if available)
  * @returns Markdown string
  */
 function generateContextMarkdown(
   collection: Collection,
-  items: ItemWithCollectionMetadata[]
+  items: ItemWithCollectionMetadata[],
+  overview: CollectionOverview | null
 ): string {
   const lines: string[] = [];
 
@@ -163,6 +177,45 @@ function generateContextMarkdown(
   lines.push("");
   lines.push("---");
   lines.push("");
+
+  // AI Curator's Analysis (if available)
+  if (overview) {
+    lines.push("## AI Curator's Analysis");
+    lines.push("");
+    lines.push(overview.summary);
+    lines.push("");
+
+    if (overview.themes && overview.themes.length > 0) {
+      lines.push("**Key Themes:**");
+      overview.themes.forEach((theme) => {
+        lines.push(`- ${theme}`);
+      });
+      lines.push("");
+    }
+
+    if (overview.insights && overview.insights.length > 0) {
+      lines.push("**Strategic Insights:**");
+      overview.insights.forEach((insight) => {
+        lines.push(`- **${insight.title}**: ${insight.description}`);
+      });
+      lines.push("");
+    }
+
+    if (overview.relationships && overview.relationships.length > 0) {
+      lines.push("**Item Relationships:**");
+      overview.relationships.forEach((rel) => {
+        lines.push(
+          `- *${rel.relationship_type}*: ${rel.description}`
+        );
+      });
+      lines.push("");
+    }
+
+    lines.push(`*Confidence: ${(overview.confidence_score * 100).toFixed(0)}%*`);
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  }
 
   // Items section
   lines.push("## Items");

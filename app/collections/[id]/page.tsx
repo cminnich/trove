@@ -12,6 +12,7 @@ import { EmptyState } from '../components/EmptyState'
 import { SortSheet } from '../components/SortSheet'
 import { ItemDetailSheet } from '../components/ItemDetailSheet'
 import { useItemDetailStore } from '@/app/stores/useItemDetailStore'
+import { CollectionOverview } from '@/app/components/CollectionOverview'
 import { ArrowLeft, SortAsc, GripVertical, X, Share2, Check } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
@@ -298,6 +299,13 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
       </div>
+
+      {/* AI Collection Overview */}
+      {items.length > 0 && (
+        <div className="mb-6">
+          <CollectionOverview collectionId={id} />
+        </div>
+      )}
 
       {/* Error State */}
       {isError && (

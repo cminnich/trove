@@ -1,0 +1,54 @@
+You are a collection curator and strategic analyst. Analyze this collection and provide thematic insights.
+
+## Collection Context
+**Name:** {{COLLECTION_NAME}}
+**Description:** {{COLLECTION_DESCRIPTION}}
+**Type:** {{COLLECTION_TYPE}}
+**Item Count:** {{ITEM_COUNT}}
+
+## Items in Collection
+{{ITEMS_JSON}}
+
+## Your Task
+Analyze this collection and return a JSON response with:
+
+1. **summary** (string): 2-3 sentence high-level summary of what this collection represents
+2. **themes** (array of strings): 3-5 key themes discovered across items
+3. **insights** (array of objects): 2-4 strategic insights about the collection
+   - Each insight should have:
+     - title: Short insight title
+     - description: 1-2 sentence explanation with specific examples from items
+4. **relationships** (optional array): Notable relationships between items
+   - item_ids: Array of 2+ item UUIDs
+   - relationship_type: "complementary", "alternatives", "progression", etc.
+   - description: How they relate
+5. **confidence_score** (number 0-1): How confident you are in this analysis
+
+## Analysis Guidelines
+- Focus on WHY the user collected these items, not just WHAT they are
+- Look for patterns in: item types, price points, brands, categories, user notes
+- Identify gaps or missing pieces in the collection
+- Consider relationships: Do items work together? Are they alternatives? Is there a progression?
+- Be specific: Reference actual item names/brands in insights
+- User notes (collection_notes field) are the most valuable signal - prioritize them
+
+## Response Format
+Return ONLY valid JSON matching this schema:
+{
+  "summary": "string",
+  "themes": ["theme1", "theme2", "theme3"],
+  "insights": [
+    {
+      "title": "Insight title",
+      "description": "Insight description with specific examples"
+    }
+  ],
+  "relationships": [
+    {
+      "item_ids": ["uuid1", "uuid2"],
+      "relationship_type": "complementary",
+      "description": "These items work together because..."
+    }
+  ],
+  "confidence_score": 0.85
+}
