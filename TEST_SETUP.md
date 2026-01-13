@@ -197,12 +197,12 @@ To clean up test data after running tests:
 ```sql
 -- Delete test user's collections and items
 DELETE FROM collection_items WHERE collection_id IN (
-  SELECT id FROM collections WHERE user_id = (
+  SELECT id FROM collections WHERE owner_id = (
     SELECT id FROM profiles WHERE email = 'test@example.com'
   )
 );
 
-DELETE FROM collections WHERE user_id = (
+DELETE FROM collections WHERE owner_id = (
   SELECT id FROM profiles WHERE email = 'test@example.com'
 );
 
