@@ -12,11 +12,22 @@ import { EmptyState } from '../components/EmptyState'
 import { SortSheet } from '../components/SortSheet'
 import { ItemDetailSheet } from '../components/ItemDetailSheet'
 import { AddItemSheet } from '../components/AddItemSheet'
+import { EnhancedCollectionOverview } from '../components/EnhancedCollectionOverview'
+import { CollectionSettingsDialog } from '../components/CollectionSettingsDialog'
 import { useItemDetailStore } from '@/app/stores/useItemDetailStore'
-import { CollectionOverview } from '@/app/components/CollectionOverview'
-import { ArrowLeft, SortAsc, GripVertical, X, Share2, Check } from 'lucide-react'
+import {
+  ArrowLeft,
+  SortAsc,
+  GripVertical,
+  X,
+  Plus,
+  Settings,
+  Sparkles,
+  Check,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import type { Database } from '@/types/database'
 
@@ -32,21 +43,23 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function CollectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const router = useRouter()
   const [viewMode, setViewMode] = useViewPreference(id)
   const [sortOrder, setSortOrder] = useSortPreference(id)
   const [sortSheetOpen, setSortSheetOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [showEditToast, setShowEditToast] = useState(false)
-  const [showShareToast, setShowShareToast] = useState(false)
-  const [shareToastMessage, setShareToastMessage] = useState('')
-  const [showVisibilityDialog, setShowVisibilityDialog] = useState(false)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
   const [addItemSheetOpen, setAddItemSheetOpen] = useState(false)
+  const [generatingOverview, setGeneratingOverview] = useState(false)
   const { items, isLoading, isError, error, mutate, reorder } = useCollectionItems(id, sortOrder)
   const { isOpen, itemId, openItemDetail, closeItemDetail } = useItemDetailStore()
   const autoExitTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch collection metadata
-  const { data: collectionData } = useSWR<CollectionResponse>(
+  const { data: collectionData, mutate: mutateCollection } = useSWR<CollectionResponse>(
     `/api/collections/${id}`,
     fetcher
   )
@@ -93,13 +106,13 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   const handleItemUpdate = () => {
     // Revalidate items after update
     mutate()
+    mutateCollection()
   }
 
   const handleEnterEditMode = () => {
     if (sortOrder !== 'position') {
       // Show toast notification
-      setShowEditToast(true)
-      setTimeout(() => setShowEditToast(false), 3000)
+      showToastNotification('Switch to "Position" sort to reorder items')
       return
     }
     setEditMode(true)
@@ -113,74 +126,46 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
     await reorder(itemPositions)
   }
 
-  const handleShareForAI = async () => {
-    if (!collection) return
-
-    // Check if collection is public
-    if (collection.visibility !== 'public') {
-      setShowVisibilityDialog(true)
+  const handleGenerateOverview = async () => {
+    if (!collection || collection.visibility !== 'public') {
+      showToastNotification('Collection must be public to generate AI overview')
       return
     }
 
-    // Generate the public URL
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-    const contextUrl = `${baseUrl}/api/v1/collections/${id}/context`
-
-    // Copy to clipboard
+    setGeneratingOverview(true)
     try {
-      await navigator.clipboard.writeText(contextUrl)
-      setShareToastMessage('Link copied to clipboard!')
-      setShowShareToast(true)
-      setTimeout(() => setShowShareToast(false), 3000)
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error)
-      setShareToastMessage('Failed to copy link')
-      setShowShareToast(true)
-      setTimeout(() => setShowShareToast(false), 3000)
+      const response = await fetch(`/api/collections/${id}/overview`, {
+        method: 'POST',
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        showToastNotification('AI overview generated successfully!')
+        // Trigger a re-fetch of the overview by re-mounting the component
+        mutateCollection()
+      } else {
+        showToastNotification('Failed to generate overview: ' + (data.error || 'Unknown error'))
+      }
+    } catch (err) {
+      console.error('Failed to generate overview:', err)
+      showToastNotification('Failed to generate overview')
+    } finally {
+      setGeneratingOverview(false)
     }
   }
 
-  const handleMakePublic = async () => {
-    try {
-      // Update collection visibility to 'public'
-      const response = await fetch(`/api/collections/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          visibility: 'public',
-        }),
-      })
+  const showToastNotification = (message: string) => {
+    setToastMessage(message)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 3000)
+  }
 
-      if (!response.ok) {
-        throw new Error('Failed to update collection visibility')
-      }
-
-      // Revalidate collection data
-      mutate()
-
-      // Close dialog
-      setShowVisibilityDialog(false)
-
-      // Show success message and auto-share
-      setShareToastMessage('Collection is now public!')
-      setShowShareToast(true)
-      setTimeout(() => {
-        setShowShareToast(false)
-        // Auto-trigger share after making public
-        handleShareForAI()
-      }, 1500)
-    } catch (error) {
-      console.error('Failed to make collection public:', error)
-      setShareToastMessage('Failed to update collection')
-      setShowShareToast(true)
-      setTimeout(() => setShowShareToast(false), 3000)
-    }
+  const handleCollectionDeleted = () => {
+    router.push('/collections')
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       {/* Toast Notifications */}
       {showEditToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-100 dark:bg-amber-900/90 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 px-6 py-3 rounded-lg shadow-lg animate-fade-in">
@@ -188,38 +173,10 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      {showShareToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
-          <Check className="w-5 h-5" />
-          <span>{shareToastMessage}</span>
-        </div>
-      )}
-
-      {/* Visibility Dialog */}
-      {showVisibilityDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowVisibilityDialog(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Collection is Private
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              This collection is currently private. To share it with AI agents, you can make it public or generate a secure share link.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={handleMakePublic}
-                className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-              >
-                Make Public
-              </button>
-              <button
-                onClick={() => setShowVisibilityDialog(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+      {showToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in max-w-md">
+          <Check className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm">{toastMessage}</span>
         </div>
       )}
 
@@ -238,80 +195,114 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      {/* Header */}
-      <div className="mb-8">
+      {/* Header Section - Mobile First, Vertical Stacking */}
+      <div className="mb-6 sm:mb-8">
         <Link
           href="/collections"
-          className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
+          className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4 text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Collections</span>
         </Link>
 
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              {collection?.name || 'Loading...'}
-            </h1>
-            {collection?.description && (
-              <p className="text-gray-600 dark:text-gray-400 mb-2">
-                {collection.description}
-              </p>
-            )}
-            <p className="text-sm text-gray-500 dark:text-gray-500">
-              {items.length} {items.length === 1 ? 'item' : 'items'}
+        {/* Title & Description - Stacked Vertically */}
+        <div className="mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            {collection?.name || 'Loading...'}
+          </h1>
+          {collection?.description && (
+            <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base mb-2">
+              {collection.description}
             </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Share for AI Button */}
-            <button
-              onClick={handleShareForAI}
-              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2"
-              title="Share collection context with AI agents"
-            >
-              <Share2 className="w-4 h-4" />
-              <span className="text-sm hidden sm:inline">Share for AI</span>
-            </button>
-
-            {/* Edit Button - Only show when sort is position and view is grid */}
-            {sortOrder === 'position' && viewMode === 'grid' && !editMode && items.length > 0 && (
-              <button
-                onClick={handleEnterEditMode}
-                className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2"
-              >
-                <GripVertical className="w-4 h-4" />
-                <span className="text-sm hidden sm:inline">Reorder</span>
-              </button>
+          )}
+          <p className="text-sm text-gray-500 dark:text-gray-500">
+            {items.length} {items.length === 1 ? 'item' : 'items'}
+            {collection?.type && (
+              <span className="ml-2 text-gray-400">• {collection.type}</span>
             )}
+          </p>
+        </div>
 
-            {/* Sort Button */}
+        {/* Actions Row - Horizontal Scrolling on Mobile */}
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-2 sm:pb-0">
+          {/* Add Existing Button */}
+          <button
+            onClick={handleAddItem}
+            className="flex-shrink-0 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
+            title="Add existing items to this collection"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add Existing</span>
+            <span className="sm:hidden">Add</span>
+          </button>
+
+          {/* Generate Overview Button */}
+          {items.length > 0 && collection?.visibility === 'public' && (
             <button
-              onClick={() => setSortSheetOpen(true)}
-              disabled={editMode}
-              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleGenerateOverview}
+              disabled={generatingOverview}
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-400 disabled:to-purple-400 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-indigo-500/30"
+              title="Generate AI overview"
             >
-              <SortAsc className="w-4 h-4" />
-              <span className="text-sm hidden sm:inline">Sort</span>
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">{generatingOverview ? 'Generating...' : 'AI Overview'}</span>
             </button>
+          )}
 
-            {/* View Toggle */}
+          {/* Settings Button */}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 text-sm"
+            title="Collection settings"
+          >
+            <Settings className="w-4 h-4" />
+            <span className="hidden lg:inline">Settings</span>
+          </button>
+
+          {/* Divider */}
+          <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+
+          {/* Edit Button - Only show when sort is position and view is grid */}
+          {sortOrder === 'position' && viewMode === 'grid' && !editMode && items.length > 0 && (
+            <button
+              onClick={handleEnterEditMode}
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 text-sm"
+              title="Reorder items"
+            >
+              <GripVertical className="w-4 h-4" />
+              <span className="hidden lg:inline">Reorder</span>
+            </button>
+          )}
+
+          {/* Sort Button */}
+          <button
+            onClick={() => setSortSheetOpen(true)}
+            disabled={editMode}
+            className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            title="Sort items"
+          >
+            <SortAsc className="w-4 h-4" />
+            <span className="hidden lg:inline">Sort</span>
+          </button>
+
+          {/* View Toggle */}
+          <div className="flex-shrink-0">
             <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
           </div>
         </div>
       </div>
 
-      {/* AI Collection Overview */}
-      {items.length > 0 && (
+      {/* Enhanced AI Collection Overview */}
+      {items.length > 0 && collection && (
         <div className="mb-6">
-          <CollectionOverview collectionId={id} />
+          <EnhancedCollectionOverview collectionId={id} isPrivate={collection.visibility === 'private'} />
         </div>
       )}
 
       {/* Error State */}
       {isError && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-          <p className="text-red-800 dark:text-red-200">
+          <p className="text-red-800 dark:text-red-200 text-sm">
             <strong>Error loading items:</strong> {error?.toString()}
           </p>
         </div>
@@ -369,6 +360,17 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         collectionId={id}
         onSuccess={handleItemUpdate}
       />
+
+      {/* Collection Settings Dialog */}
+      {collection && (
+        <CollectionSettingsDialog
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          collection={collection}
+          onUpdate={handleItemUpdate}
+          onDelete={handleCollectionDeleted}
+        />
+      )}
     </div>
   )
 }
