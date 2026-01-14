@@ -35,6 +35,10 @@ export type Database = {
           description: string | null;
           type: string | null;
           visibility: 'public' | 'private';
+          ai_overview: string | null;
+          ai_overview_generated_at: string | null;
+          ai_overview_model: string | null;
+          ai_overview_valid: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -45,6 +49,10 @@ export type Database = {
           description?: string | null;
           type?: string | null;
           visibility?: 'public' | 'private';
+          ai_overview?: string | null;
+          ai_overview_generated_at?: string | null;
+          ai_overview_model?: string | null;
+          ai_overview_valid?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -55,6 +63,10 @@ export type Database = {
           description?: string | null;
           type?: string | null;
           visibility?: 'public' | 'private';
+          ai_overview?: string | null;
+          ai_overview_generated_at?: string | null;
+          ai_overview_model?: string | null;
+          ai_overview_valid?: boolean;
           created_at?: string;
           updated_at?: string;
         };
