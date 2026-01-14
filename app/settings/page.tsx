@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getClient } from '@/lib/supabase-client'
 import { User } from '@supabase/supabase-js'
-import { Settings, User as UserIcon, Palette, Bug, LogOut, Loader2 } from 'lucide-react'
+import { Settings, User as UserIcon, Palette, Bug, LogOut, Loader2, Globe, Lock } from 'lucide-react'
 
 type Section = 'account' | 'preferences' | 'debug'
 
@@ -15,12 +15,14 @@ export default function SettingsPage() {
   const [signingOut, setSigningOut] = useState(false)
   const [activeSection, setActiveSection] = useState<Section>('account')
 
-  // Preferences state (UI only - not persisted)
+  // Preferences state
   const [darkMode, setDarkMode] = useState(false)
   const [aiTone, setAiTone] = useState('technical')
-  const [privateByDefault, setPrivateByDefault] = useState(false)
+  const [defaultVisibility, setDefaultVisibility] = useState<'public' | 'private'>('public')
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false)
+  const [preferencesLoading, setPreferencesLoading] = useState(true)
 
-  // Check authentication
+  // Check authentication and load preferences
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = getClient()
@@ -33,6 +35,20 @@ export default function SettingsPage() {
 
       setUser(user)
       setLoading(false)
+
+      // Load user preferences
+      try {
+        const response = await fetch('/api/user/preferences')
+        const data = await response.json()
+
+        if (data.success && data.data) {
+          setDefaultVisibility(data.data.default_visibility)
+        }
+      } catch (error) {
+        console.error('Failed to load preferences:', error)
+      } finally {
+        setPreferencesLoading(false)
+      }
     }
 
     checkAuth()
@@ -47,6 +63,37 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Sign out error:', error)
       setSigningOut(false)
+    }
+  }
+
+  const handleVisibilityToggle = async () => {
+    const newVisibility = defaultVisibility === 'public' ? 'private' : 'public'
+
+    try {
+      setIsUpdatingVisibility(true)
+
+      const response = await fetch('/api/user/preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          default_visibility: newVisibility,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update preference')
+      }
+
+      setDefaultVisibility(newVisibility)
+    } catch (error) {
+      console.error('Failed to update visibility preference:', error)
+      // Optionally show error toast here
+    } finally {
+      setIsUpdatingVisibility(false)
     }
   }
 
@@ -195,84 +242,113 @@ export default function SettingsPage() {
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-2xl font-bold text-white mb-2">Preferences</h2>
-                    <p className="text-slate-400">Customize your Trove experience (UI preview only)</p>
+                    <p className="text-slate-400">Customize your Trove experience</p>
                   </div>
 
-                  {/* Appearance */}
-                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">
-                          Appearance
-                        </label>
-                        <p className="text-sm text-slate-400">Toggle between light and dark mode</p>
-                      </div>
-                      <button
-                        onClick={() => setDarkMode(!darkMode)}
-                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                          darkMode ? 'bg-indigo-600' : 'bg-slate-700'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                            darkMode ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
+                  {preferencesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
                     </div>
-                    {darkMode && (
-                      <div className="mt-2 text-xs text-indigo-300">
-                        Dark mode enabled (UI preview)
+                  ) : (
+                    <>
+                      {/* Default Visibility */}
+                      <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              {defaultVisibility === 'public' ? (
+                                <Globe className="w-4 h-4 text-emerald-400" />
+                              ) : (
+                                <Lock className="w-4 h-4 text-amber-400" />
+                              )}
+                              <label className="block text-sm font-medium text-white">
+                                {defaultVisibility === 'public' ? 'Public by Default' : 'Privacy Mode Enabled'}
+                              </label>
+                            </div>
+                            <p className="text-sm text-slate-400 mb-2">
+                              {defaultVisibility === 'public'
+                                ? 'New collections are public and can use AI features like smart descriptions and insights'
+                                : 'New collections are private. AI features are disabled for privacy.'}
+                            </p>
+                            {defaultVisibility === 'private' && (
+                              <div className="mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-300">
+                                <strong>Note:</strong> Privacy mode disables AI-powered features like collection overviews and smart recommendations.
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={handleVisibilityToggle}
+                            disabled={isUpdatingVisibility}
+                            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors flex-shrink-0 ${
+                              defaultVisibility === 'public' ? 'bg-emerald-600' : 'bg-amber-600'
+                            } ${isUpdatingVisibility ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            {isUpdatingVisibility ? (
+                              <Loader2 className="w-4 h-4 text-white mx-auto animate-spin" />
+                            ) : (
+                              <span
+                                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                                  defaultVisibility === 'public' ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                              />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* AI Tone */}
-                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-                    <label className="block text-sm font-medium text-white mb-2">
-                      AI Tone
-                    </label>
-                    <p className="text-sm text-slate-400 mb-3">Select the tone for AI-generated descriptions</p>
-                    <select
-                      value={aiTone}
-                      onChange={(e) => setAiTone(e.target.value)}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    >
-                      <option value="concise">Concise</option>
-                      <option value="technical">Technical</option>
-                      <option value="creative">Creative</option>
-                    </select>
-                  </div>
+                      {/* Appearance */}
+                      <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="block text-sm font-medium text-white mb-1">
+                              Appearance
+                            </label>
+                            <p className="text-sm text-slate-400">Toggle between light and dark mode</p>
+                          </div>
+                          <button
+                            onClick={() => setDarkMode(!darkMode)}
+                            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                              darkMode ? 'bg-indigo-600' : 'bg-slate-700'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                                darkMode ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                        {darkMode && (
+                          <div className="mt-2 text-xs text-indigo-300">
+                            Dark mode enabled (UI preview)
+                          </div>
+                        )}
+                      </div>
 
-                  {/* Default Privacy */}
-                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">
-                          Default Privacy
+                      {/* AI Tone */}
+                      <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
+                        <label className="block text-sm font-medium text-white mb-2">
+                          AI Tone
                         </label>
-                        <p className="text-sm text-slate-400">Make new collections private by default</p>
+                        <p className="text-sm text-slate-400 mb-3">Select the tone for AI-generated descriptions</p>
+                        <select
+                          value={aiTone}
+                          onChange={(e) => setAiTone(e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        >
+                          <option value="concise">Concise</option>
+                          <option value="technical">Technical</option>
+                          <option value="creative">Creative</option>
+                        </select>
                       </div>
-                      <button
-                        onClick={() => setPrivateByDefault(!privateByDefault)}
-                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                          privateByDefault ? 'bg-indigo-600' : 'bg-slate-700'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                            privateByDefault ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
 
-                  <div className="pt-4 border-t border-slate-700/50">
-                    <p className="text-xs text-slate-500 italic">
-                      Note: Preferences are UI stubs only and are not currently persisted.
-                    </p>
-                  </div>
+                      <div className="pt-4 border-t border-slate-700/50">
+                        <p className="text-xs text-slate-500 italic">
+                          Note: Appearance and AI Tone are UI stubs and are not currently persisted.
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
