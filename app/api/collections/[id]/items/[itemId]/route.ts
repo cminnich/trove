@@ -71,6 +71,12 @@ export async function DELETE(
       );
     }
 
+    // Invalidate AI overview since collection items have changed
+    await (client as any)
+      .from("collections")
+      .update({ ai_overview_valid: false })
+      .eq("id", collectionId);
+
     // Check if the item exists in any other collections owned by this user
     const { data: otherCollections, error: checkError } = await client
       .from("collection_items")
