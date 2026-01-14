@@ -138,6 +138,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get user's default visibility preference from their profile
+    const { data: profile } = await client
+      .from("profiles")
+      .select("default_visibility")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    // Default to 'public' if no preference is set
+    const defaultVisibility = profile?.default_visibility || 'public';
+
     // Use database function to create collection with proper RLS context
     // This uses SECURITY DEFINER to bypass RLS while ensuring the user is authenticated
     // and owner_id is correctly set. This is the same pattern used for read operations
@@ -148,7 +158,7 @@ export async function POST(req: NextRequest) {
         collection_name: body.name,
         collection_description: body.description || null,
         collection_type: body.type || null,
-        collection_visibility: 'private',
+        collection_visibility: defaultVisibility,
       }
     );
 
