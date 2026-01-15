@@ -4,15 +4,18 @@ import type {
   ExtractionState,
   CaptureContext,
   SaveIntent,
+  DeepExtractionState,
   CreateItemRequest,
   ItemWithContext
 } from '@/types/capture'
 import type { Database } from '@/types/database'
 
 type Item = Database['public']['Tables']['items']['Row']
+type Collection = Database['public']['Tables']['collections']['Row']
 
 interface UseCaptureStateOptions {
   initialUrl?: string
+  collections?: Collection[] // Available collections (used for inbox fallback)
   onSuccess?: (item: Item, collections: string[]) => void
   onError?: (error: string) => void
 }
@@ -25,6 +28,7 @@ interface UseCaptureStateReturn {
   triggerSave: () => void
   reset: () => void
   retry: () => void
+  completeProcessing: () => void // Manual trigger to move from processing to complete
 }
 
 /**
@@ -38,6 +42,7 @@ interface UseCaptureStateReturn {
  */
 export function useCaptureState({
   initialUrl,
+  collections: availableCollections = [],
   onSuccess,
   onError
 }: UseCaptureStateOptions = {}): UseCaptureStateReturn {
@@ -52,7 +57,8 @@ export function useCaptureState({
   const [context, setContext] = useState<CaptureContext>({
     notes: '',
     selectedCollections: [],
-    isDirty: false
+    isDirty: false,
+    inboxExplicitlySelected: false
   })
 
   // Save intent tracking (for race conditions)
@@ -233,8 +239,23 @@ export function useCaptureState({
    *
    * Note: Item was already created during extraction.
    * Now we just need to assign it to collections with notes.
+   * Uses inbox as fallback when no collections selected.
    */
   const executeSave = useCallback(async (item: Item, saveContext: CaptureContext) => {
+    // Determine target collections (use inbox as fallback)
+    let targetCollectionIds = saveContext.selectedCollections
+    if (targetCollectionIds.length === 0) {
+      const inbox = availableCollections.find(c => c.type === 'inbox')
+      if (inbox) {
+        targetCollectionIds = [inbox.id]
+      }
+    }
+
+    // Get full collection objects for the processing view
+    const targetCollections = availableCollections.filter(c =>
+      targetCollectionIds.includes(c.id)
+    )
+
     setState(prev =>
       prev.stage === 'capturing'
         ? { stage: 'saving', url: prev.url, item, context: saveContext }
@@ -244,9 +265,9 @@ export function useCaptureState({
     try {
       // Item was already created during extraction
       // Now assign to collections if any are selected
-      if (saveContext.selectedCollections.length > 0) {
+      if (targetCollectionIds.length > 0) {
         // Use collection assignment API for each collection
-        const collectionRequests = saveContext.selectedCollections.map(async (collectionId) => {
+        const collectionRequests = targetCollectionIds.map(async (collectionId) => {
           const response = await fetch(`/api/collections/${collectionId}/items`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -269,13 +290,22 @@ export function useCaptureState({
 
       if (!isMountedRef.current) return
 
-      setState({
-        stage: 'complete',
-        item,
-        collections: saveContext.selectedCollections
+      // Transition to processing stage (deep extraction runs here)
+      setState(prev => {
+        if (prev.stage !== 'saving') return prev
+        return {
+          stage: 'processing',
+          url: prev.url,
+          item,
+          context: saveContext,
+          collections: targetCollections,
+          deepExtraction: { status: 'pending' }
+        }
       })
 
-      onSuccess?.(item, saveContext.selectedCollections)
+      // Start deep extraction (simulate for now - in real implementation, call /api/extract)
+      startDeepExtraction(item.id)
+
     } catch (error) {
       if (!isMountedRef.current) return
 
@@ -289,7 +319,58 @@ export function useCaptureState({
 
       onError?.(error instanceof Error ? error.message : 'Failed to save item')
     }
-  }, [onSuccess, onError])
+  }, [availableCollections, onError])
+
+  /**
+   * Start deep extraction in background
+   * For now, simulates completion after a delay
+   */
+  const startDeepExtraction = useCallback(async (itemId: string) => {
+    // Update to in_progress
+    setState(prev => {
+      if (prev.stage !== 'processing') return prev
+      return { ...prev, deepExtraction: { status: 'in_progress' } }
+    })
+
+    try {
+      // Call the deep extraction API
+      const response = await fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: itemId })
+      })
+
+      if (!isMountedRef.current) return
+
+      if (!response.ok) {
+        // Deep extraction failed, but item is still saved
+        setState(prev => {
+          if (prev.stage !== 'processing') return prev
+          return { ...prev, deepExtraction: { status: 'failed', error: 'Enhancement failed' } }
+        })
+        return
+      }
+
+      // Deep extraction complete
+      setState(prev => {
+        if (prev.stage !== 'processing') return prev
+        return { ...prev, deepExtraction: { status: 'complete' } }
+      })
+
+      // Notify success
+      if (state.stage === 'processing') {
+        onSuccess?.(state.item, state.collections.map(c => c.id))
+      }
+    } catch (error) {
+      if (!isMountedRef.current) return
+
+      // Network error - mark as failed but item is still saved
+      setState(prev => {
+        if (prev.stage !== 'processing') return prev
+        return { ...prev, deepExtraction: { status: 'failed', error: 'Network error' } }
+      })
+    }
+  }, [onSuccess, state])
 
   /**
    * Reset to initial state (for "Add Another" action)
@@ -298,7 +379,8 @@ export function useCaptureState({
     setContext({
       notes: '',
       selectedCollections: [],
-      isDirty: false
+      isDirty: false,
+      inboxExplicitlySelected: false
     })
     setSaveIntent({ type: 'none' })
 
@@ -320,6 +402,21 @@ export function useCaptureState({
     }
   }, [state, initialUrl, startCapture])
 
+  /**
+   * Manually complete processing and move to success state
+   */
+  const completeProcessing = useCallback(() => {
+    if (state.stage !== 'processing') return
+
+    setState({
+      stage: 'complete',
+      item: state.item,
+      collections: state.collections.map(c => c.id)
+    })
+
+    onSuccess?.(state.item, state.collections.map(c => c.id))
+  }, [state, onSuccess])
+
   return {
     state,
     context,
@@ -327,6 +424,7 @@ export function useCaptureState({
     updateContext,
     triggerSave,
     reset,
-    retry
+    retry,
+    completeProcessing
   }
 }

@@ -8,8 +8,16 @@ export type CaptureState =
   | { stage: 'initializing'; url: string }
   | { stage: 'capturing'; url: string; extraction: ExtractionState }
   | { stage: 'saving'; url: string; item: Item; context: CaptureContext }
+  | { stage: 'processing'; url: string; item: Item; context: CaptureContext; collections: Collection[]; deepExtraction: DeepExtractionState }
   | { stage: 'complete'; item: Item; collections: string[] }
   | { stage: 'error'; error: string; canRetry: boolean }
+
+// Deep extraction state tracks background AI enrichment after save
+export type DeepExtractionState =
+  | { status: 'pending' }
+  | { status: 'in_progress' }
+  | { status: 'complete' }
+  | { status: 'failed'; error: string }
 
 // Extraction state tracks background AI processing
 export type ExtractionState =
@@ -23,6 +31,7 @@ export type CaptureContext = {
   notes: string
   selectedCollections: string[] // collection IDs
   isDirty: boolean // user has made changes
+  inboxExplicitlySelected: boolean // true if user explicitly clicked Inbox (vs. fallback)
 }
 
 // Save intent tracks race condition state
@@ -68,4 +77,12 @@ export function isExtractionInProgress(state: ExtractionState): state is Extract
 
 export function hasSaveIntent(intent: SaveIntent): intent is Exclude<SaveIntent, { type: 'none' }> {
   return intent.type !== 'none'
+}
+
+export function isDeepExtractionComplete(state: DeepExtractionState): state is Extract<DeepExtractionState, { status: 'complete' }> {
+  return state.status === 'complete'
+}
+
+export function isDeepExtractionInProgress(state: DeepExtractionState): state is Extract<DeepExtractionState, { status: 'in_progress' }> {
+  return state.status === 'in_progress' || state.status === 'pending'
 }

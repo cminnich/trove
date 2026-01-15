@@ -9,7 +9,7 @@ import { MockProgressBar } from './components/MockProgressBar'
 import { ContextForm } from './components/ContextForm'
 import { CollectionSelector } from './components/CollectionSelector'
 import { ExtractedItemCard } from './components/ExtractedItemCard'
-import { RecentlyTroved } from './components/RecentlyTroved'
+import { ProcessingCard } from './components/ProcessingCard'
 import { CaptureActions } from './components/CaptureActions'
 import { getClient } from '@/lib/supabase-client'
 
@@ -29,18 +29,15 @@ function AddPageContent() {
   const [collections, setCollections] = useState<Collection[]>([])
   const [collectionsLoading, setCollectionsLoading] = useState(true)
 
-  // Recent items state
-  const [recentItems, setRecentItems] = useState<Item[]>([])
-  const [recentItemsLoading, setRecentItemsLoading] = useState(true)
 
   // Capture state management
   // Note: Don't pass undefined when authLoading - it will initialize the hook with error state
   // Instead, we'll handle the loading state before rendering the hook's UI
-  const { state, context, saveIntent, updateContext, triggerSave, reset, retry } = useCaptureState({
+  const { state, context, saveIntent, updateContext, triggerSave, reset, retry, completeProcessing } = useCaptureState({
     initialUrl: urlParam || undefined,
+    collections, // Pass collections for inbox fallback
     onSuccess: () => {
-      // Refresh recent items after successful save
-      fetchRecentItems()
+      // Success callback - item is fully processed
     },
     onError: (error) => {
       console.error('Capture error:', error)
@@ -93,12 +90,7 @@ function AddPageContent() {
       } else {
         const collections = result.data as Collection[] || []
         setCollections(collections)
-
-        // Auto-select Inbox if it exists and no collections selected yet
-        const inbox = collections.find(c => c.type === 'inbox')
-        if (inbox && context.selectedCollections.length === 0) {
-          updateContext({ selectedCollections: [inbox.id] })
-        }
+        // Note: Inbox auto-selection is now handled by CollectionSelector's smart fallback
       }
     } catch (error) {
       console.error('Error loading collections:', error)
@@ -112,33 +104,10 @@ function AddPageContent() {
     loadCollections()
   }, [user]) // Re-run when user changes
 
-  // Fetch recent items (only when authenticated)
-  useEffect(() => {
-    if (user) {
-      fetchRecentItems()
-    } else {
-      setRecentItemsLoading(false)
-    }
-  }, [user])
-
-  async function fetchRecentItems() {
-    try {
-      const response = await fetch('/api/items/recent?limit=5')
-      const data = await response.json()
-
-      if (data.success && data.data) {
-        setRecentItems(data.data)
-      }
-    } catch (error) {
-      console.error('Error fetching recent items:', error)
-    } finally {
-      setRecentItemsLoading(false)
-    }
-  }
-
   // Validation: Check if save is allowed
-  const canSave =
-    context.notes.trim().length > 0 || context.selectedCollections.length > 0
+  // With smart inbox fallback, we can always save (inbox is default target)
+  const hasInboxFallback = collections.some(c => c.type === 'inbox')
+  const canSave = hasInboxFallback || context.notes.trim().length > 0 || context.selectedCollections.length > 0
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -190,7 +159,18 @@ function AddPageContent() {
     return <ErrorView error={state.error} canRetry={state.canRetry} onRetry={retry} onReset={reset} />
   }
 
-  // Capturing or Saving state: Show Context-First flow
+  // Processing state: Show ProcessingView with shimmer card
+  if (state.stage === 'processing') {
+    return (
+      <ProcessingView
+        state={state}
+        onAddAnother={reset}
+        onComplete={completeProcessing}
+      />
+    )
+  }
+
+  // Capturing or Saving state: Show CaptureForm flow
   const isSaving = state.stage === 'saving'
   const isCapturing = state.stage === 'capturing'
   const extractionComplete = isCapturing && state.extraction.status === 'complete'
@@ -249,14 +229,6 @@ function AddPageContent() {
           onSave={triggerSave}
           onCancel={reset}
         />
-
-        {/* Recently Troved */}
-        <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-          <RecentlyTroved
-            items={recentItems}
-            loading={recentItemsLoading}
-          />
-        </div>
       </div>
     </main>
   )
@@ -386,6 +358,68 @@ function ErrorView({
             Go Back
           </button>
         </div>
+      </div>
+    </main>
+  )
+}
+
+// Processing View Component - shown after save while deep extraction runs
+function ProcessingView({
+  state,
+  onAddAnother,
+  onComplete
+}: {
+  state: Extract<import('@/types/capture').CaptureState, { stage: 'processing' }>
+  onAddAnother: () => void
+  onComplete: () => void
+}) {
+  const isComplete = state.deepExtraction.status === 'complete'
+  const isFailed = state.deepExtraction.status === 'failed'
+
+  return (
+    <main className="flex min-h-screen flex-col p-6 bg-gray-50 dark:bg-gray-900">
+      <div className="w-full max-w-2xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {isComplete ? 'Added to Trove' : 'Processing...'}
+          </h1>
+          {!isComplete && !isFailed && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Enhancing your item with AI
+            </p>
+          )}
+        </div>
+
+        {/* Processing Card */}
+        <ProcessingCard
+          item={state.item}
+          url={state.url}
+          context={state.context}
+          collections={state.collections}
+          deepExtraction={state.deepExtraction}
+        />
+
+        {/* Actions - only show when complete or failed */}
+        {(isComplete || isFailed) && (
+          <div className="space-y-3">
+            <button
+              onClick={onAddAnother}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              Add Another Item
+            </button>
+
+            {state.collections.length > 0 && (
+              <a
+                href={`/collections/${state.collections[0].id}`}
+                className="block w-full text-center bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-3 px-4 rounded-lg border border-gray-300 dark:border-gray-600 transition-colors"
+              >
+                View in {state.collections[0].name}
+              </a>
+            )}
+          </div>
+        )}
       </div>
     </main>
   )
