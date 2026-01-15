@@ -145,7 +145,8 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     // Default to 'public' if no preference is set
-    const defaultVisibility = profile?.default_visibility || 'public';
+    type ProfileVisibility = Pick<Database["public"]["Tables"]["profiles"]["Row"], "default_visibility">;
+    const defaultVisibility = (profile as ProfileVisibility | null)?.default_visibility || 'public';
 
     // Use database function to create collection with proper RLS context
     // This uses SECURITY DEFINER to bypass RLS while ensuring the user is authenticated
