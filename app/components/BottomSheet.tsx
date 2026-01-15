@@ -89,7 +89,7 @@ export function BottomSheet({ open, onClose, children, title }: BottomSheetProps
   return (
     <div
       ref={backdropRef}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 md:items-center animate-fade-in"
       onClick={handleBackdropClick}
       aria-modal="true"
       role="dialog"
