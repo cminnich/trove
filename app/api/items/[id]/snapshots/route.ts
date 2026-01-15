@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
 
 type Snapshot = Database["public"]["Tables"]["item_snapshots"]["Row"];
@@ -24,7 +24,7 @@ export async function GET(
       );
     }
 
-    const supabase = getServerClient();
+    const supabase = getServiceRoleClient();
 
     // Fetch all snapshots for this item, ordered by capture time (newest first)
     const { data: snapshots, error: snapshotsError } = await supabase

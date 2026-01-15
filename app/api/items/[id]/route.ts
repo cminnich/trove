@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
 
 type Item = Database["public"]["Tables"]["items"]["Row"];
@@ -17,7 +17,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = getServerClient();
+    const supabase = getServiceRoleClient();
 
     const { data, error } = await supabase
       .from("items")
@@ -75,7 +75,7 @@ export async function PATCH(
       );
     }
 
-    const supabase = getServerClient();
+    const supabase = getServiceRoleClient();
 
     // Type assertion needed for Supabase TypeScript compatibility
     const { data, error } = await (supabase as any)

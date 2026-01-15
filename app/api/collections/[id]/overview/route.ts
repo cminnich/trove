@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase-server";
 import { loadPrompt, replaceVars, callClaudeJSON } from "@/lib/ai";
 import {
   CollectionOverviewSchema,
@@ -29,22 +29,23 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = getServerClient();
+    const supabase = getServiceRoleClient();
 
-    const { data: collection, error } = await supabase
+    const { data, error } = await supabase
       .from("collections")
-      .select(
-        "ai_overview, ai_overview_generated_at, ai_overview_model, ai_overview_valid"
-      )
+      .select("*")
       .eq("id", id)
       .single();
 
-    if (error || !collection) {
+    if (error || !data) {
       return NextResponse.json(
         { error: "Collection not found" },
         { status: 404 }
       );
     }
+
+    // Type assertion needed due to Supabase client type inference limitations
+    const collection = data as Collection;
 
     if (!collection.ai_overview_valid || !collection.ai_overview) {
       return NextResponse.json({
@@ -84,21 +85,24 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const supabase = getServerClient();
+    const supabase = getServiceRoleClient();
 
     // Step 1: Fetch collection with items
-    const { data: collection, error: collectionError } = await supabase
+    const { data: collectionData, error: collectionError } = await supabase
       .from("collections")
       .select("*")
       .eq("id", id)
       .single();
 
-    if (collectionError || !collection) {
+    if (collectionError || !collectionData) {
       return NextResponse.json(
         { error: "Collection not found" },
         { status: 404 }
       );
     }
+
+    // Type assertion needed due to Supabase client type inference limitations
+    const collection = collectionData as Collection;
 
     // Step 2: Check if overview is already valid
     if (collection.ai_overview_valid && collection.ai_overview) {
@@ -169,7 +173,8 @@ export async function POST(
     const validated = CollectionOverviewSchema.parse(overview);
 
     // Step 5: Store in database
-    const { error: updateError } = await supabase
+    // Type assertion needed due to Supabase client type inference limitations
+    const { error: updateError } = await (supabase as any)
       .from("collections")
       .update({
         ai_overview: JSON.stringify(validated),

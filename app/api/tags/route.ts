@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase-server";
 
 type ItemTagResult = {
   tags: string[] | null;
@@ -19,7 +19,7 @@ type CollectionItemResult = {
  */
 export async function GET() {
   try {
-    const supabase = getServerClient();
+    const supabase = getServiceRoleClient();
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();

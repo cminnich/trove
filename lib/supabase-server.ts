@@ -12,6 +12,33 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
  * For client components, use lib/supabase.ts instead.
  */
 
+/**
+ * Service role client for privileged server-side operations.
+ * Bypasses RLS - use with caution.
+ * Uses createServerClient for proper TypeScript type inference.
+ */
+export function getServiceRoleClient(): SupabaseClient<Database> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error("Missing env.NEXT_PUBLIC_SUPABASE_URL");
+  }
+  if (!process.env.SUPABASE_SECRET_KEY) {
+    throw new Error("Missing env.SUPABASE_SECRET_KEY");
+  }
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SECRET_KEY,
+    {
+      cookies: {
+        // No-op cookie handlers for service role client (no auth needed)
+        get() { return undefined; },
+        set() {},
+        remove() {},
+      },
+    }
+  );
+}
+
 // Authenticated server client for API routes that respects RLS
 // Returns both the client and the authenticated user
 export async function getAuthenticatedServerClient(): Promise<{

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
 import type { CollectionOverview } from "@/types/collection-overview";
 
@@ -42,7 +42,7 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const shareToken = searchParams.get("share_token");
 
-    const supabase = getServerClient();
+    const supabase = getServiceRoleClient();
 
     // Fetch collection to check visibility
     const { data: collectionData, error: collectionError } = await supabase

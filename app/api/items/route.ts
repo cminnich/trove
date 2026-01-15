@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthenticatedServerClient } from "@/lib/supabase-server";
-import { getServerClient } from "@/lib/supabase";
+import { getAuthenticatedServerClient, getServiceRoleClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
 
 type CollectionAssignment = {
@@ -57,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 1: Check if this URL has been extracted before (items are public, can use service client for read)
-    const supabase = getServerClient();
+    const supabase = getServiceRoleClient();
 
     const { data: existingItems }: {
       data: Database["public"]["Tables"]["items"]["Row"][] | null;

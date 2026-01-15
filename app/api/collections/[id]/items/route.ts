@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthenticatedServerClient } from "@/lib/supabase-server";
-import { getServerClient } from "@/lib/supabase";
+import { getAuthenticatedServerClient, getServiceRoleClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
 
 type Item = Database["public"]["Tables"]["items"]["Row"];
@@ -73,7 +72,7 @@ export async function GET(
     }
 
     // Now safe to use service client for performance
-    const supabase = getServerClient();
+    const supabase = getServiceRoleClient();
 
     // Query items with collection metadata via JOIN
     let query = supabase

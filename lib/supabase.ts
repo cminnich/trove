@@ -21,21 +21,3 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
     }
   }
 );
-
-// Server client with Secret Key (for server-side only operations with privileged access)
-export function getServerClient(): SupabaseClient<Database> {
-  if (!process.env.SUPABASE_SECRET_KEY) {
-    throw new Error("Missing env.SUPABASE_SECRET_KEY");
-  }
-
-  return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SECRET_KEY,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    }
-  );
-}

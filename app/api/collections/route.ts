@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerClient } from "@/lib/supabase";
-import { getAuthenticatedServerClient } from "@/lib/supabase-server";
+import { getAuthenticatedServerClient, getServiceRoleClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
 
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
@@ -67,7 +66,7 @@ export async function GET() {
     }
 
     // Use server client for aggregations (bypasses RLS for performance)
-    const supabase = getServerClient();
+    const supabase = getServiceRoleClient();
 
     // For each collection, fetch item count and first 4 thumbnails
     const collectionsWithMetadata = await Promise.all(
