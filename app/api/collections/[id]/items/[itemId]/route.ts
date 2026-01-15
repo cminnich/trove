@@ -97,14 +97,13 @@ export async function DELETE(
 
     // If item doesn't exist in any other user collections, add to Inbox
     if (!otherCollections || otherCollections.length === 0) {
-      // Find or create Inbox collection
+      // Find or create Inbox collection (type: "inbox")
       const { data: inboxCollection, error: inboxFindError } = await client
         .from("collections")
         .select("id")
         .eq("owner_id", user.id)
-        .eq("name", "Inbox")
-        .eq("type", "wishlist")
-        .single();
+        .eq("type", "inbox")
+        .maybeSingle();
 
       let inbox: Collection | null = inboxCollection;
 
@@ -116,7 +115,7 @@ export async function DELETE(
             owner_id: user.id,
             name: "Inbox",
             description: "Default collection for items without a home",
-            type: "wishlist",
+            type: "inbox",
             visibility: "private",
           } as any)
           .select()

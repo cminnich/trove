@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react'
 import { BottomSheet } from '@/app/components/BottomSheet'
 import { ConfidenceBadge } from '@/app/components/ConfidenceBadge'
 import { TagChipSelector } from './TagChipSelector'
-import { ExternalLink, Save, X, Clock, FolderOpen, Plus, Trash2, AlertTriangle, RefreshCw } from 'lucide-react'
+import { ExternalLink, Save, X, Clock, FolderOpen, Plus, Trash2, AlertTriangle, RefreshCw, Undo2 } from 'lucide-react'
 import { useUserCollections } from '@/app/hooks/useUserCollections'
 import { useCollections } from '@/app/hooks/useCollections'
 import type { Database } from '@/types/database'
 import { getItemDisplayTitle, formatUrlForDisplay } from '@/lib/url-formatter'
+import { toast } from 'sonner'
 
 type Item = Database['public']['Tables']['items']['Row']
 type Snapshot = Database['public']['Tables']['item_snapshots']['Row']
@@ -42,6 +43,8 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
   const [addingToCollection, setAddingToCollection] = useState(false)
   const [removingFromCollection, setRemovingFromCollection] = useState<string | null>(null)
   const [retrying, setRetrying] = useState(false)
+  const [showTrashConfirm, setShowTrashConfirm] = useState(false)
+  const [trashing, setTrashing] = useState(false)
 
   // Fetch user collections containing this item
   const { userCollections, mutate: mutateUserCollections, isLoading: loadingUserCollections } = useUserCollections(item?.id ?? null)
@@ -258,6 +261,62 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
     setTags(item.tags || [])
     setImageUrl(item.image_url || '')
     setEditMode(false)
+  }
+
+  const handleMoveToTrash = async () => {
+    setTrashing(true)
+    try {
+      const response = await fetch(`/api/items/${item.id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to move item to trash')
+      }
+
+      // Close the sheet
+      onClose()
+
+      // Show toast with undo option
+      const removedCollectionIds = data.data?.removed_from_collections || []
+      toast.success('Item moved to Trash', {
+        description: 'It will no longer appear in your collections.',
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            // Restore item to the original collections
+            try {
+              for (const collectionId of removedCollectionIds) {
+                await fetch(`/api/collections/${collectionId}/items`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    item_id: item.id,
+                    notes: item.notes || null,
+                  }),
+                })
+              }
+              toast.success('Item restored to collections')
+              onUpdate?.()
+            } catch (err) {
+              console.error('Failed to restore item:', err)
+              toast.error('Failed to restore item')
+            }
+          },
+        },
+        duration: 8000,
+      })
+
+      onUpdate?.()
+    } catch (error) {
+      console.error('Failed to move item to trash:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to move item to trash')
+    } finally {
+      setTrashing(false)
+      setShowTrashConfirm(false)
+    }
   }
 
   return (
@@ -730,7 +789,91 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
             </button>
           )}
         </div>
+
+        {/* Danger Zone - Move to Trash */}
+        <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-semibold text-red-900 dark:text-red-200 mb-1 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  Danger Zone
+                </h4>
+                <p className="text-xs text-red-800 dark:text-red-300">
+                  Move this item to Trash. It will be removed from all your collections.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowTrashConfirm(true)}
+                disabled={trashing}
+                className="flex-shrink-0 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                data-testid="move-to-trash-button"
+              >
+                <Trash2 className="w-4 h-4" />
+                Trash
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Trash Confirmation Dialog */}
+      {showTrashConfirm && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 animate-fade-in"
+          onClick={() => setShowTrashConfirm(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4 mb-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Move to Trash?
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  This item will be removed from{' '}
+                  <strong>all {userCollections.length} collection{userCollections.length !== 1 ? 's' : ''}</strong>.
+                  It will no longer appear in your Trove.
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                  You can undo this action immediately after.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowTrashConfirm(false)}
+                disabled={trashing}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMoveToTrash}
+                disabled={trashing}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                {trashing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Moving...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Move to Trash
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </BottomSheet>
   )
 }

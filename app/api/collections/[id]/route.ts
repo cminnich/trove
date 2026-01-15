@@ -132,6 +132,7 @@ export async function PATCH(
 }
 
 // DELETE /api/collections/[id] - Delete a collection
+// Orphan handling: Items only in this collection are moved to Inbox
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -149,7 +150,136 @@ export async function DELETE(
       );
     }
 
-    // Query using authenticated client - RLS automatically enforces ownership
+    // Verify user owns this collection and it's not the Inbox
+    const { data: collection, error: fetchError } = await client
+      .from("collections")
+      .select("id, owner_id, type, name")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !collection) {
+      return NextResponse.json(
+        { success: false, error: "Collection not found" } as CollectionResponse,
+        { status: 404 }
+      );
+    }
+
+    const typedCollection = collection as { id: string; owner_id: string; type: string | null; name: string };
+
+    if (typedCollection.owner_id !== user.id) {
+      return NextResponse.json(
+        { success: false, error: "You do not have permission to delete this collection" } as CollectionResponse,
+        { status: 403 }
+      );
+    }
+
+    // Prevent deletion of the Inbox collection
+    if (typedCollection.type === "inbox") {
+      return NextResponse.json(
+        { success: false, error: "Cannot delete the Inbox collection" } as CollectionResponse,
+        { status: 400 }
+      );
+    }
+
+    // Find items that ONLY belong to this collection (orphans after deletion)
+    // These items need to be moved to Inbox
+    const { data: itemsInCollection, error: itemsError } = await client
+      .from("collection_items")
+      .select("item_id")
+      .eq("collection_id", id);
+
+    if (itemsError) {
+      console.error("Failed to fetch items in collection:", itemsError);
+      return NextResponse.json(
+        { success: false, error: itemsError.message } as CollectionResponse,
+        { status: 500 }
+      );
+    }
+
+    // Find which items would become orphans (only in this collection)
+    const orphanItemIds: string[] = [];
+    if (itemsInCollection && itemsInCollection.length > 0) {
+      for (const item of itemsInCollection) {
+        const typedItem = item as { item_id: string };
+        // Check if this item exists in any OTHER collection owned by this user
+        const { data: otherCollections, error: checkError } = await client
+          .from("collection_items")
+          .select("collection_id, collections!inner(owner_id)")
+          .eq("item_id", typedItem.item_id)
+          .neq("collection_id", id)
+          .eq("collections.owner_id", user.id);
+
+        if (checkError) {
+          console.error("Failed to check other collections:", checkError);
+          continue;
+        }
+
+        // If no other collections, this item will be orphaned
+        if (!otherCollections || otherCollections.length === 0) {
+          orphanItemIds.push(typedItem.item_id);
+        }
+      }
+    }
+
+    // If there are orphans, ensure Inbox exists and add them to it
+    if (orphanItemIds.length > 0) {
+      // Find or create Inbox collection
+      const { data: inboxCollection, error: inboxFindError } = await client
+        .from("collections")
+        .select("id")
+        .eq("owner_id", user.id)
+        .eq("type", "inbox")
+        .maybeSingle();
+
+      let inboxId: string;
+
+      if (inboxFindError || !inboxCollection) {
+        // Create Inbox if it doesn't exist
+        const { data: newInbox, error: inboxCreateError } = await (client as any)
+          .from("collections")
+          .insert({
+            owner_id: user.id,
+            name: "Inbox",
+            description: "Default collection for items without a home",
+            type: "inbox",
+            visibility: "private",
+          })
+          .select("id")
+          .single();
+
+        if (inboxCreateError || !newInbox) {
+          console.error("Failed to create Inbox collection:", inboxCreateError);
+          return NextResponse.json(
+            { success: false, error: "Failed to create Inbox collection for orphaned items" } as CollectionResponse,
+            { status: 500 }
+          );
+        }
+
+        inboxId = (newInbox as { id: string }).id;
+      } else {
+        inboxId = (inboxCollection as { id: string }).id;
+      }
+
+      // Add orphan items to Inbox (these will be moved after collection deletion)
+      // We need to insert before deletion because cascade will remove collection_items entries
+      const orphanInserts = orphanItemIds.map(itemId => ({
+        collection_id: inboxId,
+        item_id: itemId,
+        notes: null,
+        position: null,
+      }));
+
+      const { error: insertError } = await (client as any)
+        .from("collection_items")
+        .upsert(orphanInserts, { onConflict: "collection_id,item_id" });
+
+      if (insertError) {
+        console.error("Failed to add orphan items to Inbox:", insertError);
+        // Continue with deletion anyway - items will just become orphans
+      }
+    }
+
+    // Now delete the collection (CASCADE will remove collection_items entries)
     const { error } = await client
       .from("collections")
       .delete()
@@ -165,7 +295,10 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-    } as CollectionResponse);
+      data: {
+        orphan_items_moved_to_inbox: orphanItemIds.length,
+      },
+    });
   } catch (error) {
     console.error("Error deleting collection:", error);
     return NextResponse.json(

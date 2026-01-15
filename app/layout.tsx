@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { BottomTabBar } from "@/app/components/Navigation/BottomTabBar";
 import { DesktopNav } from "@/app/components/Navigation/DesktopNav";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
         <DesktopNav />
         <main className="pb-20 md:pb-0">{children}</main>
         <BottomTabBar />
+        <Toaster position="top-center" richColors closeButton />
       </body>
     </html>
   );
