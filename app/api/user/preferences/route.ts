@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedServerClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-
 interface PreferencesResponse {
   success: boolean;
   data?: {
@@ -43,10 +41,14 @@ export async function GET() {
       );
     }
 
+    // Type annotation needed because TypeScript can't infer type from single-column select
+    type ProfileVisibility = Pick<Database["public"]["Tables"]["profiles"]["Row"], "default_visibility">;
+    const defaultVisibility = (profile as ProfileVisibility | null)?.default_visibility || 'public';
+
     return NextResponse.json({
       success: true,
       data: {
-        default_visibility: profile?.default_visibility || 'public',
+        default_visibility: defaultVisibility,
       },
     } as PreferencesResponse);
   } catch (error) {
@@ -89,15 +91,19 @@ export async function PATCH(req: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
 
+    type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
+    type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
+
     if (!existingProfile) {
       // Create profile if it doesn't exist
-      const { error: insertError } = await client
+      const insertData: ProfileInsert = {
+        id: user.id,
+        email: user.email || null,
+        default_visibility: body.default_visibility,
+      };
+      const { error: insertError } = await (client as any)
         .from("profiles")
-        .insert({
-          id: user.id,
-          email: user.email || null,
-          default_visibility: body.default_visibility,
-        });
+        .insert(insertData);
 
       if (insertError) {
         console.error("Failed to create profile:", insertError);
@@ -108,12 +114,13 @@ export async function PATCH(req: NextRequest) {
       }
     } else {
       // Update existing profile
-      const { error: updateError } = await client
+      const updateData: ProfileUpdate = {
+        default_visibility: body.default_visibility,
+        updated_at: new Date().toISOString(),
+      };
+      const { error: updateError } = await (client as any)
         .from("profiles")
-        .update({
-          default_visibility: body.default_visibility,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", user.id);
 
       if (updateError) {
