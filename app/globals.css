@@ -47,6 +47,12 @@ body {
   .animate-fade-in {
     animation: fadeIn 0.3s ease-in-out;
   }
+
+  /* AI Overview fade mask for condensed view */
+  .mask-fade-bottom {
+    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  }
 }
 
 @keyframes fadeIn {
