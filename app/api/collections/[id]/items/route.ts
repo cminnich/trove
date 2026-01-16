@@ -270,12 +270,6 @@ export async function POST(
       );
     }
 
-    // Invalidate AI overview since collection items have changed
-    await (supabase as any)
-      .from("collections")
-      .update({ ai_overview_valid: false })
-      .eq("id", collection_id);
-
     return NextResponse.json({
       success: true,
       data,
