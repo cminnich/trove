@@ -24,6 +24,7 @@ import {
   Settings,
   Sparkles,
   Check,
+  Share2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
@@ -53,7 +54,6 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [addItemSheetOpen, setAddItemSheetOpen] = useState(false)
-  const [generatingOverview, setGeneratingOverview] = useState(false)
   const { items, isLoading, isError, error, mutate, reorder } = useCollectionItems(id, sortOrder)
   const { isOpen, itemId, openItemDetail, closeItemDetail } = useItemDetailStore()
   const autoExitTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -126,31 +126,23 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
     await reorder(itemPositions)
   }
 
-  const handleGenerateOverview = async () => {
-    if (!collection || collection.visibility !== 'public') {
-      showToastNotification('Collection must be public to generate AI overview')
+  const handleShareForAI = async () => {
+    if (!collection) return
+
+    // Check if collection is private
+    if (collection.visibility !== 'public') {
+      showToastNotification('Collection must be public to share with AI. Update in Settings.')
       return
     }
 
-    setGeneratingOverview(true)
+    // Copy context URL to clipboard
+    const contextUrl = `${window.location.origin}/api/v1/collections/${id}/context`
     try {
-      const response = await fetch(`/api/collections/${id}/overview`, {
-        method: 'POST',
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        showToastNotification('AI overview generated successfully!')
-        // Trigger a re-fetch of the overview by re-mounting the component
-        mutateCollection()
-      } else {
-        showToastNotification('Failed to generate overview: ' + (data.error || 'Unknown error'))
-      }
+      await navigator.clipboard.writeText(contextUrl)
+      showToastNotification('AI context URL copied to clipboard!')
     } catch (err) {
-      console.error('Failed to generate overview:', err)
-      showToastNotification('Failed to generate overview')
-    } finally {
-      setGeneratingOverview(false)
+      console.error('Failed to copy to clipboard:', err)
+      showToastNotification('Failed to copy URL to clipboard')
     }
   }
 
@@ -236,16 +228,15 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             <span className="sm:hidden">Add</span>
           </button>
 
-          {/* Generate Overview Button */}
-          {items.length > 0 && collection?.visibility === 'public' && (
+          {/* Share for AI Button */}
+          {items.length > 0 && (
             <button
-              onClick={handleGenerateOverview}
-              disabled={generatingOverview}
-              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-400 disabled:to-purple-400 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-indigo-500/30"
-              title="Generate AI overview"
+              onClick={handleShareForAI}
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-indigo-500/30"
+              title="Copy AI context URL to clipboard"
             >
-              <Sparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">{generatingOverview ? 'Generating...' : 'AI Overview'}</span>
+              <Share2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Share for AI</span>
             </button>
           )}
 
