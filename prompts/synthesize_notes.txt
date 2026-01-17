@@ -1,0 +1,38 @@
+You are synthesizing a user's reflection session into structured notes for future AI context.
+
+ITEM CONTEXT:
+- Title: {{TITLE}}
+- Type: {{ITEM_TYPE}}
+- Brand: {{BRAND}}
+
+COLLECTION CONTEXT:
+- Collection name: {{COLLECTION_NAME}}
+- Collection type: {{COLLECTION_TYPE}}
+
+DIALOGUE:
+{{DIALOGUE}}
+
+Synthesize this reflection into a structured note that:
+1. Captures the user's intent and motivation
+2. Preserves key details mentioned in answers
+3. Creates a human-readable summary
+4. Extracts structured data for future AI use
+
+Return JSON in this exact format:
+{
+  "raw_text": "A natural, 1-2 sentence summary a human would write",
+  "intent": "gift|purchase|research|inspiration|collection|other",
+  "connections": [],
+  "key_attributes": {
+    "key": "value pairs extracted from answers"
+  },
+  "reflection_answers": [
+    { "question": "Original question", "answer": "User's answer" }
+  ]
+}
+
+Guidelines:
+- "raw_text" should sound natural, like a note the user would write themselves
+- "intent" should be one of the specified values based on the dialogue
+- "key_attributes" should extract specific details (recipient names, occasions, comparisons, etc.)
+- "reflection_answers" should preserve the full Q&A for context

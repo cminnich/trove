@@ -2,21 +2,29 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { Database } from '@/types/database'
-import { useCaptureState } from './hooks/useCaptureState'
-import { SourceUrlBadge } from './components/SourceUrlBadge'
-import { MockProgressBar } from './components/MockProgressBar'
-import { ContextForm } from './components/ContextForm'
-import { CollectionSelector } from './components/CollectionSelector'
-import { ExtractedItemCard } from './components/ExtractedItemCard'
-import { ProcessingCard } from './components/ProcessingCard'
-import { CaptureActions } from './components/CaptureActions'
+import { useMeditativeCapture } from './hooks/useMeditativeCapture'
+import { GalaxyCanvas } from '@/app/components/Galaxy'
+import { InquiryFlow } from './components/InquiryFlow'
+import { BreathingPulse, ProgressiveReveal, AmbientGlowBorder } from './components/animations'
 import { getClient } from '@/lib/supabase-client'
+import {
+  isArrivalPhase,
+  isSpatialPhase,
+  isInquiryPhase,
+  isCompletionPhase,
+  type Nebula,
+} from '@/types/meditative-capture'
+import Image from 'next/image'
 
 type Item = Database['public']['Tables']['items']['Row']
 type Collection = Database['public']['Tables']['collections']['Row']
 
-function AddPageContent() {
+// Feature flag: Set to true to use the new meditative flow
+const USE_MEDITATIVE_FLOW = true
+
+function MeditativeAddPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const urlParam = searchParams?.get('url')
@@ -28,21 +36,6 @@ function AddPageContent() {
   // Collections state
   const [collections, setCollections] = useState<Collection[]>([])
   const [collectionsLoading, setCollectionsLoading] = useState(true)
-
-
-  // Capture state management
-  // Note: Don't pass undefined when authLoading - it will initialize the hook with error state
-  // Instead, we'll handle the loading state before rendering the hook's UI
-  const { state, context, saveIntent, updateContext, triggerSave, reset, retry, completeProcessing } = useCaptureState({
-    initialUrl: urlParam || undefined,
-    collections, // Pass collections for inbox fallback
-    onSuccess: () => {
-      // Success callback - item is fully processed
-    },
-    onError: (error) => {
-      console.error('Capture error:', error)
-    }
-  })
 
   // Check auth session on mount
   useEffect(() => {
@@ -61,7 +54,6 @@ function AddPageContent() {
 
     checkAuth()
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
     })
@@ -69,374 +61,644 @@ function AddPageContent() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Fetch collections and ensure Inbox exists (only when authenticated)
-  const loadCollections = async () => {
-    // Only load collections if user is authenticated
+  // Fetch collections
+  useEffect(() => {
     if (!user) {
       setCollectionsLoading(false)
       return
     }
 
-    try {
-      setCollectionsLoading(true)
-      // Fetch all collections via API endpoint (respects authentication)
-      // Note: API automatically ensures Inbox collection exists
-      const response = await fetch('/api/collections')
-      const result = await response.json()
+    async function loadCollections() {
+      try {
+        setCollectionsLoading(true)
+        const response = await fetch('/api/collections')
+        const result = await response.json()
 
-      if (!result.success || result.error) {
-        console.error('Error fetching collections:', result.error)
-        setCollections([])
-      } else {
-        const collections = result.data as Collection[] || []
-        setCollections(collections)
-        // Note: Inbox auto-selection is now handled by CollectionSelector's smart fallback
+        if (result.success && result.data) {
+          setCollections(result.data as Collection[])
+        }
+      } catch (error) {
+        console.error('Error loading collections:', error)
+      } finally {
+        setCollectionsLoading(false)
       }
-    } catch (error) {
-      console.error('Error loading collections:', error)
-      setCollections([])
-    } finally {
-      setCollectionsLoading(false)
     }
-  }
 
-  useEffect(() => {
     loadCollections()
-  }, [user]) // Re-run when user changes
+  }, [user])
 
-  // Validation: Check if save is allowed
-  // With smart inbox fallback, we can always save (inbox is default target)
-  const hasInboxFallback = collections.some(c => c.type === 'inbox')
-  const canSave = hasInboxFallback || context.notes.trim().length > 0 || context.selectedCollections.length > 0
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isSaving = state.stage === 'saving'
-
-      // Cmd/Ctrl+Enter: Save
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && canSave && !isSaving) {
-        e.preventDefault()
-        triggerSave()
-      }
-      // Escape: Cancel
-      if (e.key === 'Escape' && state.stage !== 'complete') {
-        e.preventDefault()
-        reset()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canSave, state.stage, triggerSave, reset])
+  // Meditative capture state
+  const {
+    state,
+    updateSeedPosition,
+    startDragging,
+    stopDragging,
+    placeSeed,
+    startLongPress,
+    cancelLongPress,
+    createNebula,
+    submitAnswer,
+    skipQuestion,
+    completeInquiry,
+    depart,
+    updateViewTransform,
+    retry,
+    reset,
+  } = useMeditativeCapture({
+    initialUrl: urlParam || undefined,
+    collections,
+    onComplete: (item, collection, notes) => {
+      console.log('Capture complete:', { item, collection, notes })
+    },
+    onError: (error) => {
+      console.error('Capture error:', error)
+    },
+    onDepart: (itemId) => {
+      console.log('User departed, item saved to inbox:', itemId)
+    },
+  })
 
   // Auth loading
   if (authLoading) {
-    return <LoadingFallback />
+    return <MeditativeLoadingFallback />
   }
 
-  // Not authenticated: Redirect to login page
+  // Not authenticated
   if (!user) {
     const currentPath = `/add${urlParam ? `?url=${encodeURIComponent(urlParam)}` : ''}`
     router.push(`/auth/login?next=${encodeURIComponent(currentPath)}`)
-    return <LoadingFallback />
+    return <MeditativeLoadingFallback />
   }
 
-  // Idle state: No URL provided (manual entry) - show manual entry form
-  // This catches the "No URL provided" error state and shows the manual entry form instead
-  if (!urlParam && user) {
-    if (state.stage === 'error' && state.error === 'No URL provided') {
-      return <ManualEntryView user={user} />
-    }
+  // No URL provided
+  if (!urlParam) {
+    return <MeditativeManualEntry user={user} />
   }
 
-  // Render different stages
-  if (state.stage === 'complete') {
-    return <SuccessView item={state.item} collections={state.collections} onAddAnother={reset} />
-  }
-
-  if (state.stage === 'error') {
-    return <ErrorView error={state.error} canRetry={state.canRetry} onRetry={retry} onReset={reset} />
-  }
-
-  // Processing state: Show ProcessingView with shimmer card
-  if (state.stage === 'processing') {
+  // Collections loading - show arrival phase early
+  if (collectionsLoading && isArrivalPhase(state)) {
     return (
-      <ProcessingView
-        state={state}
-        onAddAnother={reset}
-        onComplete={completeProcessing}
+      <MeditativeContainer>
+        <ArrivalPhaseView
+          state={state}
+          onDepart={depart}
+        />
+      </MeditativeContainer>
+    )
+  }
+
+  // Error state
+  if (state.phase === 'error') {
+    return (
+      <MeditativeContainer>
+        <ErrorPhaseView
+          error={state.error}
+          canRetry={state.canRetry}
+          onRetry={retry}
+          onDepart={depart}
+        />
+      </MeditativeContainer>
+    )
+  }
+
+  // Departed state
+  if (state.phase === 'departed') {
+    return (
+      <MeditativeContainer>
+        <DepartedView onReset={reset} />
+      </MeditativeContainer>
+    )
+  }
+
+  // Arrival phase
+  if (isArrivalPhase(state)) {
+    return (
+      <MeditativeContainer>
+        <ArrivalPhaseView
+          state={state}
+          onDepart={depart}
+        />
+      </MeditativeContainer>
+    )
+  }
+
+  // Spatial phase (Galaxy)
+  if (isSpatialPhase(state)) {
+    return (
+      <MeditativeContainer>
+        <SpatialPhaseView
+          state={state}
+          onSeedPositionChange={updateSeedPosition}
+          onSeedDragStart={startDragging}
+          onSeedDragEnd={stopDragging}
+          onSeedPlaced={placeSeed}
+          onStartLongPress={startLongPress}
+          onCancelLongPress={cancelLongPress}
+          onCreateNebula={createNebula}
+          onViewTransformChange={updateViewTransform}
+          onDepart={depart}
+        />
+      </MeditativeContainer>
+    )
+  }
+
+  // Inquiry phase
+  if (isInquiryPhase(state)) {
+    return (
+      <InquiryFlow
+        item={state.item}
+        placement={state.placement}
+        dialogue={state.dialogue}
+        onSubmitAnswer={submitAnswer}
+        onSkip={skipQuestion}
+        onComplete={completeInquiry}
       />
     )
   }
 
-  // Capturing or Saving state: Show CaptureForm flow
-  const isSaving = state.stage === 'saving'
-  const isCapturing = state.stage === 'capturing'
-  const extractionComplete = isCapturing && state.extraction.status === 'complete'
-
-  return (
-    <main className="flex min-h-screen flex-col p-6 bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-2xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Add to Trove
-          </h1>
-        </div>
-
-        {/* Source URL Badge */}
-        {isCapturing && <SourceUrlBadge url={state.url} />}
-
-        {/* Progress Bar */}
-        {isCapturing && (
-          <MockProgressBar extractionState={state.extraction} />
-        )}
-
-        {/* Context Form */}
-        <ContextForm
-          value={context}
-          onChange={updateContext}
-          disabled={isSaving}
+  // Completion phase
+  if (isCompletionPhase(state)) {
+    return (
+      <MeditativeContainer>
+        <CompletionPhaseView
+          state={state}
+          onReset={reset}
         />
+      </MeditativeContainer>
+    )
+  }
 
-        {/* Collection Selector */}
-        <CollectionSelector
-          collections={collections}
-          value={context}
-          onChange={updateContext}
-          disabled={isSaving}
-          loading={collectionsLoading}
-          onCollectionsChange={loadCollections}
-        />
-
-        {/* Extracted Item Card */}
-        {isCapturing && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Extracted Item
-            </h3>
-            <ExtractedItemCard extractionState={state.extraction} />
-          </div>
-        )}
-
-        {/* Actions */}
-        <CaptureActions
-          canSave={canSave}
-          isSaving={isSaving}
-          extractionComplete={extractionComplete}
-          saveIntent={saveIntent}
-          onSave={triggerSave}
-          onCancel={reset}
-        />
-      </div>
-    </main>
-  )
+  // Fallback
+  return <MeditativeLoadingFallback />
 }
 
-// Wrap in Suspense for useSearchParams
-export default function AddPage() {
-  return (
-    <Suspense fallback={<LoadingFallback />}>
-      <AddPageContent />
-    </Suspense>
-  )
-}
+// =============================================================================
+// Phase Views
+// =============================================================================
 
-// Loading Fallback
-function LoadingFallback() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="text-center">
-        <div className="inline-block w-12 h-12 border-4 border-gray-200 dark:border-gray-700 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-        <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-      </div>
-    </main>
-  )
-}
-
-// Success View Component
-function SuccessView({
-  item,
-  collections,
-  onAddAnother
+function ArrivalPhaseView({
+  state,
+  onDepart,
 }: {
-  item: Item
-  collections: string[]
-  onAddAnother: () => void
+  state: Extract<import('@/types/meditative-capture').MeditativeCaptureState, { phase: 'arrival' }>
+  onDepart: () => void
+}) {
+  const progress = state.seed.extraction.status === 'in_progress'
+    ? state.seed.extraction.progress
+    : state.seed.extraction.status === 'complete' ? 100 : 0
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen p-6">
+      {/* Seed visualization */}
+      <ProgressiveReveal delay={0.3}>
+        <BreathingPulse duration={4} scale={1.05}>
+          <div className="relative w-32 h-32">
+            {/* Outer glow */}
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, transparent 70%)',
+                transform: 'scale(2)',
+                filter: 'blur(20px)',
+              }}
+            />
+
+            {/* Core */}
+            <AmbientGlowBorder theme="primary" borderRadius="9999px">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-zen-void-subtle flex items-center justify-center">
+                {state.seed.imageUrl ? (
+                  <Image
+                    src={state.seed.imageUrl}
+                    alt="Item"
+                    fill
+                    className="object-cover"
+                    sizes="128px"
+                  />
+                ) : (
+                  <motion.div
+                    className="text-4xl"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                  >
+                    ✨
+                  </motion.div>
+                )}
+              </div>
+            </AmbientGlowBorder>
+          </div>
+        </BreathingPulse>
+      </ProgressiveReveal>
+
+      {/* Status text */}
+      <ProgressiveReveal delay={0.6} className="mt-8 text-center">
+        <h1 className="text-xl font-reflective text-zen-text-reflective mb-2">
+          Saved to Trove
+        </h1>
+        <p className="text-sm text-zen-text-muted font-data">
+          {progress < 100 ? 'Preparing your item...' : 'Ready to place'}
+        </p>
+      </ProgressiveReveal>
+
+      {/* Progress indicator */}
+      <ProgressiveReveal delay={0.9} className="mt-6 w-48">
+        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-gradient-to-r from-zen-glow-primary to-zen-glow-secondary"
+            initial={{ width: '0%' }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+      </ProgressiveReveal>
+
+      {/* Depart option */}
+      <ProgressiveReveal delay={1.2} className="mt-12">
+        <button
+          onClick={onDepart}
+          className="text-zen-text-muted text-sm hover:text-zen-text-reflective transition-colors"
+        >
+          Close and save to Inbox →
+        </button>
+      </ProgressiveReveal>
+    </div>
+  )
+}
+
+function SpatialPhaseView({
+  state,
+  onSeedPositionChange,
+  onSeedDragStart,
+  onSeedDragEnd,
+  onSeedPlaced,
+  onStartLongPress,
+  onCancelLongPress,
+  onCreateNebula,
+  onViewTransformChange,
+  onDepart,
+}: {
+  state: Extract<import('@/types/meditative-capture').MeditativeCaptureState, { phase: 'spatial' }>
+  onSeedPositionChange: (pos: import('@/types/meditative-capture').Vec2) => void
+  onSeedDragStart: () => void
+  onSeedDragEnd: () => void
+  onSeedPlaced: (collectionId: string) => Promise<void>
+  onStartLongPress: (pos: import('@/types/meditative-capture').Vec2) => void
+  onCancelLongPress: () => void
+  onCreateNebula: (name: string) => Promise<void>
+  onViewTransformChange: (transform: { x: number; y: number; scale: number }) => void
+  onDepart: () => void
+}) {
+  const [showNewNebulaInput, setShowNewNebulaInput] = useState(false)
+  const [newNebulaName, setNewNebulaName] = useState('')
+
+  const handleNebulaeUpdate = (nebulae: Nebula[]) => {
+    // Nebulae positions are managed by the state machine
+  }
+
+  const handleStartNebulaCreation = (position: import('@/types/meditative-capture').Vec2) => {
+    onStartLongPress(position)
+    setShowNewNebulaInput(true)
+  }
+
+  const handleCreateNebula = async () => {
+    if (newNebulaName.trim()) {
+      await onCreateNebula(newNebulaName.trim())
+      setNewNebulaName('')
+      setShowNewNebulaInput(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0">
+      <GalaxyCanvas
+        galaxy={state.galaxy}
+        seed={state.seed}
+        mode="capture"
+        onSeedPositionChange={onSeedPositionChange}
+        onSeedDragStart={onSeedDragStart}
+        onSeedDragEnd={onSeedDragEnd}
+        onSeedPlaced={onSeedPlaced}
+        onStartNebulaCreation={handleStartNebulaCreation}
+        onNebulaeUpdate={handleNebulaeUpdate}
+        onViewTransformChange={onViewTransformChange}
+      />
+
+      {/* Depart button */}
+      <button
+        onClick={onDepart}
+        className="absolute top-4 right-4 text-zen-text-muted text-sm hover:text-zen-text-reflective transition-colors z-10"
+      >
+        Save to Inbox ×
+      </button>
+
+      {/* Item info */}
+      <div className="absolute top-4 left-4 z-10">
+        <p className="text-zen-text-reflective font-reflective text-lg">
+          {state.item.title || 'New Item'}
+        </p>
+        <p className="text-zen-text-muted text-sm font-data">
+          Drag to a collection
+        </p>
+      </div>
+
+      {/* New nebula input modal */}
+      <AnimatePresence>
+        {showNewNebulaInput && (
+          <motion.div
+            className="fixed inset-0 flex items-center justify-center bg-black/60 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-zen-void-subtle border border-white/20 rounded-2xl p-6 w-80"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <h3 className="text-lg font-reflective text-zen-text-reflective mb-4">
+                Create New Collection
+              </h3>
+              <input
+                type="text"
+                value={newNebulaName}
+                onChange={(e) => setNewNebulaName(e.target.value)}
+                placeholder="Collection name"
+                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20
+                         text-zen-text-reflective placeholder-zen-text-muted
+                         focus:outline-none focus:border-white/40"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateNebula()
+                  if (e.key === 'Escape') {
+                    setShowNewNebulaInput(false)
+                    onCancelLongPress()
+                  }
+                }}
+              />
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => {
+                    setShowNewNebulaInput(false)
+                    onCancelLongPress()
+                  }}
+                  className="flex-1 py-2 rounded-lg border border-white/20 text-zen-text-muted
+                           hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateNebula}
+                  disabled={!newNebulaName.trim()}
+                  className="flex-1 py-2 rounded-lg bg-white/10 text-zen-text-reflective
+                           hover:bg-white/20 transition-colors disabled:opacity-50"
+                >
+                  Create
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function CompletionPhaseView({
+  state,
+  onReset,
+}: {
+  state: Extract<import('@/types/meditative-capture').MeditativeCaptureState, { phase: 'completion' }>
+  onReset: () => void
 }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        {/* Success header */}
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-2">✓</div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Added to Trove
-          </h2>
-          {collections.length > 0 && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Saved to {collections.length} collection{collections.length > 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-screen p-6">
+      {/* Success bloom */}
+      <motion.div
+        className="relative"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }}
+      >
+        {/* Glow rings */}
+        {[1, 2, 3].map((i) => (
+          <motion.div
+            key={i}
+            className="absolute inset-0 rounded-full border border-green-400/30"
+            initial={{ scale: 1, opacity: 0.5 }}
+            animate={{
+              scale: 1 + i * 0.3,
+              opacity: 0,
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              delay: i * 0.4,
+            }}
+          />
+        ))}
 
-        {/* Item preview */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          {item.image_url && (
-            <img
-              src={item.image_url}
-              alt={item.title || 'Item image'}
-              className="w-full h-48 object-contain mb-4 rounded"
+        {/* Core success icon */}
+        <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center">
+          <motion.svg
+            className="w-12 h-12 text-green-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          >
+            <motion.path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
             />
-          )}
-
-          <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">
-            {item.title}
-          </h3>
-
-          {item.brand && (
-            <p className="text-gray-600 dark:text-gray-400 mb-2">{item.brand}</p>
-          )}
-
-          {item.price && item.currency && (
-            <p className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100 font-mono">
-              {item.currency === 'USD' && '$'}
-              {item.price.toLocaleString()}
-              {item.currency !== 'USD' && ` ${item.currency}`}
-            </p>
-          )}
+          </motion.svg>
         </div>
+      </motion.div>
 
-        {/* Actions */}
+      {/* Text */}
+      <ProgressiveReveal delay={0.5} className="mt-8 text-center">
+        <h1 className="text-2xl font-reflective text-zen-text-reflective mb-2">
+          Added to {state.collection.name}
+        </h1>
+        <p className="text-zen-text-muted font-data text-sm">
+          {state.synthesizedNotes.raw_text}
+        </p>
+      </ProgressiveReveal>
+
+      {/* Item preview */}
+      <ProgressiveReveal delay={0.8} className="mt-8">
+        <div className="flex items-center gap-4 bg-white/5 rounded-xl p-4 border border-white/10">
+          {state.item.image_url && (
+            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+              <Image
+                src={state.item.image_url}
+                alt={state.item.title || 'Item'}
+                width={64}
+                height={64}
+                className="object-cover w-full h-full"
+              />
+            </div>
+          )}
+          <div>
+            <p className="font-reflective text-zen-text-reflective">
+              {state.item.title}
+            </p>
+            {state.item.brand && (
+              <p className="text-zen-text-muted text-sm">{state.item.brand}</p>
+            )}
+          </div>
+        </div>
+      </ProgressiveReveal>
+
+      {/* Actions */}
+      <ProgressiveReveal delay={1.1} className="mt-12 flex gap-4">
         <button
-          onClick={onAddAnother}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+          onClick={onReset}
+          className="px-6 py-3 rounded-xl bg-white/10 text-zen-text-reflective
+                   hover:bg-white/15 transition-colors font-reflective"
         >
-          Add Another Item
+          Add Another
         </button>
-      </div>
-    </main>
+        <a
+          href={`/collections/${state.collection.id}`}
+          className="px-6 py-3 rounded-xl border border-white/20 text-zen-text-muted
+                   hover:border-white/40 hover:text-zen-text-reflective transition-colors font-reflective"
+        >
+          View Collection
+        </a>
+      </ProgressiveReveal>
+    </div>
   )
 }
 
-// Error View Component
-function ErrorView({
+function ErrorPhaseView({
   error,
   canRetry,
   onRetry,
-  onReset
+  onDepart,
 }: {
   error: string
   canRetry: boolean
   onRetry: () => void
-  onReset: () => void
+  onDepart: () => void
 }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md text-center">
-        <div className="text-5xl mb-4">⚠️</div>
-        <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
-          Could not add item
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
+    <div className="flex flex-col items-center justify-center min-h-screen p-6">
+      <motion.div
+        className="text-5xl mb-6"
+        animate={{ rotate: [0, -10, 10, -10, 0] }}
+        transition={{ duration: 0.5 }}
+      >
+        ⚠️
+      </motion.div>
 
-        <div className="space-y-3">
-          {canRetry && (
-            <button
-              onClick={onRetry}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-            >
-              Retry
-            </button>
-          )}
+      <h1 className="text-xl font-reflective text-zen-text-reflective mb-2">
+        Something went wrong
+      </h1>
+      <p className="text-zen-text-muted text-sm mb-8 text-center max-w-xs">
+        {error}
+      </p>
 
+      <div className="flex gap-4">
+        {canRetry && (
           <button
-            onClick={onReset}
-            className="w-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium py-3 px-4 rounded-lg transition-colors"
+            onClick={onRetry}
+            className="px-6 py-3 rounded-xl bg-white/10 text-zen-text-reflective
+                     hover:bg-white/15 transition-colors"
           >
-            Go Back
+            Try Again
           </button>
-        </div>
+        )}
+        <button
+          onClick={onDepart}
+          className="px-6 py-3 rounded-xl border border-white/20 text-zen-text-muted
+                   hover:border-white/40 transition-colors"
+        >
+          Go Back
+        </button>
       </div>
-    </main>
+    </div>
   )
 }
 
-// Processing View Component - shown after save while deep extraction runs
-function ProcessingView({
-  state,
-  onAddAnother,
-  onComplete
-}: {
-  state: Extract<import('@/types/capture').CaptureState, { stage: 'processing' }>
-  onAddAnother: () => void
-  onComplete: () => void
-}) {
-  const isComplete = state.deepExtraction.status === 'complete'
-  const isFailed = state.deepExtraction.status === 'failed'
+function DepartedView({ onReset }: { onReset: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen p-6">
+      <ProgressiveReveal>
+        <h1 className="text-xl font-reflective text-zen-text-reflective mb-2">
+          Saved to Inbox
+        </h1>
+        <p className="text-zen-text-muted text-sm mb-8">
+          Your item is waiting for you
+        </p>
+      </ProgressiveReveal>
+
+      <ProgressiveReveal delay={0.3}>
+        <button
+          onClick={onReset}
+          className="px-6 py-3 rounded-xl bg-white/10 text-zen-text-reflective
+                   hover:bg-white/15 transition-colors"
+        >
+          Add Another
+        </button>
+      </ProgressiveReveal>
+    </div>
+  )
+}
+
+// =============================================================================
+// Utility Components
+// =============================================================================
+
+function MeditativeContainer({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    document.body.classList.add('meditative-mode')
+    return () => document.body.classList.remove('meditative-mode')
+  }, [])
 
   return (
-    <main className="flex min-h-screen flex-col p-6 bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-2xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {isComplete ? 'Added to Trove' : 'Processing...'}
-          </h1>
-          {!isComplete && !isFailed && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Enhancing your item with AI
-            </p>
-          )}
-        </div>
-
-        {/* Processing Card */}
-        <ProcessingCard
-          item={state.item}
-          url={state.url}
-          context={state.context}
-          collections={state.collections}
-          deepExtraction={state.deepExtraction}
-        />
-
-        {/* Actions - only show when complete or failed */}
-        {(isComplete || isFailed) && (
-          <div className="space-y-3">
-            <button
-              onClick={onAddAnother}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-            >
-              Add Another Item
-            </button>
-
-            {state.collections.length > 0 && (
-              <a
-                href={`/collections/${state.collections[0].id}`}
-                className="block w-full text-center bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-3 px-4 rounded-lg border border-gray-300 dark:border-gray-600 transition-colors"
-              >
-                View in {state.collections[0].name}
-              </a>
-            )}
-          </div>
-        )}
-      </div>
+    <main className="min-h-screen bg-zen-void text-zen-text-reflective">
+      <div className="meditative-backdrop" />
+      {children}
     </main>
   )
 }
 
-// Manual Entry View Component
-function ManualEntryView({ user }: { user: any }) {
+function MeditativeLoadingFallback() {
+  useEffect(() => {
+    document.body.classList.add('meditative-mode')
+    return () => document.body.classList.remove('meditative-mode')
+  }, [])
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-zen-void">
+      <div className="meditative-backdrop" />
+      <BreathingPulse duration={3}>
+        <div className="w-16 h-16 rounded-full border-2 border-zen-glow-primary/30 border-t-zen-glow-primary animate-spin" />
+      </BreathingPulse>
+    </main>
+  )
+}
+
+function MeditativeManualEntry({ user }: { user: any }) {
   const [url, setUrl] = useState('')
   const [isValid, setIsValid] = useState(true)
 
+  useEffect(() => {
+    document.body.classList.add('meditative-mode')
+    return () => document.body.classList.remove('meditative-mode')
+  }, [])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-
-    // Basic URL validation
     try {
       new URL(url)
-      // Navigate to /add with the URL parameter
       window.location.href = `/add?url=${encodeURIComponent(url)}`
     } catch {
       setIsValid(false)
@@ -444,63 +706,75 @@ function ManualEntryView({ user }: { user: any }) {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-zen-void">
+      <div className="meditative-backdrop" />
+
+      <div className="w-full max-w-md relative z-10">
+        <ProgressiveReveal className="text-center mb-12">
+          <h1 className="text-3xl font-reflective text-zen-text-reflective mb-3">
             Add to Trove
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Enter a URL to extract and save
+          <p className="text-zen-text-muted">
+            Enter a URL to begin
           </p>
-        </div>
+        </ProgressiveReveal>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              URL
-            </label>
-            <input
-              type="text"
-              id="url"
-              value={url}
-              onChange={(e) => {
-                setUrl(e.target.value)
-                setIsValid(true)
-              }}
-              placeholder="https://example.com/product"
-              className={`w-full px-4 py-3 rounded-lg border ${
-                isValid
-                  ? 'border-gray-300 dark:border-gray-600'
-                  : 'border-red-500 dark:border-red-500'
-              } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-              autoFocus
-            />
-            {!isValid && (
-              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
-                Please enter a valid URL
-              </p>
-            )}
-          </div>
+        <ProgressiveReveal delay={0.3}>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <input
+                type="text"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value)
+                  setIsValid(true)
+                }}
+                placeholder="https://..."
+                className={`w-full px-5 py-4 rounded-xl bg-white/5 border ${
+                  isValid ? 'border-white/20' : 'border-red-500/50'
+                } text-zen-text-reflective placeholder-zen-text-muted
+                focus:outline-none focus:border-white/40 font-data`}
+                autoFocus
+              />
+              {!isValid && (
+                <p className="mt-2 text-sm text-red-400">Please enter a valid URL</p>
+              )}
+            </div>
 
-          <button
-            type="submit"
-            disabled={!url.trim()}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors"
-          >
-            Extract & Save
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={!url.trim()}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-zen-glow-primary to-zen-glow-secondary
+                       text-white font-reflective text-lg
+                       hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed
+                       transition-opacity"
+            >
+              Begin
+            </button>
+          </form>
+        </ProgressiveReveal>
 
-        <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-2">
-            Tip: Use the iOS Share Sheet shortcut for faster capturing
+        <ProgressiveReveal delay={0.6} className="mt-12 text-center">
+          <p className="text-zen-text-muted text-sm">
+            Tip: Use the iOS Share Sheet for faster capturing
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-500 text-center">
+          <p className="text-zen-text-muted/60 text-xs mt-2">
             Signed in as {user.email}
           </p>
-        </div>
+        </ProgressiveReveal>
       </div>
     </main>
+  )
+}
+
+// =============================================================================
+// Export
+// =============================================================================
+
+export default function AddPage() {
+  return (
+    <Suspense fallback={<MeditativeLoadingFallback />}>
+      <MeditativeAddPageContent />
+    </Suspense>
   )
 }
