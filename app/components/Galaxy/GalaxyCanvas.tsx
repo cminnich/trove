@@ -4,9 +4,9 @@ import { useRef, useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Seed } from './Seed'
 import { Nebula } from './Nebula'
-import { GalaxyEdge } from './GalaxyEdge'
 import { useGalaxyPhysics } from './useGalaxyPhysics'
 import { useGalaxyGestures } from './useGalaxyGestures'
+import { useWorldCoordinates } from './hooks/useWorldCoordinates'
 import {
   type GalaxyState,
   type SeedState,
@@ -15,19 +15,13 @@ import {
 } from '@/types/meditative-capture'
 
 interface GalaxyCanvasProps {
-  /** Galaxy state with nebulae and edges */
+  /** Galaxy state with nebulae */
   galaxy: GalaxyState
   /** Seed state (only in capture mode) */
   seed?: SeedState
   /** Mode: capture (placing seed) or browse (exploring) */
   mode: 'capture' | 'browse'
-  /** Called when seed position changes */
-  onSeedPositionChange?: (position: Vec2) => void
-  /** Called when seed drag starts */
-  onSeedDragStart?: () => void
-  /** Called when seed drag ends */
-  onSeedDragEnd?: () => void
-  /** Called when seed is placed into a nebula */
+  /** Called when seed is placed into a nebula (tap-to-place) */
   onSeedPlaced?: (collectionId: string) => void
   /** Called when long-press creates new nebula position */
   onStartNebulaCreation?: (position: Vec2) => void
@@ -43,19 +37,15 @@ interface GalaxyCanvasProps {
  * GalaxyCanvas - The spatial visualization of collections and items
  *
  * Features:
- * - Force-directed nebula positioning
+ * - Collections arranged around center with seed as focal point
+ * - Tap-to-place: tap a collection to place the item
  * - Pan/zoom navigation
- * - Seed dragging with magnetic attraction
  * - Long-press to create new nebula
- * - Edge rendering between related nebulae
  */
 export function GalaxyCanvas({
   galaxy,
   seed,
   mode,
-  onSeedPositionChange,
-  onSeedDragStart,
-  onSeedDragEnd,
   onSeedPlaced,
   onStartNebulaCreation,
   onNebulaeUpdate,
@@ -65,6 +55,12 @@ export function GalaxyCanvas({
   const containerRef = useRef<HTMLDivElement>(null)
   const [isCreatingNebula, setIsCreatingNebula] = useState(false)
   const [newNebulaPosition, setNewNebulaPosition] = useState<Vec2 | null>(null)
+
+  // Unified world coordinate system
+  const worldCoords = useWorldCoordinates({
+    viewTransform: galaxy.viewTransform,
+    containerRef,
+  })
 
   // Physics simulation
   useGalaxyPhysics({
@@ -88,46 +84,23 @@ export function GalaxyCanvas({
     onTransformChange: (transform) => {
       onViewTransformChange?.(transform)
     },
-    onLongPress: (position) => {
+    onLongPress: (screenPosition) => {
       if (mode === 'capture') {
+        // Convert screen position to world coordinates
+        const worldPosition = worldCoords.screenToWorld(screenPosition)
         setIsCreatingNebula(true)
-        setNewNebulaPosition(position)
-        onStartNebulaCreation?.(position)
+        setNewNebulaPosition(worldPosition)
+        onStartNebulaCreation?.(worldPosition)
       }
     },
   })
 
-  // Handle seed placement
+  // Handle tap-to-place: tap a collection to place the item
   const handleNebulaClick = useCallback((nebulaId: string) => {
     if (mode === 'capture' && seed) {
       onSeedPlaced?.(nebulaId)
     }
   }, [mode, seed, onSeedPlaced])
-
-  // Handle seed drag
-  const handleSeedDrag = useCallback((position: Vec2) => {
-    onSeedPositionChange?.(position)
-  }, [onSeedPositionChange])
-
-  // Handle seed drag end - check if near a nebula
-  const handleSeedDragEnd = useCallback(() => {
-    onSeedDragEnd?.()
-
-    if (galaxy.nearestNebula && seed) {
-      const nearestNebula = galaxy.nebulae.find(n => n.id === galaxy.nearestNebula)
-      if (nearestNebula) {
-        const distance = Math.sqrt(
-          Math.pow(seed.position.x - nearestNebula.position.x, 2) +
-          Math.pow(seed.position.y - nearestNebula.position.y, 2)
-        )
-
-        // If within capture radius, place the seed
-        if (distance < nearestNebula.radius * 1.5) {
-          onSeedPlaced?.(nearestNebula.id)
-        }
-      }
-    }
-  }, [galaxy, seed, onSeedDragEnd, onSeedPlaced])
 
   return (
     <div
@@ -145,91 +118,116 @@ export function GalaxyCanvas({
       {/* Ambient background */}
       <div className="meditative-backdrop" />
 
-      {/* Galaxy content (transformed layer) */}
-      <motion.div
-        className="absolute inset-0 flex items-center justify-center"
+      {/*
+        World Space Container
+
+        This container holds both SVG and DOM elements in a unified coordinate system.
+        - (0,0) is at the visual center of the viewport
+        - Pan/zoom is applied via CSS transform to both layers uniformly
+        - All positions are stored in world coordinates
+      */}
+      <div
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
         style={{
-          x: galaxy.viewTransform.x,
-          y: galaxy.viewTransform.y,
-          scale: galaxy.viewTransform.scale,
+          // The transform origin is the center of this container
+          transformOrigin: 'center center',
         }}
       >
-        {/* SVG layer for edges */}
-        <svg
-          className="absolute pointer-events-none"
+        {/*
+          Transformed World Layer
+          Both SVG and DOM nodes live here with the same transform applied.
+        */}
+        <div
+          className="relative pointer-events-auto"
           style={{
-            width: '200%',
-            height: '200%',
-            left: '-50%',
-            top: '-50%',
+            transform: worldCoords.getWorldLayerTransform(),
+            transformOrigin: 'center center',
           }}
-          viewBox="-500 -500 1000 1000"
         >
-          {galaxy.edges.map((edge) => {
-            const sourceNebula = galaxy.nebulae.find(n => n.id === edge.source)
-            const targetNebula = galaxy.nebulae.find(n => n.id === edge.target)
+          {/* SVG layer reserved for future use (e.g., connection modes) */}
+          <svg
+            className="absolute pointer-events-none"
+            style={{
+              width: 2000,
+              height: 2000,
+              left: -1000,
+              top: -1000,
+            }}
+            viewBox="-1000 -1000 2000 2000"
+            preserveAspectRatio="xMidYMid slice"
+          >
+            {/* No edges rendered - collections are scattered independently */}
+          </svg>
 
-            if (!sourceNebula || !targetNebula) return null
+          {/* DOM layer for nebulae and seed - centered at world origin */}
+          <div
+            className="absolute"
+            style={{
+              // This div is the origin point for all DOM elements
+              // Elements position themselves relative to this (0,0) point
+              left: 0,
+              top: 0,
+              width: 0,
+              height: 0,
+            }}
+          >
+            {/* Nebulae */}
+            <AnimatePresence>
+              {galaxy.nebulae.map((nebula) => (
+                <motion.div
+                  key={nebula.id}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    // Use framer-motion x/y so they combine with scale animation
+                    x: nebula.position.x - nebula.radius,
+                    y: nebula.position.y - nebula.radius,
+                  }}
+                  exit={{ opacity: 0, scale: 0 }}
+                  transition={{ duration: 0.5 }}
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                  }}
+                >
+                  <Nebula
+                    nebula={nebula}
+                    onClick={() => handleNebulaClick(nebula.id)}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
 
-            return (
-              <GalaxyEdge
-                key={`${edge.source}-${edge.target}`}
-                edge={edge}
-                sourcePosition={sourceNebula.position}
-                targetPosition={targetNebula.position}
-              />
-            )
-          })}
-        </svg>
+            {/* Seed at center (in capture mode) */}
+            {mode === 'capture' && seed && (
+              <Seed seed={seed} />
+            )}
 
-        {/* Nebulae */}
-        <AnimatePresence>
-          {galaxy.nebulae.map((nebula) => (
-            <motion.div
-              key={nebula.id}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Nebula
-                nebula={nebula}
-                onClick={() => handleNebulaClick(nebula.id)}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {/* Seed (in capture mode) */}
-        {mode === 'capture' && seed && (
-          <Seed
-            seed={seed}
-            onDragStart={onSeedDragStart || (() => {})}
-            onDrag={handleSeedDrag}
-            onDragEnd={handleSeedDragEnd}
-          />
-        )}
-
-        {/* New nebula creation indicator */}
-        <AnimatePresence>
-          {isCreatingNebula && newNebulaPosition && (
-            <motion.div
-              className="absolute"
-              style={{
-                left: newNebulaPosition.x - 40,
-                top: newNebulaPosition.y - 40,
-              }}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0 }}
-            >
-              <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/40 flex items-center justify-center">
-                <span className="text-white/60 text-2xl">+</span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+            {/* New nebula creation indicator */}
+            <AnimatePresence>
+              {isCreatingNebula && newNebulaPosition && (
+                <motion.div
+                  className="absolute"
+                  style={{
+                    left: 0,
+                    top: 0,
+                    transform: `translate(${newNebulaPosition.x - 40}px, ${newNebulaPosition.y - 40}px)`,
+                  }}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0 }}
+                >
+                  <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/40 flex items-center justify-center">
+                    <span className="text-white/60 text-2xl">+</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
 
       {/* Center indicator */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -279,7 +277,7 @@ export function GalaxyCanvas({
       {/* Instructions */}
       {mode === 'capture' && (
         <div className="absolute bottom-4 left-4 text-zen-text-muted text-sm font-data">
-          <p>Drag the seed to a collection</p>
+          <p>Tap a collection to place your item</p>
           <p className="text-xs mt-1 opacity-60">Long-press empty space to create new</p>
         </div>
       )}

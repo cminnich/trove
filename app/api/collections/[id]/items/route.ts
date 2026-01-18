@@ -46,6 +46,8 @@ export async function GET(
     const { id } = await params;
     const { searchParams } = new URL(req.url);
     const sortBy = searchParams.get("sort") || "position";
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
 
     // Authenticate user
     const { client, user, error: authError } = await getAuthenticatedServerClient();
@@ -150,9 +152,12 @@ export async function GET(
         });
     }
 
+    // Apply limit if specified
+    const limitedItems = limit && limit > 0 ? items.slice(0, limit) : items;
+
     return NextResponse.json({
       success: true,
-      data: items,
+      data: limitedItems,
     } as CollectionItemsResponse);
   } catch (error) {
     console.error("Error fetching collection items:", error);

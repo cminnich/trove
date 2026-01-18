@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { type Nebula as NebulaType } from '@/types/meditative-capture'
@@ -17,52 +18,58 @@ interface NebulaProps {
  * Features:
  * - Gradient fill based on collection type
  * - Orbiting sample items
- * - Magnetic glow when seed approaches
+ * - Glow on hover to indicate it's tappable
  * - Expansion animation when active
  */
 export function Nebula({ nebula, onClick, canReceive = true }: NebulaProps) {
+  const [isHovered, setIsHovered] = useState(false)
   const [color1, color2] = nebula.themeColors
+  const isHighlighted = nebula.isActive || isHovered
 
   return (
     <motion.div
-      className="absolute cursor-pointer"
+      className="cursor-pointer"
       style={{
+        // Size based on radius - positioning is handled by parent
         width: nebula.radius * 2,
         height: nebula.radius * 2,
-        left: nebula.position.x - nebula.radius,
-        top: nebula.position.y - nebula.radius,
       }}
       onClick={onClick}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.98 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      whileHover={{
+        scale: 1.08,
+        transition: { duration: 0.2 }
+      }}
+      whileTap={{ scale: 0.95 }}
     >
-      {/* Gravitational field (visible when active) */}
+      {/* Gravitational field (visible when hovered or active) */}
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `radial-gradient(circle, ${color1.replace('0.6', '0.2')} 0%, transparent 70%)`,
+          background: `radial-gradient(circle, ${color1.replace('0.6', '0.3')} 0%, transparent 70%)`,
         }}
         animate={{
-          scale: nebula.isActive ? nebula.gravitationalPull * 1.5 : 1,
-          opacity: nebula.isActive ? 0.8 : 0.3,
+          scale: isHighlighted ? 1.4 : 1,
+          opacity: isHighlighted ? 0.8 : 0.3,
         }}
         transition={{ duration: 0.3 }}
       />
 
       {/* Core nebula */}
       <motion.div
-        className="absolute inset-0 rounded-full overflow-hidden"
+        className="absolute inset-0 rounded-full overflow-hidden border-2"
         style={{
           background: `radial-gradient(circle at 30% 30%, ${color1} 0%, ${color2} 100%)`,
-          border: `2px solid ${nebula.isActive ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.15)'}`,
+          borderColor: isHighlighted ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.15)',
         }}
         animate={{
-          scale: nebula.isActive ? 1.15 : 1,
-          boxShadow: nebula.isActive
-            ? `0 0 30px ${color1}, 0 0 60px ${color2}`
+          scale: isHighlighted ? 1.1 : 1,
+          boxShadow: isHighlighted
+            ? `0 0 25px ${color1}, 0 0 50px ${color2}`
             : `0 0 10px ${color1.replace('0.6', '0.3')}`,
         }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
       >
         {/* Inner glow */}
         <div
@@ -94,14 +101,14 @@ export function Nebula({ nebula, onClick, canReceive = true }: NebulaProps) {
         )}
       </motion.div>
 
-      {/* Orbiting sample items */}
-      {nebula.sampleItems.slice(0, 3).map((item, index) => (
+      {/* Orbiting sample items - up to 5 items, 72° apart */}
+      {nebula.sampleItems.slice(0, 5).map((item, index) => (
         <OrbitingItem
           key={item.id}
           item={item}
-          orbitRadius={nebula.radius + 20 + index * 15}
-          orbitDuration={20 + index * 5}
-          startAngle={(index * 120) % 360}
+          orbitRadius={nebula.radius + 15 + index * 10}
+          orbitDuration={18 + index * 4}
+          startAngle={(index * 72) % 360}
           isActive={nebula.isActive}
         />
       ))}

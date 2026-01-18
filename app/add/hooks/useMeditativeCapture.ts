@@ -9,7 +9,6 @@ import {
   type PlacementResult,
   type StructuredNotes,
   type Nebula,
-  type NebulaEdge,
   type SocraticQuestion,
   type ExtractionStatus,
   type Vec2,
@@ -29,6 +28,8 @@ interface UseMeditativeCaptureOptions {
   initialUrl?: string
   /** Available collections for building the galaxy */
   collections?: Collection[]
+  /** Items for each collection (keyed by collection ID) - for orbiting display */
+  collectionItems?: Map<string, Item[]>
   /** Callback when capture is complete */
   onComplete?: (item: Item, collection: Collection, notes: StructuredNotes) => void
   /** Callback on error */
@@ -89,15 +90,17 @@ const NEBULA_COLORS: Record<string, [string, string]> = {
 export function useMeditativeCapture({
   initialUrl,
   collections: availableCollections = [],
+  collectionItems,
   onComplete,
   onError,
   onDepart,
 }: UseMeditativeCaptureOptions = {}): UseMeditativeCaptureReturn {
-  // Main state
+  // Main state - Now starts directly in 'spatial' phase with immediate Galaxy
   const [state, setState] = useState<MeditativeCaptureState>(() => {
     if (!initialUrl) {
       return { phase: 'error', error: 'No URL provided', canRetry: false }
     }
+    // Start in 'arrival' temporarily - will transition to 'spatial' immediately
     return {
       phase: 'arrival',
       url: initialUrl,
@@ -110,11 +113,47 @@ export function useMeditativeCapture({
   const isMountedRef = useRef(true)
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
   const collectionsRef = useRef<Collection[]>(availableCollections)
+  const collectionItemsRef = useRef<Map<string, Item[]> | undefined>(collectionItems)
 
-  // Keep collections ref up to date
+  // Keep refs up to date
   useEffect(() => {
     collectionsRef.current = availableCollections
   }, [availableCollections])
+
+  useEffect(() => {
+    collectionItemsRef.current = collectionItems
+  }, [collectionItems])
+
+  // Update nebulae sampleItems when collectionItems data arrives
+  useEffect(() => {
+    if (!collectionItems || collectionItems.size === 0) return
+
+    setState(prev => {
+      if (prev.phase !== 'spatial') return prev
+
+      // Update each nebula's sampleItems with the loaded items
+      const updatedNebulae = prev.galaxy.nebulae.map(nebula => {
+        const items = collectionItems.get(nebula.id)?.slice(0, 5) || []
+        return {
+          ...nebula,
+          itemCount: items.length,
+          sampleItems: items.map(item => ({
+            id: item.id,
+            title: item.title || '',
+            imageUrl: item.image_url || undefined,
+          })),
+        }
+      })
+
+      return {
+        ...prev,
+        galaxy: {
+          ...prev.galaxy,
+          nebulae: updatedNebulae,
+        },
+      }
+    })
+  }, [collectionItems])
 
   // =============================================================================
   // Initialization: Create item immediately on mount
@@ -142,7 +181,8 @@ export function useMeditativeCapture({
 
   /**
    * Create item in DB and start extraction
-   * This happens immediately so user can leave at any time
+   * IMMEDIATE GALAXY: Transitions directly to spatial phase
+   * Extraction continues in background - Seed updates when data arrives
    */
   const createItemAndStartExtraction = useCallback(async (url: string) => {
     try {
@@ -168,23 +208,53 @@ export function useMeditativeCapture({
       const item: Item = data.data?.item || data.data
       const itemId = item.id
 
-      // Update arrival state with itemId
-      setState(prev => {
-        if (prev.phase !== 'arrival') return prev
-        return {
-          ...prev,
-          itemId,
-          seed: {
-            ...prev.seed,
-            extraction: { status: 'in_progress', progress: 0 },
-            imageUrl: item.image_url || undefined,
-            title: item.title || undefined,
-          },
-        }
+      // IMMEDIATE GALAXY: Build galaxy and transition directly to spatial phase
+      const currentCollections = collectionsRef.current
+      const currentCollectionItems = collectionItemsRef.current
+
+      // If no collections yet, create a minimal seed state and wait
+      if (currentCollections.length === 0) {
+        // Still in arrival - will retry when collections load
+        setState(prev => {
+          if (prev.phase !== 'arrival') return prev
+          return {
+            ...prev,
+            itemId,
+            seed: {
+              ...prev.seed,
+              extraction: { status: 'in_progress', progress: 0 },
+              imageUrl: item.image_url || undefined,
+              title: item.title || undefined,
+            },
+          }
+        })
+        // Retry transition when collections are available
+        waitForCollectionsAndTransition(itemId, item)
+        return
+      }
+
+      // Build galaxy immediately with collection items for orbiting display
+      const galaxy = buildGalaxyFromCollections(currentCollections, currentCollectionItems)
+
+      // Transition directly to spatial phase - Seed shows loading state
+      setState({
+        phase: 'spatial',
+        url,
+        itemId,
+        item, // Item exists but may not have all extracted data yet
+        galaxy,
+        seed: {
+          extraction: { status: 'in_progress', progress: 0 },
+          position: { x: 0, y: 0 },
+          isDragging: false,
+          velocity: { x: 0, y: 0 },
+          imageUrl: item.image_url || undefined,
+          title: item.title || undefined,
+        },
       })
 
-      // Poll for extraction completion or wait for it
-      pollExtractionStatus(itemId, item)
+      // Continue polling for extraction completion in background
+      pollExtractionInBackground(itemId)
     } catch (error) {
       if (!isMountedRef.current) return
       setState({
@@ -196,14 +266,57 @@ export function useMeditativeCapture({
   }, [])
 
   /**
-   * Poll for extraction status and transition to spatial phase when ready
+   * Wait for collections to load, then transition to spatial phase
+   * Used when collections aren't available at item creation time
    */
-  const pollExtractionStatus = useCallback(async (itemId: string, initialItem: Item) => {
-    // For now, we'll use a simple approach:
-    // Wait a bit for extraction, then transition to spatial phase
-    // The extraction can continue in the background
+  const waitForCollectionsAndTransition = useCallback((itemId: string, item: Item) => {
+    const checkCollections = () => {
+      if (!isMountedRef.current) return
 
-    // Simulate extraction progress
+      const currentCollections = collectionsRef.current
+      const currentCollectionItems = collectionItemsRef.current
+
+      if (currentCollections.length === 0) {
+        // Keep waiting
+        setTimeout(checkCollections, 300)
+        return
+      }
+
+      // Collections available - transition to spatial
+      const galaxy = buildGalaxyFromCollections(currentCollections, currentCollectionItems)
+
+      setState(prev => {
+        if (prev.phase !== 'arrival') return prev
+        return {
+          phase: 'spatial',
+          url: prev.url,
+          itemId,
+          item,
+          galaxy,
+          seed: {
+            ...prev.seed,
+            extraction: { status: 'in_progress', progress: 0 },
+          },
+        }
+      })
+
+      // Start polling for extraction
+      pollExtractionInBackground(itemId)
+    }
+
+    // Start checking immediately
+    checkCollections()
+  }, [])
+
+  /**
+   * Poll for extraction completion in background
+   * Updates the Seed with extracted data as it becomes available
+   */
+  const pollExtractionInBackground = useCallback((itemId: string) => {
+    let pollCount = 0
+    const maxPolls = 30 // ~30 seconds max
+
+    // Simulate progress while waiting
     const progressInterval = setInterval(() => {
       if (!isMountedRef.current) {
         clearInterval(progressInterval)
@@ -211,7 +324,7 @@ export function useMeditativeCapture({
       }
 
       setState(prev => {
-        if (prev.phase !== 'arrival') {
+        if (prev.phase !== 'spatial') {
           clearInterval(progressInterval)
           return prev
         }
@@ -220,8 +333,8 @@ export function useMeditativeCapture({
           ? prev.seed.extraction.progress
           : 0
 
-        if (currentProgress >= 100) {
-          clearInterval(progressInterval)
+        // Stop at 90% until real completion
+        if (currentProgress >= 90) {
           return prev
         }
 
@@ -231,88 +344,74 @@ export function useMeditativeCapture({
             ...prev.seed,
             extraction: {
               status: 'in_progress',
-              progress: Math.min(currentProgress + 10, 90), // Stop at 90 until real completion
+              progress: Math.min(currentProgress + 5, 90),
             },
           },
         }
       })
-    }, 300)
+    }, 200)
 
-    // After 2 seconds, check if we can transition to spatial phase
-    // We need collections to be loaded first
-    const checkAndTransition = () => {
-      if (!isMountedRef.current) return
-      clearInterval(progressInterval)
-
-      const currentCollections = collectionsRef.current
-
-      // If collections haven't loaded yet, wait and retry
-      if (currentCollections.length === 0) {
-        setTimeout(checkAndTransition, 500)
+    // Poll for real extraction status
+    const pollForCompletion = async () => {
+      if (!isMountedRef.current || pollCount >= maxPolls) {
+        clearInterval(progressInterval)
         return
       }
 
-      setState(prev => {
-        if (prev.phase !== 'arrival') return prev
+      pollCount++
 
-        // Build the galaxy from available collections (using ref for latest value)
-        const galaxy = buildGalaxyFromCollections(currentCollections)
+      try {
+        const response = await fetch(`/api/items/${itemId}`)
+        if (response.ok) {
+          const data = await response.json()
+          const item: Item = data.data || data
 
-        return {
-          phase: 'spatial',
-          url: prev.url,
-          itemId: prev.itemId,
-          item: initialItem,
-          galaxy,
-          seed: {
-            ...prev.seed,
-            extraction: { status: 'complete', item: initialItem },
-          },
-        }
-      })
-    }
+          if (!isMountedRef.current) {
+            clearInterval(progressInterval)
+            return
+          }
 
-    setTimeout(checkAndTransition, 2000)
+          // Check if extraction is complete (has title or extraction_status is complete)
+          const isComplete = item.extraction_status === 'complete' ||
+                            (item.title && item.image_url)
 
-    // Continue polling for real extraction status
-    try {
-      const response = await fetch(`/api/items/${itemId}`)
-      if (response.ok) {
-        const data = await response.json()
-        const item: Item = data.data || data
+          if (isComplete) {
+            clearInterval(progressInterval)
+          }
 
-        if (!isMountedRef.current) return
-
-        // Update with real extracted data
-        setState(prev => {
-          if (prev.phase === 'arrival') {
-            return {
-              ...prev,
-              seed: {
-                ...prev.seed,
-                extraction: { status: 'complete', item },
-                imageUrl: item.image_url || prev.seed.imageUrl,
-                title: item.title || prev.seed.title,
-              },
-            }
-          } else if (prev.phase === 'spatial') {
+          // Update with extracted data
+          setState(prev => {
+            if (prev.phase !== 'spatial') return prev
             return {
               ...prev,
               item,
               seed: {
                 ...prev.seed,
-                extraction: { status: 'complete', item },
+                extraction: isComplete
+                  ? { status: 'complete', item }
+                  : { status: 'in_progress', progress: 95 },
                 imageUrl: item.image_url || prev.seed.imageUrl,
                 title: item.title || prev.seed.title,
               },
             }
+          })
+
+          if (!isComplete) {
+            // Continue polling
+            setTimeout(pollForCompletion, 1000)
           }
-          return prev
-        })
+        } else {
+          // Retry on error
+          setTimeout(pollForCompletion, 2000)
+        }
+      } catch {
+        // Retry on network error
+        setTimeout(pollForCompletion, 2000)
       }
-    } catch {
-      // Silently fail - extraction will continue in background
     }
+
+    // Start polling after a short delay
+    setTimeout(pollForCompletion, 500)
   }, [])
 
   // =============================================================================
@@ -764,17 +863,34 @@ function createInitialSeedState(): SeedState {
 
 type NebulaType = 'inbox' | 'wishlist' | 'inventory' | 'research' | 'default'
 
-function buildGalaxyFromCollections(collections: Collection[]): GalaxyState {
+/**
+ * Build galaxy layout from collections
+ * Collections are arranged in a circle around the center (where the seed is)
+ * with proper spacing to avoid overlaps
+ */
+function buildGalaxyFromCollections(
+  collections: Collection[],
+  collectionItems?: Map<string, Item[]>
+): GalaxyState {
+  const baseRadius = 250 // Distance from center (seed)
+  const nebulaSize = 70 // Fixed nebula visual radius
+
   const nebulae: Nebula[] = collections.map((collection, index) => {
-    // Arrange in a circle
-    const angle = (index / collections.length) * Math.PI * 2
-    const radius = 150 + Math.random() * 50
+    // Evenly distribute around center, starting at top (-PI/2)
+    const angle = (index / collections.length) * Math.PI * 2 - Math.PI / 2
+
+    // Slight organic variation to avoid perfect circle
+    const radiusVariation = Math.sin(index * 1.5) * 20
+    const radius = baseRadius + radiusVariation
 
     const validTypes: NebulaType[] = ['inbox', 'wishlist', 'inventory', 'research', 'default']
     const collectionType: NebulaType = validTypes.includes(collection.type as NebulaType)
       ? (collection.type as NebulaType)
       : 'default'
     const themeColors = NEBULA_COLORS[collectionType] || NEBULA_COLORS.default
+
+    // Get actual items for this collection (top 5 most recent)
+    const items = collectionItems?.get(collection.id)?.slice(0, 5) || []
 
     return {
       id: collection.id,
@@ -784,33 +900,24 @@ function buildGalaxyFromCollections(collections: Collection[]): GalaxyState {
         x: Math.cos(angle) * radius,
         y: Math.sin(angle) * radius,
       },
-      radius: 60 + Math.random() * 20,
-      itemCount: 0, // Would come from API
+      radius: nebulaSize,
+      itemCount: items.length,
       themeColors,
-      themes: [] as string[], // Would come from AI overview
-      sampleItems: [] as Nebula['sampleItems'], // Would come from API
+      themes: [] as string[],
+      sampleItems: items.map(item => ({
+        id: item.id,
+        title: item.title || '',
+        imageUrl: item.image_url || undefined,
+      })),
       isActive: false as const,
       gravitationalPull: 1,
     }
   })
 
-  // Create edges based on potential relationships
-  // For now, connect adjacent nebulae
-  const edges: NebulaEdge[] = []
-  for (let i = 0; i < nebulae.length; i++) {
-    const next = (i + 1) % nebulae.length
-    if (nebulae.length > 1) {
-      edges.push({
-        source: nebulae[i].id,
-        target: nebulae[next].id,
-        strength: 0.3 + Math.random() * 0.4,
-      })
-    }
-  }
-
+  // No connection lines between collections
   return {
     nebulae,
-    edges,
+    edges: [],
     viewTransform: { x: 0, y: 0, scale: 1 },
     isCreatingNebula: false,
   }

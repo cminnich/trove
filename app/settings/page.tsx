@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getClient } from '@/lib/supabase-client'
 import { User } from '@supabase/supabase-js'
-import { Settings, User as UserIcon, Palette, Bug, LogOut, Loader2, Globe, Lock } from 'lucide-react'
+import { Settings, User as UserIcon, Palette, Bug, LogOut, Loader2, Globe, Lock, Sparkles, List } from 'lucide-react'
 
 type Section = 'account' | 'preferences' | 'debug'
 
@@ -21,6 +21,30 @@ export default function SettingsPage() {
   const [defaultVisibility, setDefaultVisibility] = useState<'public' | 'private'>('public')
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false)
   const [preferencesLoading, setPreferencesLoading] = useState(true)
+
+  // Galaxy View feature flag (stored in localStorage)
+  const [galaxyViewEnabled, setGalaxyViewEnabled] = useState(true)
+
+  // Load Galaxy View preference from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('trove:galaxyViewEnabled')
+      if (stored !== null) {
+        setGalaxyViewEnabled(stored === 'true')
+      }
+    }
+  }, [])
+
+  // Save Galaxy View preference to localStorage
+  const handleGalaxyViewToggle = () => {
+    const newValue = !galaxyViewEnabled
+    setGalaxyViewEnabled(newValue)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('trove:galaxyViewEnabled', String(newValue))
+      // Dispatch a custom event so other components can react
+      window.dispatchEvent(new CustomEvent('trove:galaxyViewChanged', { detail: newValue }))
+    }
+  }
 
   // Check authentication and load preferences
   useEffect(() => {
@@ -342,9 +366,47 @@ export default function SettingsPage() {
                         </select>
                       </div>
 
+                      {/* Galaxy View Toggle */}
+                      <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              {galaxyViewEnabled ? (
+                                <Sparkles className="w-4 h-4 text-purple-400" />
+                              ) : (
+                                <List className="w-4 h-4 text-slate-400" />
+                              )}
+                              <label className="block text-sm font-medium text-white">
+                                {galaxyViewEnabled ? 'Galaxy View' : 'Ledger View'}
+                              </label>
+                              <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded-full">
+                                Experimental
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-400 mb-2">
+                              {galaxyViewEnabled
+                                ? 'Spatial exploration mode with an immersive Galaxy interface. Collections appear as nebulae.'
+                                : 'Classic list/grid view for utility-first browsing. Familiar table-based interface.'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={handleGalaxyViewToggle}
+                            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors flex-shrink-0 ${
+                              galaxyViewEnabled ? 'bg-purple-600' : 'bg-slate-700'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                                galaxyViewEnabled ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="pt-4 border-t border-slate-700/50">
                         <p className="text-xs text-slate-500 italic">
-                          Note: Appearance and AI Tone are UI stubs and are not currently persisted.
+                          Note: Appearance and AI Tone are UI stubs and are not currently persisted. Galaxy View is stored locally.
                         </p>
                       </div>
                     </>

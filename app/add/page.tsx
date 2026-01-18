@@ -35,6 +35,7 @@ function MeditativeAddPageContent() {
 
   // Collections state
   const [collections, setCollections] = useState<Collection[]>([])
+  const [collectionItems, setCollectionItems] = useState<Map<string, Item[]>>(new Map())
   const [collectionsLoading, setCollectionsLoading] = useState(true)
 
   // Check auth session on mount
@@ -61,7 +62,7 @@ function MeditativeAddPageContent() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Fetch collections
+  // Fetch collections and their items (for orbiting display)
   useEffect(() => {
     if (!user) {
       setCollectionsLoading(false)
@@ -75,7 +76,25 @@ function MeditativeAddPageContent() {
         const result = await response.json()
 
         if (result.success && result.data) {
-          setCollections(result.data as Collection[])
+          const fetchedCollections = result.data as Collection[]
+          setCollections(fetchedCollections)
+
+          // Fetch items for each collection (top 5 most recent for orbiting display)
+          const itemsMap = new Map<string, Item[]>()
+          await Promise.all(
+            fetchedCollections.map(async (col) => {
+              try {
+                const res = await fetch(`/api/collections/${col.id}/items?sort=recent&limit=5`)
+                const data = await res.json()
+                if (data.success && data.data) {
+                  itemsMap.set(col.id, data.data)
+                }
+              } catch (err) {
+                console.error(`Error loading items for collection ${col.id}:`, err)
+              }
+            })
+          )
+          setCollectionItems(itemsMap)
         }
       } catch (error) {
         console.error('Error loading collections:', error)
@@ -107,6 +126,7 @@ function MeditativeAddPageContent() {
   } = useMeditativeCapture({
     initialUrl: urlParam || undefined,
     collections,
+    collectionItems,
     onComplete: (item, collection, notes) => {
       console.log('Capture complete:', { item, collection, notes })
     },
@@ -182,15 +202,12 @@ function MeditativeAddPageContent() {
     )
   }
 
-  // Spatial phase (Galaxy)
+  // Spatial phase (Galaxy) - tap-to-place interaction
   if (isSpatialPhase(state)) {
     return (
       <MeditativeContainer>
         <SpatialPhaseView
           state={state}
-          onSeedPositionChange={updateSeedPosition}
-          onSeedDragStart={startDragging}
-          onSeedDragEnd={stopDragging}
           onSeedPlaced={placeSeed}
           onStartLongPress={startLongPress}
           onCancelLongPress={cancelLongPress}
@@ -326,9 +343,6 @@ function ArrivalPhaseView({
 
 function SpatialPhaseView({
   state,
-  onSeedPositionChange,
-  onSeedDragStart,
-  onSeedDragEnd,
   onSeedPlaced,
   onStartLongPress,
   onCancelLongPress,
@@ -337,9 +351,6 @@ function SpatialPhaseView({
   onDepart,
 }: {
   state: Extract<import('@/types/meditative-capture').MeditativeCaptureState, { phase: 'spatial' }>
-  onSeedPositionChange: (pos: import('@/types/meditative-capture').Vec2) => void
-  onSeedDragStart: () => void
-  onSeedDragEnd: () => void
   onSeedPlaced: (collectionId: string) => Promise<void>
   onStartLongPress: (pos: import('@/types/meditative-capture').Vec2) => void
   onCancelLongPress: () => void
@@ -373,9 +384,6 @@ function SpatialPhaseView({
         galaxy={state.galaxy}
         seed={state.seed}
         mode="capture"
-        onSeedPositionChange={onSeedPositionChange}
-        onSeedDragStart={onSeedDragStart}
-        onSeedDragEnd={onSeedDragEnd}
         onSeedPlaced={onSeedPlaced}
         onStartNebulaCreation={handleStartNebulaCreation}
         onNebulaeUpdate={handleNebulaeUpdate}
@@ -396,7 +404,7 @@ function SpatialPhaseView({
           {state.item.title || 'New Item'}
         </p>
         <p className="text-zen-text-muted text-sm font-data">
-          Drag to a collection
+          Tap a collection to place
         </p>
       </div>
 

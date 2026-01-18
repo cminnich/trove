@@ -1,15 +1,12 @@
 'use client'
 
-import { motion, type PanInfo } from 'framer-motion'
+import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { type SeedState, type Vec2 } from '@/types/meditative-capture'
+import { type SeedState } from '@/types/meditative-capture'
 import { BreathingPulse } from '@/app/add/components/animations'
 
 interface SeedProps {
   seed: SeedState
-  onDragStart: () => void
-  onDrag: (position: Vec2) => void
-  onDragEnd: () => void
   /** Whether to show extraction progress */
   showProgress?: boolean
   /** Size of the seed in pixels */
@@ -17,54 +14,43 @@ interface SeedProps {
 }
 
 /**
- * Seed - The glowing orb representing a new item being placed
+ * Seed - The glowing orb representing a new item at the center
  *
  * Features:
+ * - Fixed at center (0,0) as the visual focal point
  * - Breathing pulse animation
- * - Draggable with momentum
  * - Shows item thumbnail when extracted
- * - Glowing aura that intensifies during drag
+ * - Glowing aura effect
  */
 export function Seed({
   seed,
-  onDragStart,
-  onDrag,
-  onDragEnd,
   showProgress = true,
   size = 80,
 }: SeedProps) {
-  const handleDrag = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    onDrag({
-      x: seed.position.x + info.delta.x,
-      y: seed.position.y + info.delta.y,
-    })
-  }
-
   const isExtracting = seed.extraction.status === 'in_progress' || seed.extraction.status === 'pending'
   const progress = seed.extraction.status === 'in_progress' ? seed.extraction.progress : 0
 
   return (
     <motion.div
-      className="absolute cursor-grab active:cursor-grabbing touch-none"
+      className="absolute"
       style={{
         width: size,
         height: size,
-        x: seed.position.x - size / 2,
-        y: seed.position.y - size / 2,
+        // Fixed at center (0,0), offset by half size to center visually
+        left: 0,
+        top: 0,
+        x: -size / 2,
+        y: -size / 2,
       }}
-      drag
-      dragMomentum={false}
-      dragElastic={0}
-      onDragStart={onDragStart}
-      onDrag={handleDrag}
-      onDragEnd={onDragEnd}
-      whileDrag={{ scale: 1.1 }}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
     >
       <BreathingPulse
         duration={4}
         scale={1.05}
         className="w-full h-full"
-        active={!seed.isDragging}
+        active={true}
       >
         {/* Outer glow */}
         <div
@@ -76,21 +62,15 @@ export function Seed({
           }}
         />
 
-        {/* Middle glow layer */}
+        {/* Middle glow layer - subtle pulsing glow */}
         <motion.div
           className="absolute inset-0 rounded-full"
           animate={{
-            boxShadow: seed.isDragging
-              ? [
-                  '0 0 40px rgba(99, 102, 241, 0.8), 0 0 80px rgba(139, 92, 246, 0.6)',
-                  '0 0 60px rgba(139, 92, 246, 0.8), 0 0 100px rgba(99, 102, 241, 0.6)',
-                  '0 0 40px rgba(99, 102, 241, 0.8), 0 0 80px rgba(139, 92, 246, 0.6)',
-                ]
-              : [
-                  '0 0 20px rgba(99, 102, 241, 0.5), 0 0 40px rgba(139, 92, 246, 0.3)',
-                  '0 0 30px rgba(139, 92, 246, 0.5), 0 0 60px rgba(99, 102, 241, 0.3)',
-                  '0 0 20px rgba(99, 102, 241, 0.5), 0 0 40px rgba(139, 92, 246, 0.3)',
-                ],
+            boxShadow: [
+              '0 0 20px rgba(99, 102, 241, 0.5), 0 0 40px rgba(139, 92, 246, 0.3)',
+              '0 0 30px rgba(139, 92, 246, 0.5), 0 0 60px rgba(99, 102, 241, 0.3)',
+              '0 0 20px rgba(99, 102, 241, 0.5), 0 0 40px rgba(139, 92, 246, 0.3)',
+            ],
           }}
           transition={{
             duration: 3,
