@@ -12,7 +12,7 @@ interface ItemWithCollectionMetadata extends Item {
 interface ItemListProps {
   items: ItemWithCollectionMetadata[]
   isLoading?: boolean
-  onItemClick?: (item: ItemWithCollectionMetadata) => void
+  onItemClick?: (item: ItemWithCollectionMetadata, index: number) => void
 }
 
 function SkeletonRow() {
@@ -43,12 +43,12 @@ export function ItemList({ items, isLoading, onItemClick }: ItemListProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <ItemCard
           key={item.id}
           item={item}
           variant="list"
-          onClick={() => onItemClick?.(item)}
+          onClick={() => onItemClick?.(item, index)}
         />
       ))}
     </div>

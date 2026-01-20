@@ -29,7 +29,7 @@ interface SortableItemGridProps {
   items: ItemWithCollectionMetadata[]
   isLoading?: boolean
   editMode: boolean
-  onItemClick?: (item: ItemWithCollectionMetadata) => void
+  onItemClick?: (item: ItemWithCollectionMetadata, index: number) => void
   onReorder: (itemPositions: Array<{ item_id: string; position: number }>) => void
 }
 
@@ -111,13 +111,13 @@ export function SortableItemGrid({
     >
       <SortableContext items={items.map((item) => item.id)} strategy={rectSortingStrategy}>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <SortableItemCard
               key={item.id}
               item={item}
               editMode={editMode}
               isDragging={activeId === item.id}
-              onClick={() => !editMode && onItemClick?.(item)}
+              onClick={() => !editMode && onItemClick?.(item, index)}
             />
           ))}
         </div>

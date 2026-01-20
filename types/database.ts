@@ -244,6 +244,134 @@ export type Database = {
           claimed_at?: string | null;
         };
       };
+      attribute_schemas: {
+        Row: {
+          id: string;
+          name: string;
+          display_name: string;
+          description: string | null;
+          source_type: 'direct' | 'computed' | 'extracted';
+          source_field: string | null;
+          is_active: boolean;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          display_name: string;
+          description?: string | null;
+          source_type: 'direct' | 'computed' | 'extracted';
+          source_field?: string | null;
+          is_active?: boolean;
+          display_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          display_name?: string;
+          description?: string | null;
+          source_type?: 'direct' | 'computed' | 'extracted';
+          source_field?: string | null;
+          is_active?: boolean;
+          display_order?: number;
+          created_at?: string;
+        };
+      };
+      item_attributes: {
+        Row: {
+          id: string;
+          item_id: string;
+          schema_id: string;
+          raw_value: string;
+          normalized_value: string;
+          group_key: string;
+          confidence: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          item_id: string;
+          schema_id: string;
+          raw_value: string;
+          normalized_value: string;
+          group_key: string;
+          confidence?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          item_id?: string;
+          schema_id?: string;
+          raw_value?: string;
+          normalized_value?: string;
+          group_key?: string;
+          confidence?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      user_pinned_connections: {
+        Row: {
+          id: string;
+          user_id: string;
+          schema_id: string;
+          is_pinned: boolean;
+          display_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          schema_id: string;
+          is_pinned?: boolean;
+          display_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          schema_id?: string;
+          is_pinned?: boolean;
+          display_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      collection_filter_preferences: {
+        Row: {
+          id: string;
+          collection_id: string;
+          schema_id: string;
+          is_hidden: boolean;
+          force_show: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          collection_id: string;
+          schema_id: string;
+          is_hidden?: boolean;
+          force_show?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          collection_id?: string;
+          schema_id?: string;
+          is_hidden?: boolean;
+          force_show?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;

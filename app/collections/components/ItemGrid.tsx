@@ -12,7 +12,7 @@ interface ItemWithCollectionMetadata extends Item {
 interface ItemGridProps {
   items: ItemWithCollectionMetadata[]
   isLoading?: boolean
-  onItemClick?: (item: ItemWithCollectionMetadata) => void
+  onItemClick?: (item: ItemWithCollectionMetadata, index: number) => void
 }
 
 function SkeletonCard() {
@@ -39,12 +39,12 @@ export function ItemGrid({ items, isLoading, onItemClick }: ItemGridProps) {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <ItemCard
           key={item.id}
           item={item}
           variant="grid"
-          onClick={() => onItemClick?.(item)}
+          onClick={() => onItemClick?.(item, index)}
         />
       ))}
     </div>

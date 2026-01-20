@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+// Schema for semantic attributes (AI-extracted for filtering/connections)
+export const SemanticAttributesSchema = z.object({
+  color: z.string().optional().describe("Primary color of the item"),
+  material: z.string().optional().describe("Primary material"),
+  style: z.string().optional().describe("Style descriptor (casual, formal, vintage, etc.)"),
+  size_category: z.string().optional().describe("Size classification (small, medium, large, oversized)"),
+}).optional();
+
+export type SemanticAttributes = z.infer<typeof SemanticAttributesSchema>;
+
 // Zod schema for product extraction
 export const ProductExtractionSchema = z.object({
   item_type: z.string().default("product").describe("System-level type (watch, wine, product, etc.)"),
@@ -12,6 +22,7 @@ export const ProductExtractionSchema = z.object({
   category: z.string().nullable().describe("Product category (electronics, clothing, home, etc.)"),
   tags: z.array(z.string()).nullable().describe("Relevant tags or keywords"),
   attributes: z.record(z.unknown()).describe("Additional product-specific attributes (size, color, specs, etc.)"),
+  semantic_attributes: SemanticAttributesSchema.describe("Semantic attributes for filtering and connections"),
   confidence_score: z.number().min(0).max(1).describe("Confidence in extraction quality (0-1)"),
 });
 

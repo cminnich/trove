@@ -10,7 +10,7 @@ import { SortableItemGrid } from '../components/SortableItemGrid'
 import { ViewToggle } from '../components/ViewToggle'
 import { EmptyState } from '../components/EmptyState'
 import { SortSheet } from '../components/SortSheet'
-import { ItemDetailSheet } from '../components/ItemDetailSheet'
+import { ItemDetailView } from '../components/ItemDetailView'
 import { AddItemSheet } from '../components/AddItemSheet'
 import { EnhancedCollectionOverview } from '../components/EnhancedCollectionOverview'
 import { CollectionSettingsDialog } from '../components/CollectionSettingsDialog'
@@ -55,7 +55,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   const [toastMessage, setToastMessage] = useState('')
   const [addItemSheetOpen, setAddItemSheetOpen] = useState(false)
   const { items, isLoading, isError, error, mutate, reorder } = useCollectionItems(id, sortOrder)
-  const { isOpen, itemId, openItemDetail, closeItemDetail } = useItemDetailStore()
+  const { isOpen, openItemDetail, closeItemDetail } = useItemDetailStore()
   const autoExitTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch collection metadata
@@ -66,8 +66,8 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
 
   const collection = collectionData?.data
 
-  // Find the selected item
-  const selectedItem = items.find(item => item.id === itemId)
+  // Get all item IDs for navigation
+  const allItemIds = items.map(item => item.id)
 
   // Auto-exit edit mode after 5 seconds of inactivity
   useEffect(() => {
@@ -93,9 +93,9 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
     }
   }, [sortOrder, editMode])
 
-  const handleItemClick = (item: any) => {
+  const handleItemClick = (item: any, index: number) => {
     if (!editMode) {
-      openItemDetail(item.id, id)
+      openItemDetail(item.id, id, index, allItemIds)
     }
   }
 
@@ -335,14 +335,8 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         onSortChange={setSortOrder}
       />
 
-      {/* Item Detail Sheet */}
-      <ItemDetailSheet
-        open={isOpen}
-        onClose={closeItemDetail}
-        item={selectedItem || null}
-        collectionId={id}
-        onUpdate={handleItemUpdate}
-      />
+      {/* Item Detail View (Full-screen with swipe navigation) */}
+      <ItemDetailView items={items} onUpdate={handleItemUpdate} />
 
       {/* Add Item Sheet */}
       <AddItemSheet

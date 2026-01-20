@@ -76,6 +76,27 @@ Wine example:
   "confidence_score": 0.92
 }
 
+## Semantic Attributes
+In addition to technical attributes, extract semantic attributes that help users
+find similar items. Include a "semantic_attributes" object with:
+
+- color: Primary color(s) of the item (e.g., "black", "silver", "navy blue")
+- material: Primary material(s) (e.g., "leather", "stainless steel", "cotton")
+- style: Style descriptors (e.g., "casual", "formal", "vintage", "modern")
+- size_category: Size classification if applicable (e.g., "small", "medium", "oversized")
+
+Only include semantic attributes that are clearly evident from the product information.
+Omit any that are not clearly identifiable.
+
+Example semantic_attributes:
+{
+  "semantic_attributes": {
+    "color": "black",
+    "material": "stainless steel",
+    "style": "sporty"
+  }
+}
+
 ## Response Format
 Return ONLY valid JSON matching this schema:
 {
@@ -89,6 +110,7 @@ Return ONLY valid JSON matching this schema:
   "category": "string or null",
   "tags": ["array", "of", "strings"] or null,
   "attributes": { /* domain-specific attributes */ },
+  "semantic_attributes": { /* color, material, style, size_category */ },
   "confidence_score": "number 0-1"
 }
 
