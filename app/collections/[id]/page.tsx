@@ -27,7 +27,7 @@ import {
   Share2,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import type { Database } from '@/types/database'
@@ -56,7 +56,6 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   const [addItemSheetOpen, setAddItemSheetOpen] = useState(false)
   const { items, isLoading, isError, error, mutate, reorder } = useCollectionItems(id, sortOrder)
   const { isOpen, openItemDetail, closeItemDetail } = useItemDetailStore()
-  const autoExitTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch collection metadata
   const { data: collectionData, mutate: mutateCollection } = useSWR<CollectionResponse>(
@@ -68,23 +67,6 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
 
   // Get all item IDs for navigation
   const allItemIds = items.map(item => item.id)
-
-  // Auto-exit edit mode after 5 seconds of inactivity
-  useEffect(() => {
-    if (editMode) {
-      if (autoExitTimerRef.current) {
-        clearTimeout(autoExitTimerRef.current)
-      }
-      autoExitTimerRef.current = setTimeout(() => {
-        setEditMode(false)
-      }, 5000)
-    }
-    return () => {
-      if (autoExitTimerRef.current) {
-        clearTimeout(autoExitTimerRef.current)
-      }
-    }
-  }, [editMode, items]) // Reset timer when items change (drag happens)
 
   // Exit edit mode when sort order changes away from position
   useEffect(() => {
