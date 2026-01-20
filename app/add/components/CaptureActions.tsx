@@ -5,6 +5,7 @@ interface CaptureActionsProps {
   isSaving: boolean
   extractionComplete: boolean
   saveIntent: SaveIntent
+  isExisting?: boolean
   onSave: () => void
   onCancel: () => void
 }
@@ -18,14 +19,15 @@ export function CaptureActions({
   isSaving,
   extractionComplete,
   saveIntent,
+  isExisting = false,
   onSave,
   onCancel
 }: CaptureActionsProps) {
   // Determine save button label
   const getSaveLabel = (): string => {
     if (saveIntent.type === 'pending') return 'Finalizing...'
-    if (isSaving) return 'Saving...'
-    return 'Save to Trove'
+    if (isSaving) return isExisting ? 'Updating...' : 'Saving...'
+    return isExisting ? 'Update in Trove' : 'Save to Trove'
   }
 
   // Determine if save button should be disabled

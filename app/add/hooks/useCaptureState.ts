@@ -6,7 +6,8 @@ import type {
   SaveIntent,
   DeepExtractionState,
   CreateItemRequest,
-  ItemWithContext
+  ItemWithContext,
+  ExistingCollectionMembership
 } from '@/types/capture'
 import type { Database } from '@/types/database'
 
@@ -152,6 +153,8 @@ export function useCaptureState({
       // Extraction successful
       const item: Item = data.data?.item || data.data
       const needsReview = (item.confidence_score ?? 1) < 0.7
+      const isExisting = data.isExisting || false
+      const existingMemberships: ExistingCollectionMembership[] = data.data?.existingMemberships || []
 
       setState(prev =>
         prev.stage === 'capturing'
@@ -160,11 +163,27 @@ export function useCaptureState({
               extraction: {
                 status: 'complete',
                 item,
-                needsReview
+                needsReview,
+                isExisting,
+                existingMemberships
               }
             }
           : prev
       )
+
+      // If item already exists in user's collections, pre-populate context
+      if (isExisting && existingMemberships.length > 0) {
+        // Get the first existing note (if any)
+        const existingNote = existingMemberships.find(m => m.notes)?.notes || ''
+        const existingCollectionIds = existingMemberships.map(m => m.collection_id)
+
+        setContext(prev => ({
+          ...prev,
+          notes: existingNote,
+          selectedCollections: existingCollectionIds,
+          isDirty: false // Mark as not dirty since these are existing values
+        }))
+      }
 
       // Update saveIntent to 'ready' if user hasn't clicked save yet
       setSaveIntent(prev =>

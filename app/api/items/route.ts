@@ -8,6 +8,12 @@ type CollectionAssignment = {
   notes?: string;
 };
 
+interface ExistingCollectionMembership {
+  collection_id: string;
+  collection_name: string;
+  notes: string | null;
+}
+
 interface CreateItemRequest {
   url: string;
   collections?: CollectionAssignment[];
@@ -16,9 +22,11 @@ interface CreateItemRequest {
 interface CreateItemResponse {
   success: boolean;
   status?: 'pending' | 'processing' | 'complete' | 'failed';
+  isExisting?: boolean; // true if the item was already extracted before
   data?: {
     item: Database["public"]["Tables"]["items"]["Row"];
     collections: string[]; // collection IDs the item was added to
+    existingMemberships?: ExistingCollectionMembership[]; // existing collection memberships for this user
   };
   error?: string;
 }
@@ -72,6 +80,37 @@ export async function POST(req: NextRequest) {
 
     // If item exists and extraction is complete, return it immediately
     if (existingItem && existingItem.extraction_status === 'complete') {
+      // Fetch existing collection memberships for this user
+      // First, get user's collections
+      const { data: userCollections } = await client
+        .from("collections")
+        .select("id, name")
+        .eq("owner_id", user.id);
+
+      type CollectionBasic = { id: string; name: string };
+      const userCollectionIds = ((userCollections || []) as CollectionBasic[]).map(c => c.id);
+
+      // Then get collection_items for this item that are in user's collections
+      let existingMemberships: ExistingCollectionMembership[] = [];
+
+      if (userCollectionIds.length > 0) {
+        const { data: membershipData } = await client
+          .from("collection_items")
+          .select("collection_id, notes")
+          .eq("item_id", existingItem.id)
+          .in("collection_id", userCollectionIds);
+
+        const collections = (userCollections || []) as CollectionBasic[];
+        existingMemberships = (membershipData || []).map((m: any) => {
+          const collection = collections.find(c => c.id === m.collection_id);
+          return {
+            collection_id: m.collection_id,
+            collection_name: collection?.name || 'Unknown',
+            notes: m.notes,
+          };
+        });
+      }
+
       // If collections provided, assign to them
       const addedCollections: string[] = [];
       if (body.collections && body.collections.length > 0) {
@@ -95,9 +134,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         status: 'complete',
+        isExisting: true,
         data: {
           item: existingItem,
           collections: addedCollections,
+          existingMemberships,
         },
       } as CreateItemResponse);
     }

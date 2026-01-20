@@ -21,6 +21,9 @@ function AddPageContent() {
   const router = useRouter()
   const urlParam = searchParams?.get('url')
 
+  // Track the previous URL param to detect changes
+  const [currentUrl, setCurrentUrl] = useState<string | null>(urlParam || null)
+
   // Auth state
   const [user, setUser] = useState<any>(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -29,6 +32,21 @@ function AddPageContent() {
   const [collections, setCollections] = useState<Collection[]>([])
   const [collectionsLoading, setCollectionsLoading] = useState(true)
 
+  // Detect URL param changes and force reload for clean state
+  useEffect(() => {
+    const newUrl = urlParam || null
+    if (currentUrl !== newUrl) {
+      // URL changed - reload to get clean state
+      if (newUrl === null) {
+        // Navigated to /add without URL - force full reload
+        window.location.href = '/add'
+      } else if (currentUrl !== null) {
+        // URL changed to a different value - reload with new URL
+        window.location.href = `/add?url=${encodeURIComponent(newUrl)}`
+      }
+      setCurrentUrl(newUrl)
+    }
+  }, [urlParam, currentUrl])
 
   // Capture state management
   // Note: Don't pass undefined when authLoading - it will initialize the hook with error state
@@ -150,9 +168,16 @@ function AddPageContent() {
     }
   }
 
+  // Handler for "Add Another Item" - navigates to clean /add page
+  const handleAddAnother = () => {
+    // Use window.location to force full page reload and reset all state
+    // router.push doesn't remount the component, so state persists
+    window.location.href = '/add'
+  }
+
   // Render different stages
   if (state.stage === 'complete') {
-    return <SuccessView item={state.item} collections={state.collections} onAddAnother={reset} />
+    return <SuccessView item={state.item} collections={state.collections} onAddAnother={handleAddAnother} />
   }
 
   if (state.stage === 'error') {
@@ -164,7 +189,7 @@ function AddPageContent() {
     return (
       <ProcessingView
         state={state}
-        onAddAnother={reset}
+        onAddAnother={handleAddAnother}
         onComplete={completeProcessing}
       />
     )
@@ -174,6 +199,8 @@ function AddPageContent() {
   const isSaving = state.stage === 'saving'
   const isCapturing = state.stage === 'capturing'
   const extractionComplete = isCapturing && state.extraction.status === 'complete'
+  const isExistingItem = isCapturing && state.extraction.status === 'complete' && state.extraction.isExisting
+  const existingMemberships = isCapturing && state.extraction.status === 'complete' ? state.extraction.existingMemberships || [] : []
 
   return (
     <main className="flex min-h-screen flex-col p-6 bg-gray-50 dark:bg-gray-900">
@@ -181,9 +208,34 @@ function AddPageContent() {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Add to Trove
+            {isExistingItem ? 'Update in Trove' : 'Add to Trove'}
           </h1>
         </div>
+
+        {/* Already in Trove indicator */}
+        {isExistingItem && existingMemberships.length > 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-blue-600 dark:text-blue-400 text-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Already in your Trove
+                </p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  Currently saved in: {existingMemberships.map(m => m.collection_name).join(', ')}
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                  You can update the notes or add to more collections below.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Source URL Badge */}
         {isCapturing && <SourceUrlBadge url={state.url} />}
@@ -226,6 +278,7 @@ function AddPageContent() {
           isSaving={isSaving}
           extractionComplete={extractionComplete}
           saveIntent={saveIntent}
+          isExisting={isExistingItem && existingMemberships.length > 0}
           onSave={triggerSave}
           onCancel={reset}
         />

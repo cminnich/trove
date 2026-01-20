@@ -19,11 +19,18 @@ export type DeepExtractionState =
   | { status: 'complete' }
   | { status: 'failed'; error: string }
 
+// Existing collection membership info (returned when item already exists)
+export interface ExistingCollectionMembership {
+  collection_id: string
+  collection_name: string
+  notes: string | null
+}
+
 // Extraction state tracks background AI processing
 export type ExtractionState =
   | { status: 'pending' }
   | { status: 'in_progress'; progress: number } // 0-100
-  | { status: 'complete'; item: Item; needsReview: boolean }
+  | { status: 'complete'; item: Item; needsReview: boolean; isExisting?: boolean; existingMemberships?: ExistingCollectionMembership[] }
   | { status: 'failed'; error: string }
 
 // User-provided context (notes + collection assignments)
