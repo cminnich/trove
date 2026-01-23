@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { BottomSheet } from '@/app/components/BottomSheet'
 import { ConfidenceBadge } from '@/app/components/ConfidenceBadge'
 import { TagChipSelector } from './TagChipSelector'
+import { ShopNowButton } from './ShopNowButton'
 import { ExternalLink, Save, X, Clock, FolderOpen, Plus, Trash2, AlertTriangle, RefreshCw, Undo2 } from 'lucide-react'
 import { useUserCollections } from '@/app/hooks/useUserCollections'
 import { useCollections } from '@/app/hooks/useCollections'
@@ -416,6 +417,14 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
           )}
         </div>
 
+        {/* Shop Now Button */}
+        {item.source_url && (
+          <ShopNowButton
+            sourceUrl={item.source_url}
+            retailer={item.retailer}
+          />
+        )}
+
         {/* Price */}
         {item.price && item.currency && (
           <div>
@@ -712,24 +721,6 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
             </p>
           )}
         </div>
-
-        {/* Source URL */}
-        {item.source_url && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Source
-            </label>
-            <a
-              href={item.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline"
-            >
-              <ExternalLink className="w-4 h-4" />
-              <span className="truncate max-w-xs">View original</span>
-            </a>
-          </div>
-        )}
 
         {/* Confidence Score */}
         {item.confidence_score !== null && (

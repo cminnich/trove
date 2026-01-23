@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ConfidenceBadge } from '@/app/components/ConfidenceBadge'
 import { TagChipSelector } from '../TagChipSelector'
+import { ShopNowButton } from '../ShopNowButton'
 import {
   ExternalLink,
   Save,
@@ -424,6 +425,14 @@ export function ItemDetailContent({
         {item.brand && <p className="text-lg text-gray-600 dark:text-gray-400">{item.brand}</p>}
       </div>
 
+      {/* Shop Now Button */}
+      {item.source_url && (
+        <ShopNowButton
+          sourceUrl={item.source_url}
+          retailer={item.retailer}
+        />
+      )}
+
       {/* Price */}
       {item.price && item.currency && (
         <div>
@@ -729,24 +738,6 @@ export function ItemDetailContent({
           </p>
         )}
       </div>
-
-      {/* Source URL */}
-      {item.source_url && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Source
-          </label>
-          <a
-            href={item.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline"
-          >
-            <ExternalLink className="w-4 h-4" />
-            <span className="truncate max-w-xs">View original</span>
-          </a>
-        </div>
-      )}
 
       {/* Confidence Score */}
       {item.confidence_score !== null && (
