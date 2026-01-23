@@ -294,56 +294,61 @@
 - [x] Update `PROJECT.md` to reference auth documentation
 - [x] Update `TODO.md` with Phase 8 checklist
 
-### Phase 8.7: Setup & Testing 🚧 PENDING
-- [ ] Run migration 004 on Supabase database
-- [ ] Configure Google OAuth in Supabase dashboard
-  - [ ] Add OAuth client ID and secret
-  - [ ] Configure authorized redirect URIs
-- [ ] Update environment variables (already exist, no changes needed)
-- [ ] Test authentication flow
-  - [ ] Sign in with Google works
-  - [ ] Profile created automatically on first sign-in
-  - [ ] Session persists across browser restarts
-  - [ ] OAuth redirect preserves URL parameter
-- [ ] Test RLS policies
-  - [ ] Create two test accounts
-  - [ ] Verify data isolation (user A can't see user B's private collections)
-  - [ ] Verify public collections are visible to all
-  - [ ] Verify shared collections work correctly
-- [ ] Test collection sharing
-  - [ ] Invite user by email (pre-signup)
-  - [ ] Verify invitation claimed on signup
-  - [ ] Test viewer vs editor permissions
-- [ ] Update existing collections with owner_id
-  - [ ] Script to claim orphaned collections or assign to first user
+### Phase 8.7: Setup & Testing ✅ COMPLETE
+- [x] Run migrations on Supabase database (004-013)
+- [x] Configure Google OAuth in Supabase dashboard
+- [x] Test authentication flow (sign in, profile creation, session persistence)
+- [x] Test RLS policies (data isolation verified)
+- [x] Deploy to production
 
-**Key Files Changed**:
-- `supabase/migrations/004_auth_and_sharing.sql` (new)
-- `AUTH_SHARING.md` (new)
-- `types/database.ts` (profiles, collection_access tables; owner_id, visibility fields)
-- `lib/supabase.ts` (persistent auth config)
-- `lib/inbox.ts` (multi-user support)
-- `app/add/page.tsx` (auth flow with SignInView component)
-- `app/api/collections/route.ts` (schema updates)
-- `PROJECT.md` (documentation links)
-- `TODO.md` (this file)
+## Phase 9: AI Collection Overviews ✅ COMPLETE
+- [x] Create `/api/collections/[id]/overview` endpoint
+- [x] Implement lazy-loaded AI generation with caching
+- [x] Thematic analysis and strategic insights
+- [x] Condensed-by-default UX with expand toggle
+- [x] Cache in `collection_overviews` table
 
-**Next Steps After Testing**:
-1. Deploy to production with Supabase migration
-2. Configure Google OAuth credentials in production environment
-3. Test end-to-end auth flow on deployed app
-4. Implement collection sharing UI (Phase 9)
-5. Add user settings page (manage profile, view shared collections)
+## Phase 10: Item Attributes System ✅ COMPLETE
+- [x] Create `item_attributes` table with normalization
+- [x] Support direct, computed, and semantic attribute types
+- [x] Generate attributes during extraction
+- [x] `/api/items/[id]/attributes` endpoint
+- [x] `/api/admin/backfill-attributes` for existing items
 
-## Bugs / Issues
-- Some sites (REI, B&H Photo) fail extraction - likely due to JS-heavy pages or complex structures
+## Phase 11: Dynamic AI-Powered Filters ✅ COMPLETE
+- [x] Create `collection_attribute_schemas` table
+- [x] Implement filter discovery with usefulness scoring
+- [x] `/api/collections/[id]/attribute-schemas` endpoint
+- [x] Per-collection filter visibility preferences
+- [x] Settings panel for filter management
+- [x] Filter by attribute values via `/api/collections/[id]/items/by-attribute`
+
+## Phase 12: Security Hardening ✅ COMPLETE
+- [x] Full security audit completed
+- [x] Fixed authorization bypass vulnerabilities
+- [x] Implemented SECURITY DEFINER functions
+- [x] Resolved RLS infinite recursion issues
+- [x] Session management improvements
+- [x] Documentation in SECURITY_FIXES_COMPLETE.md (archived)
+
+## Phase 13: Connection Filters ✅ COMPLETE
+- [x] AI-powered connection filtering
+- [x] Customizable filter visibility
+- [x] Filter preferences persistence
+
+## Known Issues
+- Some sites (REI, B&H Photo) fail extraction - JS-heavy pages
 - Amazon extraction works but often misses price data
-- Jina AI reader may return 404 errors for some valid URLs
+- Jina AI reader may return 404/502 for some valid URLs
 
 ## Ideas for Later
 - Photo upload
-- Manual editing of items
 - Bulk import from Amazon
-- Price tracking
-- Duplicate detection
-- Collections sharing
+- Price tracking alerts
+- Collection sharing UI (backend complete)
+- Native iOS app
+
+## Documentation
+- [[PROJECT]] - Vision and roadmap
+- [[AUTH_SHARING]] - Authentication architecture
+- [[STACK]] - Technical stack details

@@ -7,7 +7,8 @@
 
 ## Backend
 - **Next.js API Routes** (serverless functions)
-- **Supabase** (Postgres database + future auth)
+- **Supabase** (Postgres database + Auth)
+- **Google OAuth** (authentication provider)
 
 ## AI/ML
 - **Jina AI Reader** - URL to markdown conversion
@@ -21,59 +22,36 @@
   - API key: required
 
 ## Database Schema
-```sql
--- Users (for future)
-create table users (
-  id uuid primary key default gen_random_uuid(),
-  email text unique,
-  created_at timestamp default now()
-);
 
--- Collections (like playlists)
-create table collections (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id),
-  name text not null,
-  description text,
-  type text, -- 'wishlist', 'inventory', 'research'
-  created_at timestamp default now(),
-  updated_at timestamp default now()
-);
+The database schema is defined across 13 migrations in `supabase/migrations/`:
 
--- Items (the products)
-create table items (
-  id uuid primary key default gen_random_uuid(),
-  collection_id uuid references collections(id),
-  
-  -- Source
-  source_url text, -- indexed but not unique (allows periodic re-extraction)
-  raw_markdown text, -- from Jina
-  
-  -- Extracted (from Claude)
-  title text not null,
-  brand text,
-  price numeric,
-  currency text,
-  retailer text,
-  image_url text,
-  category text,
-  tags text[],
-  
-  -- Flexible attributes
-  attributes jsonb default '{}',
+**Core Tables:**
+- `profiles` - User profiles (synced from Supabase Auth via trigger)
+- `items` - Products with extracted metadata, attributes, confidence scores
+- `collections` - User collections with visibility (public/private/shared)
+- `collection_items` - Many-to-many junction with position, notes, added_at
 
-  -- Metadata
-  confidence_score numeric, -- 0-1 from extraction
-  extraction_model text, -- which model version
-  created_at timestamp default now(),
-  updated_at timestamp default now()
-);
+**AI Features:**
+- `collection_overviews` - Cached AI-generated summaries
+- `item_attributes` - Normalized attributes (direct/computed/semantic)
+- `collection_attribute_schemas` - Discovered filters with usefulness scoring
+- `collection_filter_preferences` - Per-user filter visibility
 
--- Indexes
-create index items_collection_id_idx on items(collection_id);
-create index items_category_idx on items(category);
-create index items_tags_idx on items using gin(tags);
-```
+**Sharing & History:**
+- `collection_access` - Sharing invitations (email/phone-based, viewer/editor)
+- `item_snapshots` - Price/availability history for temporal tracking
+
+**Security:**
+- Full Row-Level Security (RLS) on all tables
+- SECURITY DEFINER functions to prevent infinite recursion
+- Identity claiming trigger for pre-signup invitations
+
+See individual migration files for exact SQL definitions:
+- `001_initial_schema.sql` - Core tables
+- `004_auth_and_sharing.sql` - Auth and sharing
+- `007_ai_collection_overviews.sql` - AI overviews
+- `011_ai_connections.sql` - AI connections
+- `013_collection_attribute_schemas.sql` - Dynamic filters
 
 ## Environment Variables
 ```bash
@@ -182,7 +160,11 @@ npm run test:watch  # Auto-rerun tests on file changes
 - Page load: <2 seconds on 4G
 - Database queries: <100ms
 
-## Security (Later)
-- For POC: no auth, single user
-- For MVP: Supabase RLS policies
-- For production: Row-level security, API rate limiting
+## Security (Implemented)
+- **Authentication**: Google OAuth via Supabase Auth
+- **Authorization**: Full Row-Level Security (RLS) on all tables
+- **Data Isolation**: Users can only access their own data + shared collections
+- **SECURITY DEFINER**: Safe helper functions to prevent RLS recursion
+- **Session Management**: Persistent sessions with auto-refresh
+
+See [[AUTH_SHARING]] for architecture details and [[AUTH_SETUP]] for configuration.

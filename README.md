@@ -8,29 +8,34 @@ Trove is a proof-of-concept application that transforms personal collections (wi
 
 Personal collections that become persistent context for AI agents. Effortless capture, AI-powered extraction, useful visualization, and AI-ready export.
 
-## Current Status: POC (Proof of Concept)
+## Current Status: Active Development
 
-This project is in early development. The goal is to validate the core loop:
-1. ✅ Effortless capture (iPhone share sheet)
-2. 🔄 AI-powered extraction (no manual data entry)
-3. 🔄 Useful visualization
-4. 🔄 AI-ready export
+The core POC loop is complete and working:
+1. ✅ Effortless capture (iPhone share sheet via deep link)
+2. ✅ AI-powered extraction (Jina + Claude, no manual data entry)
+3. ✅ Useful visualization (grid/list views, sorting, filtering)
+4. ✅ AI-ready export (context endpoint for LLM consumption)
 
 ## Features
 
-### Current (POC Scope)
-- **Capture Flow**: Deep link handler for URL-based product capture
+### Current
+- **Smart Capture Flow**: Context-first UX - add notes while AI extracts in background
 - **AI Extraction**: Automatic data extraction using Jina AI + Claude
-- **Database**: Supabase-powered storage with flexible schema
-- **Collections**: Organize items into collections (like playlists)
+- **Collections**: Grid/list views, drag-and-drop reordering, sorting options
+- **AI Collection Overviews**: Thematic analysis and strategic insights per collection
+- **Dynamic Filters**: AI-discovered filters with usefulness scoring
+- **Item Attributes**: Direct, computed, and semantic attributes with schema normalization
+- **Multi-user Authentication**: Google OAuth with session persistence
+- **Row-Level Security**: Full RLS policies with SECURITY DEFINER functions
+- **Collection Sharing**: Email-based invitations with viewer/editor permissions
+- **Public/Private Collections**: Visibility controls per collection
 
-### Planned (Not in POC)
+### Planned
 - Native iOS app (PWA + shortcut for now)
-- Photo upload (URL only for POC)
-- Multi-user authentication
-- Collection sharing
-- Price tracking
+- Photo upload (URL only currently)
+- Price tracking alerts
 - Bulk import
+- Collection sharing UI (backend ready)
 
 ## Tech Stack
 
@@ -135,40 +140,72 @@ npm run test:ui     # Run tests with UI
 
 ```
 trove/
-├── app/              # Next.js app directory
-│   ├── api/          # API routes
-│   ├── globals.css   # Global styles
-│   ├── layout.tsx    # Root layout
-│   └── page.tsx      # Home page
-├── lib/              # Utility functions
-│   └── supabase.ts   # Supabase client
-├── supabase/         # Database migrations
-│   └── migrations/
-├── types/            # TypeScript types
-│   └── database.ts   # Database types
-└── scripts/          # Helper scripts
+├── app/                    # Next.js app directory
+│   ├── api/                # API routes (26+ endpoints)
+│   │   ├── items/          # Items CRUD, attributes, re-extract
+│   │   ├── collections/    # Collections, items, overviews, filters
+│   │   └── v1/             # Versioned public API (context export)
+│   ├── add/                # Smart capture page
+│   ├── collections/        # Collection views
+│   ├── components/         # Shared React components
+│   ├── globals.css         # Global styles + design system
+│   └── layout.tsx          # Root layout with auth
+├── lib/                    # Utility functions
+│   ├── supabase-client.ts  # Browser client
+│   ├── supabase-server.ts  # Server client + service role
+│   └── inbox.ts            # Inbox collection helper
+├── prompts/                # AI prompts
+│   └── extraction.txt      # Claude extraction prompt
+├── supabase/               # Database
+│   └── migrations/         # 13 migration files
+├── types/                  # TypeScript types
+│   ├── database.ts         # Supabase generated types
+│   └── capture.ts          # Capture flow types
+└── tests/                  # Vitest tests
 ```
 
 ### Database Schema
 
-The database uses a **many-to-many relationship** for items and collections:
-- **users** - User accounts (for future)
-- **collections** - Organize items (like playlists)
+The database uses 13 migrations with many-to-many relationships:
+
+**Core Tables:**
+- **profiles** - User profiles (synced from Supabase Auth)
 - **items** - Products/things with extracted metadata
-- **collection_items** - Junction table linking items to collections with metadata (position, notes, added_at)
+- **collections** - Organize items with visibility controls (public/private/shared)
+- **collection_items** - Junction table with position, notes, added_at
+
+**AI Features:**
+- **collection_overviews** - Cached AI-generated collection summaries
+- **item_attributes** - Normalized attributes (direct, computed, semantic)
+- **collection_attribute_schemas** - Discovered filters with usefulness scoring
+- **collection_filter_preferences** - Per-user filter visibility settings
+
+**Sharing & Access:**
+- **collection_access** - Sharing invitations and permissions
+- **item_snapshots** - Price/availability history (temporal tracking)
 
 **Key features:**
-- Items can belong to multiple collections (e.g., gift-ideas, inventory, kid1-wishlist)
-- Items can exist in zero collections ("inbox" workflow)
-- Collection-specific metadata: position (manual ordering), notes (context-specific annotations)
+- Items can belong to multiple collections
+- Collection-specific metadata (position, notes)
+- Full Row-Level Security (RLS) with SECURITY DEFINER functions
+- Identity claiming for pre-signup invitations
 
-See `supabase/migrations/001_initial_schema.sql` for the full schema.
+See `supabase/migrations/` for all schema definitions (001-013).
 
-### API Endpoints
+### API Endpoints (26+)
 
-**Extraction:**
+**Extraction & Items:**
 - `POST /api/extract` - Extract product data from URL (Jina + Claude)
 - `POST /api/items` - Create item from URL and optionally add to collections
+- `GET /api/items/[id]` - Get item details
+- `PATCH /api/items/[id]` - Update item
+- `DELETE /api/items/[id]` - Delete item
+- `POST /api/items/[id]/re-extract` - Re-extract item data from source
+- `GET /api/items/recent` - Get recently added items
+- `GET /api/items/[id]/snapshots` - Get price/availability history
+- `GET /api/items/[id]/attributes` - Get item attributes
+- `GET/PATCH /api/items/[id]/user-notes` - Manage user notes per item
+- `GET/PATCH /api/items/[id]/user-collections` - Manage item's collections
 
 **Collections:**
 - `GET /api/collections` - List all collections
@@ -176,10 +213,26 @@ See `supabase/migrations/001_initial_schema.sql` for the full schema.
 - `GET /api/collections/[id]` - Get collection details
 - `PATCH /api/collections/[id]` - Update collection
 - `DELETE /api/collections/[id]` - Delete collection
+- `GET /api/collections/[id]/overview` - AI-generated collection overview
+- `GET /api/collections/[id]/attribute-schemas` - Discovered filter schemas
+- `GET/PATCH /api/collections/[id]/filter-preferences` - Filter visibility settings
 
 **Collection Items:**
-- `GET /api/collections/[id]/items` - List items in collection (with metadata)
-- `POST /api/collections/[id]/items` - Add existing item to collection
+- `GET /api/collections/[id]/items` - List items in collection
+- `POST /api/collections/[id]/items` - Add item to collection
+- `DELETE /api/collections/[id]/items/[itemId]` - Remove item from collection
+- `POST /api/collections/[id]/items/reorder` - Reorder items
+- `GET /api/collections/[id]/items/by-attribute` - Filter by attribute
+
+**AI Context Export:**
+- `GET /api/v1/collections/[id]/context` - Export collection for LLM consumption
+
+**Utilities:**
+- `GET /api/health` - Health check
+- `GET /api/categories` - List categories
+- `GET /api/tags` - List tags
+- `GET/PATCH /api/user/preferences` - User preferences
+- `POST /api/admin/backfill-attributes` - Backfill attributes for existing items
 
 ### Capture Flow
 
@@ -283,11 +336,14 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide, including:
 
 ## Documentation
 
-- [DEPLOYMENT.md](DEPLOYMENT.md) - **Deployment guide for Vercel (start here for testing)**
-- [PROJECT.md](PROJECT.md) - Project vision, goals, and roadmap
-- [STACK.md](STACK.md) - Detailed tech stack information
-- [SETUP.md](SETUP.md) - Detailed setup instructions
-- [TODO.md](TODO.md) - Current tasks and roadmap
+- [[PROJECT]] - Vision and strategic roadmap
+- [[TODO]] - Phase tracking and task list
+- [[STACK]] - Technical stack details
+- [[DESIGN]] - Design system and UI patterns
+- [[AUTH_SHARING]] - Authentication architecture
+- [[AUTH_SETUP]] - OAuth configuration guide
+- [[DEPLOYMENT]] - Vercel deployment guide
+- [[SETUP]] - Local development setup
 
 ## License
 

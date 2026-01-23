@@ -10,48 +10,58 @@ Validate that the core loop works:
 3. Useful visualization
 4. AI-ready export
 
-## Status: Not Started
+## Status: Active Development
 
-### What Exists
-- Nothing yet, starting fresh
+### What's Built
 
-### What We're Building (POC Scope)
-1. **Capture Flow**
+**Core Features (All Complete)**
+1. **Smart Capture Flow**
+   - Context-first UX: add notes while AI extracts
    - Deep link handler at /add?url=
-   - Extracts product data via Jina + Claude
-   - Saves to Supabase
-   - Confirmation UI
+   - AI-powered extraction via Jina + Claude
+   - Duplicate detection and handling
+   - Mobile-optimized for iPhone share sheet
 
-2. **Database Schema**
-   - users table
-   - collections table (like playlists)
-   - items table (the products/things)
-   - Flexible schema for different item types
+2. **Collections & Visualization**
+   - Grid/list view toggle with persistence
+   - Drag-and-drop reordering
+   - AI-generated collection overviews with thematic insights
+   - Dynamic AI-powered filters with usefulness scoring
+   - Per-collection filter visibility preferences
+   - Sort by position, date, price, category
+   - Item detail bottom sheets
 
-3. **Visualization**
-   - List view of collections
-   - Grid view of items in collection
-   - Filter by category/tags
-   - Sort by date added, price, etc.
+3. **Item Attributes System**
+   - Direct, computed, and semantic attributes
+   - Automatic generation during extraction
+   - Normalized attribute schemas per collection
+   - Filtering by attribute values
 
-4. **AI Export**
-   - "Copy for AI" button
-   - Formats collection as structured text
-   - Optimized for LLM context windows
-   - Include metadata (dates, prices, notes)
+4. **Multi-User & Security**
+   - Google OAuth authentication
+   - Full Row-Level Security (RLS) policies
+   - SECURITY DEFINER functions for safe queries
+   - Public/private/shared collection visibility
+   - Email-based collection sharing invitations
 
-### What We're NOT Building Yet
-- Native iOS app (just PWA + shortcut)
-- Photo upload (URL only for POC)
-- Price tracking
+5. **Database Architecture**
+   - 13 migrations, many-to-many schema
+   - Items can belong to multiple collections
+   - Collection-specific notes and position
+   - Temporal snapshots for price tracking (foundation)
+
+### API Endpoints (26+)
+- Extraction, items CRUD, collections CRUD
+- Reordering, user notes, re-extraction
+- AI overviews, attribute schemas, filter preferences
+- Context export for AI agents
+
+### What's NOT Built Yet
+- Native iOS app (PWA + shortcut for now)
+- Photo upload (URL only)
+- Price tracking alerts
 - Bulk import
-- Mobile app polish
-
-### Recently Implemented
-- **Multi-user authentication** via Supabase Auth (Google OAuth)
-- **Row-Level Security (RLS)** for data isolation
-- **Collection sharing** with email/phone invitations
-- **Public/private collections** with visibility controls
+- Collection sharing UI (backend ready)
 
 ## Tech Decisions
 
@@ -107,23 +117,29 @@ This separation enables AI reasoning like:
 - Collection view is usable on iPhone
 - AI export is useful for actual Claude chat
 
-## Timeline
-- Week 1: Database + extraction working
-- Week 2: Visualization + export
-- Week 3: Polish + test with Shannon
+## Resolved Questions
+- **Manual editing?** Yes - item detail sheet supports editing
+- **Collection structure?** Many-to-many with junction table metadata
+- **Low-quality extractions?** Confidence badges + needs_review flag + re-extraction endpoint
+- **Export format?** Markdown + JSON hybrid via /api/v1/collections/[id]/context
 
-## Open Questions
-- Do we need manual editing of extracted data?
-- What's the right collection structure? (tags vs categories vs both?)
-- How do we handle items that don't extract well?
-- What's minimum viable export format?
+## Current Focus
+- Phase 5: AI Export polish ("Copy for AI" button)
+- Phase 6: iPhone Shortcut installation page
+- Phase 7: Performance optimization
 
-## Learnings (will update as we go)
-- TBD
+## Learnings
+- Context-first capture UX (add notes while AI works) is better than blocking extraction
+- Many-to-many schema unlocks powerful use cases (same item in multiple collections)
+- AI-generated collection overviews provide surprising value
+- Dynamic filter discovery helps users explore their data
+- SECURITY DEFINER functions solve RLS infinite recursion issues
 
-## Detailed Documentation
+## Documentation
 
-For in-depth information about specific features:
-- **[AUTH_SHARING.md](./AUTH_SHARING.md)** - Complete authentication and sharing system design, including multi-user architecture, RLS policies, and future roadmap
-
-## Next Steps (see TODO.md)
+- [[TODO]] - Phase tracking and task list
+- [[AUTH_SHARING]] - Authentication architecture and sharing system
+- [[AUTH_SETUP]] - OAuth configuration guide
+- [[STACK]] - Technical stack details
+- [[DESIGN]] - Design system and UI patterns
+- [[DEPLOYMENT]] - Vercel deployment guide
