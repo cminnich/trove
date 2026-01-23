@@ -103,8 +103,120 @@ interface Database {
           [key: string]: any;
         };
       };
+      attribute_schemas: {
+        Row: { id: string; name: string; is_active: boolean };
+      };
+      item_attributes: {
+        Insert: {
+          item_id: string;
+          schema_id: string;
+          raw_value: string;
+          normalized_value: string;
+          group_key: string;
+          confidence?: number;
+        };
+      };
     };
   };
+}
+
+// Price range buckets
+const PRICE_RANGES = [
+  { max: 50, label: "Under $50", key: "under-50" },
+  { max: 100, label: "$50-$100", key: "50-100" },
+  { max: 250, label: "$100-$250", key: "100-250" },
+  { max: 500, label: "$250-$500", key: "250-500" },
+  { max: 1000, label: "$500-$1,000", key: "500-1000" },
+  { max: 5000, label: "$1,000-$5,000", key: "1000-5000" },
+  { max: Infinity, label: "$5,000+", key: "5000-plus" },
+];
+
+function normalizeValue(value: string): string {
+  return value.toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+function getPriceRangeKey(price: number): { label: string; key: string } {
+  for (const range of PRICE_RANGES) {
+    if (price < range.max) return { label: range.label, key: range.key };
+  }
+  return PRICE_RANGES[PRICE_RANGES.length - 1];
+}
+
+function generateItemAttributes(
+  itemId: string,
+  extracted: {
+    brand?: string | null;
+    price?: number | null;
+    category?: string | null;
+    retailer?: string | null;
+    item_type?: string;
+    attributes?: Record<string, unknown>;
+  },
+  schemas: { id: string; name: string; is_active: boolean }[]
+): Database["public"]["Tables"]["item_attributes"]["Insert"][] {
+  const attributes: Database["public"]["Tables"]["item_attributes"]["Insert"][] = [];
+  const schemaMap = new Map(schemas.map((s) => [s.name, s]));
+
+  // Direct mappings (brand, category, retailer, item_type)
+  const directMappings = [
+    { schemaName: "brand", value: extracted.brand },
+    { schemaName: "category", value: extracted.category },
+    { schemaName: "retailer", value: extracted.retailer },
+    { schemaName: "item_type", value: extracted.item_type },
+  ];
+
+  for (const { schemaName, value } of directMappings) {
+    const schema = schemaMap.get(schemaName);
+    if (schema && schema.is_active && value) {
+      const normalized = normalizeValue(value);
+      attributes.push({
+        item_id: itemId,
+        schema_id: schema.id,
+        raw_value: value,
+        normalized_value: normalized,
+        group_key: `${schemaName}:${normalized}`,
+        confidence: 1.0,
+      });
+    }
+  }
+
+  // Price range (computed)
+  const priceSchema = schemaMap.get("price_range");
+  if (priceSchema && priceSchema.is_active && extracted.price && extracted.price > 0) {
+    const range = getPriceRangeKey(extracted.price);
+    attributes.push({
+      item_id: itemId,
+      schema_id: priceSchema.id,
+      raw_value: `$${extracted.price.toLocaleString()}`,
+      normalized_value: range.key,
+      group_key: `price_range:${range.key}`,
+      confidence: 1.0,
+    });
+  }
+
+  // Semantic attributes from extraction (color, material)
+  const legacyAttrs = extracted.attributes;
+  if (legacyAttrs) {
+    for (const { schemaName, value } of [
+      { schemaName: "color", value: legacyAttrs.color },
+      { schemaName: "material", value: legacyAttrs.material || legacyAttrs.case_material },
+    ]) {
+      const schema = schemaMap.get(schemaName);
+      if (schema && schema.is_active && typeof value === "string") {
+        const normalized = normalizeValue(value);
+        attributes.push({
+          item_id: itemId,
+          schema_id: schema.id,
+          raw_value: value,
+          normalized_value: normalized,
+          group_key: `${schemaName}:${normalized}`,
+          confidence: 0.85,
+        });
+      }
+    }
+  }
+
+  return attributes;
 }
 
 serve(async (req) => {
@@ -305,6 +417,30 @@ serve(async (req) => {
             .from("items")
             .update({ current_snapshot_id: snapshot.id } as any)
             .eq("id", item_id);
+        }
+      }
+
+      // Step 5: Generate and insert item attributes
+      console.log(`[${item_id}] Generating item attributes`);
+
+      const { data: schemas } = await supabase
+        .from("attribute_schemas")
+        .select("id, name, is_active")
+        .eq("is_active", true);
+
+      if (schemas && schemas.length > 0) {
+        // Delete existing attributes (for re-extractions)
+        await supabase.from("item_attributes").delete().eq("item_id", item_id);
+
+        const attributes = generateItemAttributes(item_id, extracted, schemas);
+
+        if (attributes.length > 0) {
+          const { error: attrError } = await supabase.from("item_attributes").insert(attributes);
+          if (attrError) {
+            console.error(`[${item_id}] Failed to insert attributes:`, attrError);
+          } else {
+            console.log(`[${item_id}] Inserted ${attributes.length} attributes`);
+          }
         }
       }
 
