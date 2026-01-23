@@ -5,6 +5,8 @@ import type { CollectionOverview } from "@/types/collection-overview";
 
 type Item = Database["public"]["Tables"]["items"]["Row"];
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
+type AttributeSchema = Database["public"]["Tables"]["attribute_schemas"]["Row"];
+type CollectionFilterPreference = Database["public"]["Tables"]["collection_filter_preferences"]["Row"];
 
 interface ItemWithCollectionMetadata extends Item {
   added_at: string;
@@ -18,6 +20,27 @@ type CollectionItemWithItem = {
   notes: string | null;
   items: Item;
 };
+
+// Filter preference with joined schema data
+interface FilterPreferenceWithSchema extends CollectionFilterPreference {
+  attribute_schemas: AttributeSchema;
+}
+
+// Verbosity levels for context export
+type VerbosityLevel = "basic" | "full";
+
+// Core attribute names that map to direct item fields
+const CORE_ATTRIBUTE_NAMES = [
+  "item_type",
+  "category",
+  "tags",
+  "brand",
+  "price",
+  "retailer",
+] as const;
+
+// Fields that can never be hidden
+const PROTECTED_FIELDS = ["title", "notes"] as const;
 
 /**
  * GET /api/v1/collections/[id]/context
@@ -41,6 +64,8 @@ export async function GET(
     const { id } = await params;
     const { searchParams } = new URL(req.url);
     const shareToken = searchParams.get("share_token");
+    const levelParam = searchParams.get("level");
+    const level: VerbosityLevel = levelParam === "full" ? "full" : "basic";
 
     const supabase = getServiceRoleClient();
 
@@ -121,8 +146,30 @@ export async function GET(
       }
     }
 
+    // Fetch collection filter preferences with attribute schemas
+    const { data: filterPrefsData, error: filterPrefsError } = await supabase
+      .from("collection_filter_preferences")
+      .select(`
+        *,
+        attribute_schemas (*)
+      `)
+      .eq("collection_id", id);
+
+    if (filterPrefsError) {
+      console.error("Failed to fetch filter preferences:", filterPrefsError);
+      // Non-fatal: continue without preferences
+    }
+
+    const filterPreferences = (filterPrefsData as FilterPreferenceWithSchema[] | null) || [];
+
     // Generate Markdown + JSON hybrid format
-    const contextMarkdown = generateContextMarkdown(collection, items, overview);
+    const contextMarkdown = generateContextMarkdown(
+      collection,
+      items,
+      overview,
+      filterPreferences,
+      level
+    );
 
     // Return as plain text with markdown content type
     return new NextResponse(contextMarkdown, {
@@ -148,18 +195,63 @@ export async function GET(
  * 1. Collection metadata (name, description, item count)
  * 2. AI Curator's Analysis (if available)
  * 3. Items list with **Tier 4 User Notes** most prominent
- * 4. Embedded JSON for each item with full metadata
+ * 4. Embedded JSON for each item with full metadata (only in 'full' level)
  *
  * @param collection Collection metadata
  * @param items Items with collection-specific context
  * @param overview AI-generated collection overview (if available)
+ * @param filterPreferences Collection filter preferences with schemas
+ * @param level Verbosity level ('basic' or 'full')
  * @returns Markdown string
  */
 function generateContextMarkdown(
   collection: Collection,
   items: ItemWithCollectionMetadata[],
-  overview: CollectionOverview | null
+  overview: CollectionOverview | null,
+  filterPreferences: FilterPreferenceWithSchema[],
+  level: VerbosityLevel
 ): string {
+  // Build lookup maps for filter preferences
+  // Map schema name to preference for quick lookup
+  const preferencesBySchemaName = new Map<string, FilterPreferenceWithSchema>();
+  for (const pref of filterPreferences) {
+    if (pref.attribute_schemas?.name) {
+      preferencesBySchemaName.set(pref.attribute_schemas.name, pref);
+    }
+  }
+
+  // Helper to check if a core attribute should be hidden
+  const isCoreAttributeHidden = (fieldName: string): boolean => {
+    // Title and notes are protected - never hide them
+    if ((PROTECTED_FIELDS as readonly string[]).includes(fieldName)) {
+      return false;
+    }
+    const pref = preferencesBySchemaName.get(fieldName);
+    return pref?.is_hidden === true;
+  };
+
+  // Helper to get extended attributes that should be shown (force_show = true)
+  const getPromotedExtendedAttributes = (
+    attributes: Record<string, unknown>
+  ): Array<{ name: string; displayName: string; value: unknown }> => {
+    const promoted: Array<{ name: string; displayName: string; value: unknown }> = [];
+
+    for (const pref of filterPreferences) {
+      if (pref.force_show && pref.attribute_schemas?.name) {
+        const schemaName = pref.attribute_schemas.name;
+        // Check if this attribute exists in the item's attributes JSON
+        if (schemaName in attributes && attributes[schemaName] != null) {
+          promoted.push({
+            name: schemaName,
+            displayName: pref.attribute_schemas.display_name || schemaName,
+            value: attributes[schemaName],
+          });
+        }
+      }
+    }
+
+    return promoted;
+  };
   const lines: string[] = [];
 
   // Header
@@ -225,39 +317,42 @@ function generateContextMarkdown(
     lines.push("*This collection is empty.*");
   } else {
     items.forEach((item, index) => {
+      // Title is always shown (protected field)
       lines.push(`### ${index + 1}. ${item.title}`);
       lines.push("");
 
-      // **TIER 4: USER NOTES** - Most prominent for AI understanding
+      // **TIER 4: USER NOTES** - Most prominent for AI understanding (protected field)
       if (item.notes) {
         lines.push(`**📝 Context:** ${item.notes}`);
         lines.push("");
       }
 
-      // Tier 1: Librarian (item_type)
-      lines.push(`**Type:** ${item.item_type}`);
+      // Tier 1: Librarian (item_type) - show unless hidden
+      if (!isCoreAttributeHidden("item_type")) {
+        lines.push(`**Type:** ${item.item_type}`);
+      }
 
-      // Tier 2: Department (category)
-      if (item.category) {
+      // Tier 2: Department (category) - show unless hidden
+      if (item.category && !isCoreAttributeHidden("category")) {
         lines.push(`**Category:** ${item.category}`);
       }
 
-      // Tier 3: Traits (tags)
-      if (item.tags && item.tags.length > 0) {
+      // Tier 3: Traits (tags) - show unless hidden
+      if (item.tags && item.tags.length > 0 && !isCoreAttributeHidden("tags")) {
         lines.push(`**Tags:** ${item.tags.join(", ")}`);
       }
 
-      // Product details
-      if (item.brand) {
+      // Product details - show unless hidden
+      if (item.brand && !isCoreAttributeHidden("brand")) {
         lines.push(`**Brand:** ${item.brand}`);
       }
 
-      if (item.price !== null) {
+      if (item.price !== null && !isCoreAttributeHidden("price")) {
         const currency = item.currency || "USD";
         lines.push(`**Price:** ${currency} ${item.price.toFixed(2)}`);
       }
 
-      if (item.retailer) {
+      if (item.retailer && !isCoreAttributeHidden("retailer")) {
         lines.push(`**Retailer:** ${item.retailer}`);
       }
 
@@ -269,35 +364,51 @@ function generateContextMarkdown(
         lines.push(`**Image:** ${item.image_url}`);
       }
 
+      // Extended Attributes: Show attributes with force_show=true
+      const promotedAttributes = getPromotedExtendedAttributes(item.attributes || {});
+      if (promotedAttributes.length > 0) {
+        lines.push("");
+        lines.push("**Extended Attributes:**");
+        for (const attr of promotedAttributes) {
+          const valueStr =
+            typeof attr.value === "object"
+              ? JSON.stringify(attr.value)
+              : String(attr.value);
+          lines.push(`- ${attr.displayName}: ${valueStr}`);
+        }
+      }
+
       lines.push("");
 
-      // Embedded JSON with full metadata
-      lines.push("```json");
-      lines.push(
-        JSON.stringify(
-          {
-            id: item.id,
-            title: item.title,
-            item_type: item.item_type,
-            category: item.category,
-            tags: item.tags,
-            brand: item.brand,
-            price: item.price,
-            currency: item.currency,
-            retailer: item.retailer,
-            source_url: item.source_url,
-            image_url: item.image_url,
-            attributes: item.attributes,
-            confidence_score: item.confidence_score,
-            notes: item.notes, // Collection-specific context
-            added_at: item.added_at,
-          },
-          null,
-          2
-        )
-      );
-      lines.push("```");
-      lines.push("");
+      // Embedded JSON with full metadata - only in 'full' level
+      if (level === "full") {
+        lines.push("```json");
+        lines.push(
+          JSON.stringify(
+            {
+              id: item.id,
+              title: item.title,
+              item_type: item.item_type,
+              category: item.category,
+              tags: item.tags,
+              brand: item.brand,
+              price: item.price,
+              currency: item.currency,
+              retailer: item.retailer,
+              source_url: item.source_url,
+              image_url: item.image_url,
+              attributes: item.attributes,
+              confidence_score: item.confidence_score,
+              notes: item.notes, // Collection-specific context
+              added_at: item.added_at,
+            },
+            null,
+            2
+          )
+        );
+        lines.push("```");
+        lines.push("");
+      }
     });
   }
 
@@ -309,10 +420,14 @@ function generateContextMarkdown(
   lines.push("This collection has been formatted for AI agent consumption:");
   lines.push("");
   lines.push("- **User Notes (📝 Context)** provide the most important contextual information about why each item was saved");
-  lines.push("- **Structured metadata** is available in both human-readable and JSON formats");
+  if (level === "full") {
+    lines.push("- **Structured metadata** is available in both human-readable and JSON formats");
+  } else {
+    lines.push("- **Structured metadata** is available in human-readable format (use `?level=full` for JSON)");
+  }
   lines.push("- **4-Tier Hierarchy:** Item Type → Category → Tags → User Context");
   lines.push("");
-  lines.push(`*Generated by Trove on ${new Date().toISOString()}*`);
+  lines.push(`*Generated by Trove on ${new Date().toISOString()} (level: ${level})*`);
 
   return lines.join("\n");
 }
