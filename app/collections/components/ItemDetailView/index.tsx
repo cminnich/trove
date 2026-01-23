@@ -6,6 +6,7 @@ import { useItemDetailStore } from '@/app/stores/useItemDetailStore'
 import { useItemAttributes } from '@/app/hooks/useItemAttributes'
 import { useFilteredCollectionItems } from '@/app/hooks/useFilteredCollectionItems'
 import { useFilterPreferences } from '@/app/hooks/useFilterPreferences'
+import { useCollectionAttributeSchemas } from '@/app/hooks/useCollectionAttributeSchemas'
 import { SwipeNavigator } from './SwipeNavigator'
 import { PositionIndicator } from './PositionIndicator'
 import { ConnectionChips } from './ConnectionChips'
@@ -54,6 +55,9 @@ export function ItemDetailView({ items, onUpdate }: ItemDetailViewProps) {
     toggleFilter,
     resetFilter,
   } = useFilterPreferences(collectionId)
+
+  // Get collection attribute schema management
+  const { toggleSchemaVisibility } = useCollectionAttributeSchemas(collectionId)
 
   // Get filtered items when a filter is active
   const { items: filteredItems } = useFilteredCollectionItems(
@@ -178,6 +182,7 @@ export function ItemDetailView({ items, onUpdate }: ItemDetailViewProps) {
           filterPreferences={filterPreferences}
           onToggleFilter={toggleFilter}
           onResetFilter={resetFilter}
+          onToggleCollectionSchema={toggleSchemaVisibility}
         />
       </div>
 

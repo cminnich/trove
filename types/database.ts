@@ -283,7 +283,8 @@ export type Database = {
         Row: {
           id: string;
           item_id: string;
-          schema_id: string;
+          schema_id: string | null;
+          collection_schema_id: string | null;
           raw_value: string;
           normalized_value: string;
           group_key: string;
@@ -294,7 +295,8 @@ export type Database = {
         Insert: {
           id?: string;
           item_id: string;
-          schema_id: string;
+          schema_id?: string | null;
+          collection_schema_id?: string | null;
           raw_value: string;
           normalized_value: string;
           group_key: string;
@@ -305,7 +307,8 @@ export type Database = {
         Update: {
           id?: string;
           item_id?: string;
-          schema_id?: string;
+          schema_id?: string | null;
+          collection_schema_id?: string | null;
           raw_value?: string;
           normalized_value?: string;
           group_key?: string;
@@ -368,6 +371,59 @@ export type Database = {
           schema_id?: string;
           is_hidden?: boolean;
           force_show?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      collection_attribute_schemas: {
+        Row: {
+          id: string;
+          collection_id: string;
+          name: string;
+          display_name: string;
+          description: string | null;
+          source_path: string;
+          value_type: 'string' | 'number' | 'numeric_range';
+          range_config: Record<string, unknown>[] | null;
+          discovery_confidence: number | null;
+          sample_values: string[] | null;
+          item_coverage: number | null;
+          is_visible: boolean;
+          display_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          collection_id: string;
+          name: string;
+          display_name: string;
+          description?: string | null;
+          source_path: string;
+          value_type?: 'string' | 'number' | 'numeric_range';
+          range_config?: Record<string, unknown>[] | null;
+          discovery_confidence?: number | null;
+          sample_values?: string[] | null;
+          item_coverage?: number | null;
+          is_visible?: boolean;
+          display_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          collection_id?: string;
+          name?: string;
+          display_name?: string;
+          description?: string | null;
+          source_path?: string;
+          value_type?: 'string' | 'number' | 'numeric_range';
+          range_config?: Record<string, unknown>[] | null;
+          discovery_confidence?: number | null;
+          sample_values?: string[] | null;
+          item_coverage?: number | null;
+          is_visible?: boolean;
+          display_order?: number;
           created_at?: string;
           updated_at?: string;
         };

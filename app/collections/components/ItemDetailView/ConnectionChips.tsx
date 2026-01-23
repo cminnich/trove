@@ -5,11 +5,23 @@ import { X, Settings2, Check, Eye, EyeOff, RotateCcw } from 'lucide-react'
 import type { Database } from '@/types/database'
 
 type ItemAttribute = Database['public']['Tables']['item_attributes']['Row']
-type AttributeSchema = Database['public']['Tables']['attribute_schemas']['Row']
 type FilterPreference = Database['public']['Tables']['collection_filter_preferences']['Row']
+type GlobalAttributeSchema = Database['public']['Tables']['attribute_schemas']['Row']
+
+// Unified schema interface that works for both global and collection schemas
+// This matches the API response format
+interface UnifiedSchema {
+  id: string
+  name: string
+  display_name: string
+  description: string | null
+  display_order: number
+  is_collection_schema: boolean
+  is_visible?: boolean
+}
 
 interface AttributeWithSchema extends ItemAttribute {
-  schema: AttributeSchema
+  schema: UnifiedSchema
 }
 
 interface AttributeWithCount {
@@ -18,7 +30,7 @@ interface AttributeWithCount {
 }
 
 interface FilterPreferenceWithSchema extends FilterPreference {
-  schema: AttributeSchema
+  schema: GlobalAttributeSchema
 }
 
 interface ConnectionChipsProps {
@@ -31,6 +43,7 @@ interface ConnectionChipsProps {
   filterPreferences?: FilterPreferenceWithSchema[]
   onToggleFilter?: (schemaId: string, isHidden: boolean, forceShow: boolean) => void
   onResetFilter?: (schemaId: string) => void
+  onToggleCollectionSchema?: (schemaId: string, isVisible: boolean) => void
 }
 
 export function ConnectionChips({
@@ -43,6 +56,7 @@ export function ConnectionChips({
   filterPreferences = [],
   onToggleFilter,
   onResetFilter,
+  onToggleCollectionSchema,
 }: ConnectionChipsProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
@@ -94,23 +108,34 @@ export function ConnectionChips({
     // Skip if no related items (this shouldn't happen but safeguard)
     if (attr.related_count === 0) continue
 
-    const pref = prefsMap.get(attr.attribute.schema_id)
+    const isCollectionSchema = attr.attribute.schema.is_collection_schema
+    const pref = prefsMap.get(attr.attribute.schema.id)
     const isAllItemsMatch = totalCollectionItems && attr.related_count === totalCollectionItems
 
-    // Determine visibility:
-    // 1. If force_show is true, always show
-    // 2. If is_hidden is true, always hide
-    // 3. Otherwise, auto-hide if all items match
+    // Determine visibility based on schema type
     let isVisible = true
     let isAutoHidden = false
 
-    if (pref?.force_show) {
-      isVisible = true
-    } else if (pref?.is_hidden) {
-      isVisible = false
-    } else if (isAllItemsMatch) {
-      isVisible = false
-      isAutoHidden = true
+    if (isCollectionSchema) {
+      // For collection schemas, use the is_visible flag directly
+      isVisible = attr.attribute.schema.is_visible !== false
+      // Collection schemas don't use auto-hide logic from preferences
+      if (!isVisible) {
+        isAutoHidden = false
+      }
+    } else {
+      // For global schemas, use the filter preferences system
+      // 1. If force_show is true, always show
+      // 2. If is_hidden is true, always hide
+      // 3. Otherwise, auto-hide if all items match
+      if (pref?.force_show) {
+        isVisible = true
+      } else if (pref?.is_hidden) {
+        isVisible = false
+      } else if (isAllItemsMatch) {
+        isVisible = false
+        isAutoHidden = true
+      }
     }
 
     if (isVisible) {
@@ -229,13 +254,23 @@ export function ConnectionChips({
                 </div>
                 <div className="max-h-64 overflow-y-auto">
                   {allAttributeTypes.map((attr) => {
-                    const pref = prefsMap.get(attr.attribute.schema_id)
+                    const isCollectionSchema = attr.attribute.schema.is_collection_schema
+                    const pref = prefsMap.get(attr.attribute.schema.id)
                     const isAllItemsMatch =
                       totalCollectionItems && attr.related_count === totalCollectionItems
-                    const isAutoHidden = !pref?.force_show && !pref?.is_hidden && isAllItemsMatch
-                    const isManuallyHidden = pref?.is_hidden
-                    const isForceShown = pref?.force_show
-                    const isVisible = !isManuallyHidden && (isForceShown || !isAllItemsMatch)
+
+                    // Calculate visibility based on schema type
+                    let isVisible: boolean
+                    let isAutoHidden = false
+
+                    if (isCollectionSchema) {
+                      isVisible = attr.attribute.schema.is_visible !== false
+                    } else {
+                      isAutoHidden = !pref?.force_show && !pref?.is_hidden && !!isAllItemsMatch
+                      const isManuallyHidden = pref?.is_hidden
+                      const isForceShown = pref?.force_show
+                      isVisible = !isManuallyHidden && (isForceShown || !isAllItemsMatch)
+                    }
 
                     return (
                       <div
@@ -250,8 +285,13 @@ export function ConnectionChips({
                             <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                               ({attr.related_count})
                             </span>
+                            {isCollectionSchema && (
+                              <span className="text-xs text-indigo-500 dark:text-indigo-400">
+                                AI
+                              </span>
+                            )}
                           </div>
-                          {isAutoHidden && (
+                          {isAutoHidden && !isCollectionSchema && (
                             <span className="text-xs text-amber-600 dark:text-amber-400">
                               Auto-hidden (all items)
                             </span>
@@ -261,16 +301,20 @@ export function ConnectionChips({
                           {/* Show/hide toggle */}
                           <button
                             onClick={() => {
-                              if (isVisible) {
-                                // Hide it
-                                onToggleFilter(attr.attribute.schema_id, true, false)
-                              } else {
-                                // Show it (force show if auto-hidden)
-                                onToggleFilter(
-                                  attr.attribute.schema_id,
-                                  false,
-                                  isAutoHidden || false
-                                )
+                              if (isCollectionSchema && onToggleCollectionSchema) {
+                                // For collection schemas, toggle is_visible directly
+                                onToggleCollectionSchema(attr.attribute.schema.id, !isVisible)
+                              } else if (onToggleFilter) {
+                                // For global schemas, use filter preferences
+                                if (isVisible) {
+                                  onToggleFilter(attr.attribute.schema.id, true, false)
+                                } else {
+                                  onToggleFilter(
+                                    attr.attribute.schema.id,
+                                    false,
+                                    isAutoHidden || false
+                                  )
+                                }
                               }
                             }}
                             className={`
@@ -290,10 +334,10 @@ export function ConnectionChips({
                             )}
                           </button>
 
-                          {/* Reset button (only show if there's a preference) */}
-                          {pref && onResetFilter && (
+                          {/* Reset button (only show for global schemas with a preference) */}
+                          {!isCollectionSchema && pref && onResetFilter && (
                             <button
-                              onClick={() => onResetFilter(attr.attribute.schema_id)}
+                              onClick={() => onResetFilter(attr.attribute.schema.id)}
                               className="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                               title="Reset to auto-hide"
                             >

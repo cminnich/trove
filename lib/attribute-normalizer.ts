@@ -2,6 +2,7 @@ import type { Database } from "@/types/database";
 import type { SemanticAttributes } from "@/types/extraction";
 
 type AttributeSchema = Database["public"]["Tables"]["attribute_schemas"]["Row"];
+type CollectionAttributeSchema = Database["public"]["Tables"]["collection_attribute_schemas"]["Row"];
 type ItemAttributeInsert = Database["public"]["Tables"]["item_attributes"]["Insert"];
 
 // Price range buckets for normalization
@@ -209,4 +210,96 @@ export function getUniqueGroupKeys(
     }
   }
   return Array.from(keys).sort();
+}
+
+/**
+ * Get a nested value from an object using a dot-notation path
+ * e.g., "attributes.burr_type" -> obj.attributes.burr_type
+ */
+export function getNestedValue(
+  obj: Record<string, unknown>,
+  path: string
+): unknown {
+  const parts = path.split(".");
+  let current: unknown = obj;
+
+  for (const part of parts) {
+    if (current === null || current === undefined) {
+      return undefined;
+    }
+    if (typeof current !== "object") {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[part];
+  }
+
+  return current;
+}
+
+/**
+ * Extract a dynamic attribute from an item based on a collection schema
+ * Returns null if the value doesn't exist or is not extractable
+ */
+export function extractDynamicAttribute(
+  item: { id: string; attributes?: Record<string, unknown> },
+  schema: Pick<CollectionAttributeSchema, "id" | "name" | "source_path" | "value_type">
+): Omit<ItemAttributeInsert, "schema_id"> | null {
+  // Get the value from the item using the source path
+  const value = getNestedValue(item as Record<string, unknown>, schema.source_path);
+
+  // Skip null, undefined, or empty values
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  // Convert to string for storage
+  let rawValue: string;
+  if (typeof value === "string") {
+    rawValue = value;
+  } else if (typeof value === "number" || typeof value === "boolean") {
+    rawValue = String(value);
+  } else if (Array.isArray(value)) {
+    // For arrays, join with comma or skip if empty
+    if (value.length === 0) return null;
+    rawValue = value.join(", ");
+  } else {
+    // Skip complex objects
+    return null;
+  }
+
+  // Skip very long values (likely descriptions or notes)
+  if (rawValue.length > 200) {
+    return null;
+  }
+
+  const normalized = normalizeValue(rawValue);
+
+  return {
+    item_id: item.id,
+    collection_schema_id: schema.id,
+    raw_value: rawValue,
+    normalized_value: normalized,
+    group_key: makeGroupKey(schema.name, normalized),
+    confidence: 0.85, // AI-discovered attributes
+  };
+}
+
+/**
+ * Extract dynamic attributes for multiple items from a collection schema
+ * Returns array of insertable attributes
+ */
+export function extractDynamicAttributesForItems(
+  items: Array<{ id: string; attributes?: Record<string, unknown> }>,
+  schema: Pick<CollectionAttributeSchema, "id" | "name" | "source_path" | "value_type">
+): Omit<ItemAttributeInsert, "schema_id">[] {
+  const attributes: Omit<ItemAttributeInsert, "schema_id">[] = [];
+
+  for (const item of items) {
+    const attr = extractDynamicAttribute(item, schema);
+    if (attr) {
+      attributes.push(attr);
+    }
+  }
+
+  return attributes;
 }

@@ -2,10 +2,21 @@ import useSWR from 'swr'
 import type { Database } from '@/types/database'
 
 type ItemAttribute = Database['public']['Tables']['item_attributes']['Row']
-type AttributeSchema = Database['public']['Tables']['attribute_schemas']['Row']
+
+// Unified schema interface that works for both global and collection schemas
+// This matches the API response format from /api/items/[id]/attributes
+interface UnifiedSchema {
+  id: string
+  name: string
+  display_name: string
+  description: string | null
+  display_order: number
+  is_collection_schema: boolean
+  is_visible?: boolean
+}
 
 interface AttributeWithSchema extends ItemAttribute {
-  schema: AttributeSchema
+  schema: UnifiedSchema
 }
 
 interface AttributeWithCount {

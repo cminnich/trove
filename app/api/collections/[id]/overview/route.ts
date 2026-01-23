@@ -4,8 +4,10 @@ import { loadPrompt, replaceVars, callClaudeJSON } from "@/lib/ai";
 import {
   CollectionOverviewSchema,
   type CollectionOverview,
+  type DiscoveredFilter,
 } from "@/types/collection-overview";
 import type { Database } from "@/types/database";
+import { extractDynamicAttributesForItems } from "@/lib/attribute-normalizer";
 
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
 
@@ -192,7 +194,12 @@ export async function POST(
       );
     }
 
-    // Step 6: Return result
+    // Step 6: Process discovered filters (if any)
+    if (validated.discovered_filters && validated.discovered_filters.length > 0) {
+      await processDiscoveredFilters(supabase, id, validated.discovered_filters, items);
+    }
+
+    // Step 7: Return result
     return NextResponse.json({
       success: true,
       cached: false,
@@ -208,5 +215,88 @@ export async function POST(
       },
       { status: 500 }
     );
+  }
+}
+
+type CollectionAttributeSchemaInsert = Database["public"]["Tables"]["collection_attribute_schemas"]["Insert"];
+
+/**
+ * Process discovered filters from AI overview
+ * - Upserts schemas into collection_attribute_schemas
+ * - Extracts values from items and populates item_attributes
+ */
+async function processDiscoveredFilters(
+  supabase: ReturnType<typeof getServiceRoleClient>,
+  collectionId: string,
+  discoveredFilters: DiscoveredFilter[],
+  items: ItemWithCollectionMetadata[]
+) {
+  for (const filter of discoveredFilters) {
+    try {
+      // Prepare schema data for upsert
+      const schemaData: CollectionAttributeSchemaInsert = {
+        collection_id: collectionId,
+        name: filter.name,
+        display_name: filter.display_name,
+        description: filter.description || null,
+        source_path: filter.source_path,
+        value_type: filter.value_type as 'string' | 'number' | 'numeric_range',
+        sample_values: filter.sample_values,
+        item_coverage: filter.item_coverage,
+        discovery_confidence: filter.usefulness_score,
+        // Auto-show high confidence filters (>=0.7)
+        is_visible: filter.usefulness_score >= 0.7,
+      };
+
+      // Upsert the schema
+      const { data: schema, error: schemaError } = await (supabase as any)
+        .from("collection_attribute_schemas")
+        .upsert(schemaData, {
+          onConflict: "collection_id,name",
+          ignoreDuplicates: false,
+        })
+        .select()
+        .single();
+
+      if (schemaError) {
+        console.error(`Failed to upsert schema ${filter.name}:`, schemaError);
+        continue;
+      }
+
+      // Extract attributes from items for this schema
+      const attributes = extractDynamicAttributesForItems(
+        items.map((item) => ({
+          id: item.id,
+          attributes: item.attributes as Record<string, unknown>,
+        })),
+        {
+          id: schema.id,
+          name: filter.name,
+          source_path: filter.source_path,
+          value_type: filter.value_type,
+        }
+      );
+
+      if (attributes.length === 0) {
+        continue;
+      }
+
+      // Delete existing attributes for this schema to avoid duplicates
+      await (supabase as any)
+        .from("item_attributes")
+        .delete()
+        .eq("collection_schema_id", schema.id);
+
+      // Insert new attributes
+      const { error: insertError } = await (supabase as any)
+        .from("item_attributes")
+        .insert(attributes);
+
+      if (insertError) {
+        console.error(`Failed to insert attributes for ${filter.name}:`, insertError);
+      }
+    } catch (err) {
+      console.error(`Error processing filter ${filter.name}:`, err);
+    }
   }
 }

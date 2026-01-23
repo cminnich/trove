@@ -32,6 +32,25 @@ Analyze this collection and return a JSON response with:
 - Be specific: Reference actual item names/brands in insights
 - User notes (collection_notes field) are the most valuable signal - prioritize them
 
+## Filter Discovery
+
+Analyze the "attributes" field across all items. For each attribute key that appears in multiple items:
+
+1. Count how many items have this attribute
+2. List unique values (max 10 most common)
+3. Score usefulness 0-1 based on:
+   - Diversity: More unique values = more useful for filtering (but not too many)
+   - Coverage: Higher % of items having this attribute = more useful
+   - Filterability: Discrete values (strings, small numbers) > long text > unique IDs
+
+Return an additional "discovered_filters" array. Only include filters with usefulness_score >= 0.6.
+
+Skip these common but non-filterable attributes:
+- description, notes, features (long text)
+- id, uuid, sku, upc (unique identifiers)
+- url, link, image (URLs)
+- created_at, updated_at (timestamps unless date filtering is useful)
+
 ## Response Format
 Return ONLY valid JSON matching this schema:
 {
@@ -48,6 +67,18 @@ Return ONLY valid JSON matching this schema:
       "item_ids": ["uuid1", "uuid2"],
       "relationship_type": "complementary",
       "description": "These items work together because..."
+    }
+  ],
+  "discovered_filters": [
+    {
+      "name": "burr_type",
+      "display_name": "Burr Type",
+      "description": "The type of grinding burrs used",
+      "source_path": "attributes.burr_type",
+      "value_type": "string",
+      "sample_values": ["conical", "flat"],
+      "item_coverage": 0.8,
+      "usefulness_score": 0.9
     }
   ],
   "confidence_score": 0.85

@@ -4,9 +4,21 @@ import type { Database } from "@/types/database";
 
 type ItemAttribute = Database["public"]["Tables"]["item_attributes"]["Row"];
 type AttributeSchema = Database["public"]["Tables"]["attribute_schemas"]["Row"];
+type CollectionAttributeSchema = Database["public"]["Tables"]["collection_attribute_schemas"]["Row"];
+
+// Unified schema interface that works for both global and collection schemas
+interface UnifiedSchema {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string | null;
+  display_order: number;
+  is_collection_schema: boolean;
+  is_visible?: boolean; // Only for collection schemas
+}
 
 interface AttributeWithSchema extends ItemAttribute {
-  schema: AttributeSchema;
+  schema: UnifiedSchema;
 }
 
 interface AttributeWithCount {
@@ -43,28 +55,96 @@ export async function GET(
 
     const supabase = getServiceRoleClient();
 
-    // Fetch item attributes with schema info
-    const { data: attributesData, error: attrsError } = await supabase
+    // Fetch global item attributes with schema info
+    const { data: globalAttrsData, error: globalError } = await supabase
       .from("item_attributes")
       .select(`
         *,
         schema:attribute_schemas (*)
       `)
       .eq("item_id", itemId)
-      .order("schema_id");
+      .not("schema_id", "is", null);
 
-    if (attrsError) {
-      console.error("Failed to fetch item attributes:", attrsError);
+    if (globalError) {
+      console.error("Failed to fetch global item attributes:", globalError);
       return NextResponse.json(
-        { success: false, error: attrsError.message } as ItemAttributesResponse,
+        { success: false, error: globalError.message } as ItemAttributesResponse,
         { status: 500 }
       );
     }
 
-    // Cast to proper type
-    const attributes = attributesData as unknown as AttributeWithSchema[] | null;
+    // Convert global attributes to unified format
+    type GlobalAttrRow = ItemAttribute & { schema: AttributeSchema | null };
+    const globalAttrs = (globalAttrsData as GlobalAttrRow[] | null) || [];
 
-    if (!attributes || attributes.length === 0) {
+    const unifiedGlobalAttrs: AttributeWithSchema[] = globalAttrs
+      .filter((a) => a.schema !== null)
+      .map((a) => ({
+        ...a,
+        schema: {
+          id: a.schema!.id,
+          name: a.schema!.name,
+          display_name: a.schema!.display_name,
+          description: a.schema!.description,
+          display_order: a.schema!.display_order,
+          is_collection_schema: false,
+        },
+      }));
+
+    // Fetch collection-level attributes if collection_id provided
+    let unifiedCollectionAttrs: AttributeWithSchema[] = [];
+
+    if (collectionId) {
+      // Get all collection schemas (both visible and hidden for settings panel)
+      const { data: collectionSchemasData } = await supabase
+        .from("collection_attribute_schemas")
+        .select("*")
+        .eq("collection_id", collectionId);
+
+      const collectionSchemas = (collectionSchemasData as CollectionAttributeSchema[] | null) || [];
+      const schemaIds = collectionSchemas.map((s) => s.id);
+
+      if (schemaIds.length > 0) {
+        // Fetch item attributes that use these collection schemas
+        const { data: collectionAttrsData, error: collectionError } = await supabase
+          .from("item_attributes")
+          .select("*")
+          .eq("item_id", itemId)
+          .in("collection_schema_id", schemaIds);
+
+        if (collectionError) {
+          console.error("Failed to fetch collection item attributes:", collectionError);
+        } else {
+          const collectionAttrs = (collectionAttrsData as ItemAttribute[] | null) || [];
+
+          // Map to unified format
+          const schemaMap = new Map(collectionSchemas.map((s) => [s.id, s]));
+
+          unifiedCollectionAttrs = collectionAttrs
+            .filter((a) => a.collection_schema_id && schemaMap.has(a.collection_schema_id))
+            .map((a) => {
+              const schema = schemaMap.get(a.collection_schema_id!)!;
+              return {
+                ...a,
+                schema: {
+                  id: schema.id,
+                  name: schema.name,
+                  display_name: schema.display_name,
+                  description: schema.description,
+                  display_order: schema.display_order,
+                  is_collection_schema: true,
+                  is_visible: schema.is_visible,
+                },
+              };
+            });
+        }
+      }
+    }
+
+    // Merge all attributes
+    const allAttributes = [...unifiedGlobalAttrs, ...unifiedCollectionAttrs];
+
+    if (allAttributes.length === 0) {
       return NextResponse.json({
         success: true,
         data: [],
@@ -72,7 +152,7 @@ export async function GET(
     }
 
     // Get counts of related items for each attribute
-    const groupKeys = attributes.map((a) => a.group_key);
+    const groupKeys = allAttributes.map((a) => a.group_key);
 
     // Count all items with each attribute (including current item)
     const { data: relatedAttrsData, error: countError } = await supabase
@@ -118,7 +198,7 @@ export async function GET(
     }
 
     // Build response with counts
-    const result: AttributeWithCount[] = attributes.map((attr) => {
+    const result: AttributeWithCount[] = allAttributes.map((attr) => {
       let relatedItemIds = countMap.get(attr.group_key) || new Set<string>();
 
       // Filter to collection if specified
@@ -129,15 +209,23 @@ export async function GET(
       }
 
       return {
-        attribute: attr as unknown as AttributeWithSchema,
+        attribute: attr,
         related_count: relatedItemIds.size,
       };
     });
 
-    // Sort by display order from schema
+    // Sort by display order from schema (collection schemas come after global with order 999+)
     result.sort((a, b) => {
-      const orderA = a.attribute.schema?.display_order ?? 999;
-      const orderB = b.attribute.schema?.display_order ?? 999;
+      const isCollectionA = a.attribute.schema.is_collection_schema;
+      const isCollectionB = b.attribute.schema.is_collection_schema;
+
+      // Global schemas first, then collection schemas
+      if (isCollectionA !== isCollectionB) {
+        return isCollectionA ? 1 : -1;
+      }
+
+      const orderA = a.attribute.schema.display_order ?? 999;
+      const orderB = b.attribute.schema.display_order ?? 999;
       return orderA - orderB;
     });
 
