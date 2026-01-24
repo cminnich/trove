@@ -3,6 +3,7 @@ import { getServiceRoleClient } from "@/lib/supabase-server";
 import { loadPrompt, replaceVars, callClaudeJSON } from "@/lib/ai";
 import {
   CollectionOverviewSchema,
+  REQUIRED_SCHEMA_SUFFIX,
   type CollectionOverview,
   type DiscoveredFilter,
 } from "@/types/collection-overview";
@@ -158,7 +159,22 @@ export async function POST(
 
     // Step 4: Generate AI overview
     // Use custom_prompt if defined, otherwise use default template
-    const promptTemplate = collection.custom_prompt || loadPrompt("collection_overview.txt");
+    // Append required schema suffix to custom prompts ONLY if not already present
+    const isCustomPrompt = !!collection.custom_prompt;
+    const baseTemplate = collection.custom_prompt || loadPrompt("collection_overview.txt");
+
+    // Check if custom prompt already contains schema instructions (avoid duplicate context)
+    // Look for unique identifier phrases from REQUIRED_SCHEMA_SUFFIX
+    const hasSchemaInstructions = isCustomPrompt && (
+      baseTemplate.includes("REQUIRED RESPONSE FORMAT") ||
+      baseTemplate.includes("value_type MUST be one of") ||
+      baseTemplate.includes('"string", "number", "numeric_range"')
+    );
+
+    const promptTemplate = isCustomPrompt && !hasSchemaInstructions
+      ? baseTemplate + REQUIRED_SCHEMA_SUFFIX
+      : baseTemplate;
+
     const prompt = replaceVars(promptTemplate, {
       COLLECTION_NAME: collection.name,
       COLLECTION_DESCRIPTION: collection.description || "No description provided",
@@ -167,7 +183,7 @@ export async function POST(
       ITEMS_JSON: JSON.stringify(items, null, 2),
     });
 
-    const { data: overview } = await callClaudeJSON<CollectionOverview>(
+    const { data: overview, raw: rawResponse } = await callClaudeJSON<CollectionOverview>(
       prompt,
       {
         model: CLAUDE_MODEL,
@@ -175,8 +191,16 @@ export async function POST(
       }
     );
 
-    // Validate with Zod
-    const validated = CollectionOverviewSchema.parse(overview);
+    // Validate with Zod - the schema uses preprocess functions to auto-correct common AI mistakes
+    let validated: CollectionOverview;
+    try {
+      validated = CollectionOverviewSchema.parse(overview);
+    } catch (zodError) {
+      // Log the raw response for debugging
+      console.error("Zod validation failed. Raw AI response:", rawResponse);
+      console.error("Parsed overview object:", JSON.stringify(overview, null, 2));
+      throw zodError;
+    }
 
     // Step 5: Store in database
     // Type assertion needed due to Supabase client type inference limitations
