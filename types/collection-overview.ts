@@ -2,6 +2,8 @@ import { z } from "zod";
 
 /**
  * Schema for AI-discovered filter from item attributes
+ * Note: sample_values uses preprocess to coerce numbers/booleans to strings
+ * since AI models may return numeric values (e.g., years) as actual numbers
  */
 export const DiscoveredFilterSchema = z.object({
   name: z.string(),
@@ -9,7 +11,12 @@ export const DiscoveredFilterSchema = z.object({
   description: z.string().optional(),
   source_path: z.string(),
   value_type: z.enum(["string", "number", "numeric_range"]).default("string"),
-  sample_values: z.array(z.string()),
+  sample_values: z.array(
+    z.preprocess(
+      (val) => (val === null || val === undefined ? val : String(val)),
+      z.string()
+    )
+  ),
   item_coverage: z.number().min(0).max(1),
   usefulness_score: z.number().min(0).max(1),
 });

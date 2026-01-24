@@ -45,6 +45,8 @@ Analyze the "attributes" field across all items. For each attribute key that app
 
 Return an additional "discovered_filters" array. Only include filters with usefulness_score >= 0.6.
 
+**IMPORTANT**: The sample_values array MUST contain strings only, even for numeric data. For example, years should be ["2020", "2021"] not [2020, 2021]. Always quote all values.
+
 Skip these common but non-filterable attributes:
 - description, notes, features (long text)
 - id, uuid, sku, upc (unique identifiers)
@@ -79,6 +81,15 @@ Return ONLY valid JSON matching this schema:
       "sample_values": ["conical", "flat"],
       "item_coverage": 0.8,
       "usefulness_score": 0.9
+    },
+    {
+      "name": "year",
+      "display_name": "Year",
+      "source_path": "attributes.year",
+      "value_type": "number",
+      "sample_values": ["2020", "2021", "2022"],
+      "item_coverage": 0.7,
+      "usefulness_score": 0.75
     }
   ],
   "confidence_score": 0.85
