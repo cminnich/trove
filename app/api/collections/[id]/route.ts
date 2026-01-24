@@ -15,6 +15,8 @@ interface UpdateCollectionRequest {
   description?: string;
   type?: string;
   visibility?: 'public' | 'private';
+  custom_prompt?: string | null;
+  ai_overview_valid?: boolean;
 }
 
 // GET /api/collections/[id] - Get a specific collection
@@ -76,7 +78,8 @@ export async function PATCH(
     const body = await req.json() as UpdateCollectionRequest;
 
     // Validate that at least one field is being updated
-    if (!body.name && !body.description && !body.type && !body.visibility) {
+    // Note: custom_prompt can be null (to reset to default), so check for undefined
+    if (!body.name && !body.description && !body.type && !body.visibility && body.custom_prompt === undefined && body.ai_overview_valid === undefined) {
       return NextResponse.json(
         { success: false, error: "No fields to update" } as CollectionResponse,
         { status: 400 }
@@ -98,6 +101,8 @@ export async function PATCH(
     if (body.description !== undefined) updateData.description = body.description;
     if (body.type !== undefined) updateData.type = body.type;
     if (body.visibility !== undefined) updateData.visibility = body.visibility;
+    if (body.custom_prompt !== undefined) updateData.custom_prompt = body.custom_prompt;
+    if (body.ai_overview_valid !== undefined) updateData.ai_overview_valid = body.ai_overview_valid;
 
     // Query using authenticated client - RLS automatically enforces ownership
     const { data, error } = await ((client as any)

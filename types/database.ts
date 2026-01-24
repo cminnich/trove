@@ -42,6 +42,7 @@ export type Database = {
           ai_overview_generated_at: string | null;
           ai_overview_model: string | null;
           ai_overview_valid: boolean;
+          custom_prompt: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -56,6 +57,7 @@ export type Database = {
           ai_overview_generated_at?: string | null;
           ai_overview_model?: string | null;
           ai_overview_valid?: boolean;
+          custom_prompt?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -70,6 +72,7 @@ export type Database = {
           ai_overview_generated_at?: string | null;
           ai_overview_model?: string | null;
           ai_overview_valid?: boolean;
+          custom_prompt?: string | null;
           created_at?: string;
           updated_at?: string;
         };

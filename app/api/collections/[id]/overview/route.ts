@@ -54,6 +54,7 @@ export async function GET(
         success: true,
         overview: null,
         needs_generation: true,
+        has_custom_prompt: !!collection.custom_prompt,
       });
     }
 
@@ -63,6 +64,7 @@ export async function GET(
       generated_at: collection.ai_overview_generated_at,
       model: collection.ai_overview_model,
       needs_generation: false,
+      has_custom_prompt: !!collection.custom_prompt,
     });
   } catch (error) {
     console.error("Overview fetch error:", error);
@@ -114,6 +116,7 @@ export async function POST(
         overview: JSON.parse(collection.ai_overview),
         generated_at: collection.ai_overview_generated_at,
         model: collection.ai_overview_model,
+        has_custom_prompt: !!collection.custom_prompt,
       });
     }
 
@@ -154,7 +157,8 @@ export async function POST(
     }
 
     // Step 4: Generate AI overview
-    const promptTemplate = loadPrompt("collection_overview.txt");
+    // Use custom_prompt if defined, otherwise use default template
+    const promptTemplate = collection.custom_prompt || loadPrompt("collection_overview.txt");
     const prompt = replaceVars(promptTemplate, {
       COLLECTION_NAME: collection.name,
       COLLECTION_DESCRIPTION: collection.description || "No description provided",
@@ -206,6 +210,7 @@ export async function POST(
       overview: validated,
       generated_at: new Date().toISOString(),
       model: CLAUDE_MODEL,
+      has_custom_prompt: !!collection.custom_prompt,
     });
   } catch (error) {
     console.error("Overview generation error:", error);

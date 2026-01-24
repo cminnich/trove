@@ -1,29 +1,37 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Sparkles, RefreshCw, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, RefreshCw, Loader2, ChevronDown, ChevronUp, Settings, X, RotateCcw, FileText } from "lucide-react";
 import type { CollectionOverview as CollectionOverviewType } from "@/types/collection-overview";
 
 interface Props {
   collectionId: string;
   isPrivate: boolean;
+  isOwner?: boolean;
 }
 
 // Condensed height in pixels (approximately 3-4 lines)
 const CONDENSED_HEIGHT = 120;
 
-export function EnhancedCollectionOverview({ collectionId, isPrivate }: Props) {
+export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = false }: Props) {
   const [overview, setOverview] = useState<CollectionOverviewType | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [needsGeneration, setNeedsGeneration] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasCustomPrompt, setHasCustomPrompt] = useState(false);
 
   // Collapsible state
   const [isExpanded, setIsExpanded] = useState(false);
   const [contentHeight, setContentHeight] = useState<number>(0);
   const [needsTruncation, setNeedsTruncation] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Configure dialog state
+  const [showConfigDialog, setShowConfigDialog] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [savingPrompt, setSavingPrompt] = useState(false);
+  const [loadingDefaultPrompt, setLoadingDefaultPrompt] = useState(false);
 
   useEffect(() => {
     fetchOverview();
@@ -64,6 +72,7 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate }: Props) {
       } else {
         setNeedsGeneration(true);
       }
+      setHasCustomPrompt(!!data.has_custom_prompt);
     } catch (err) {
       console.error("Failed to fetch overview:", err);
       setError("Failed to load overview");
@@ -84,6 +93,7 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate }: Props) {
       if (data.success) {
         setOverview(data.overview);
         setNeedsGeneration(false);
+        setHasCustomPrompt(!!data.has_custom_prompt);
         // Reset expanded state for new content
         setIsExpanded(false);
       } else {
@@ -100,6 +110,99 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate }: Props) {
   const toggleExpanded = useCallback(() => {
     setIsExpanded((prev) => !prev);
   }, []);
+
+  // Fetch collection's current custom prompt when dialog opens
+  async function fetchCollectionPrompt() {
+    try {
+      const res = await fetch(`/api/collections/${collectionId}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setCustomPrompt(data.data.custom_prompt || "");
+      }
+    } catch (err) {
+      console.error("Failed to fetch collection:", err);
+    }
+  }
+
+  // Load default prompt template
+  async function loadDefaultPrompt() {
+    try {
+      setLoadingDefaultPrompt(true);
+      const res = await fetch("/api/prompts/collection_overview.txt");
+      const data = await res.json();
+      if (data.success) {
+        setCustomPrompt(data.content);
+      }
+    } catch (err) {
+      console.error("Failed to load default prompt:", err);
+    } finally {
+      setLoadingDefaultPrompt(false);
+    }
+  }
+
+  // Save custom prompt
+  async function saveCustomPrompt() {
+    try {
+      setSavingPrompt(true);
+      const res = await fetch(`/api/collections/${collectionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ custom_prompt: customPrompt || null }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setHasCustomPrompt(!!customPrompt);
+        setShowConfigDialog(false);
+        // Invalidate overview to force regeneration with new prompt
+        await fetch(`/api/collections/${collectionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ai_overview_valid: false }),
+        });
+        // Re-fetch to show needs_generation state
+        fetchOverview();
+      }
+    } catch (err) {
+      console.error("Failed to save custom prompt:", err);
+    } finally {
+      setSavingPrompt(false);
+    }
+  }
+
+  // Reset to system default
+  async function resetToDefault() {
+    try {
+      setSavingPrompt(true);
+      const res = await fetch(`/api/collections/${collectionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ custom_prompt: null }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomPrompt("");
+        setHasCustomPrompt(false);
+        setShowConfigDialog(false);
+        // Invalidate overview
+        await fetch(`/api/collections/${collectionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ai_overview_valid: false }),
+        });
+        fetchOverview();
+      }
+    } catch (err) {
+      console.error("Failed to reset prompt:", err);
+    } finally {
+      setSavingPrompt(false);
+    }
+  }
+
+  // Open configure dialog
+  function openConfigDialog() {
+    fetchCollectionPrompt();
+    setShowConfigDialog(true);
+  }
 
   // Shimmer effect loading state - constrained to condensed height
   if (loading) {
@@ -211,23 +314,42 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate }: Props) {
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              AI Curator's Analysis
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                AI Curator's Analysis
+              </h3>
+              {hasCustomPrompt && (
+                <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700">
+                  Custom Agent
+                </span>
+              )}
+            </div>
           </div>
-          <button
-            onClick={generateOverview}
-            disabled={generating}
-            className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center gap-1 transition-colors"
-            title="Refresh AI analysis"
-          >
-            {generating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
+          <div className="flex items-center gap-2">
+            {isOwner && (
+              <button
+                onClick={openConfigDialog}
+                className="text-sm text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium flex items-center gap-1 transition-colors"
+                title="Configure AI Agent"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">Configure</span>
+              </button>
             )}
-            <span className="hidden sm:inline">{generating ? "Refreshing..." : "Refresh"}</span>
-          </button>
+            <button
+              onClick={generateOverview}
+              disabled={generating}
+              className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center gap-1 transition-colors"
+              title="Refresh AI analysis"
+            >
+              {generating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">{generating ? "Refreshing..." : "Refresh"}</span>
+            </button>
+          </div>
         </div>
 
         {/* Collapsible Content Container */}
@@ -324,6 +446,103 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate }: Props) {
           </button>
         )}
       </div>
+
+      {/* Configure AI Agent Dialog */}
+      {showConfigDialog && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Dialog Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                  <Settings className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Configure AI Agent
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Customize how the AI analyzes this collection
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowConfigDialog(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Dialog Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Custom Prompt Template
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  Use these variables in your prompt: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_NAME}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_DESCRIPTION}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_TYPE}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{ITEM_COUNT}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{ITEMS_JSON}}"}</code>
+                </p>
+                <textarea
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  placeholder="Enter your custom prompt or load the default template..."
+                  className="w-full h-80 px-4 py-3 text-sm font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                />
+              </div>
+
+              {!customPrompt && (
+                <button
+                  onClick={loadDefaultPrompt}
+                  disabled={loadingDefaultPrompt}
+                  className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+                >
+                  {loadingDefaultPrompt ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileText className="w-4 h-4" />
+                  )}
+                  Load Default Template
+                </button>
+              )}
+            </div>
+
+            {/* Dialog Footer */}
+            <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <button
+                onClick={resetToDefault}
+                disabled={savingPrompt || !hasCustomPrompt}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset to System Default
+              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowConfigDialog(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveCustomPrompt}
+                  disabled={savingPrompt}
+                  className="flex items-center gap-2 px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-400 disabled:to-purple-400 rounded-lg shadow-lg shadow-indigo-500/30 transition-all"
+                >
+                  {savingPrompt ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save & Regenerate"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

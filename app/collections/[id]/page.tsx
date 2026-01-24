@@ -30,6 +30,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
+import { getClient } from '@/lib/supabase-client'
 import type { Database } from '@/types/database'
 
 type Collection = Database['public']['Tables']['collections']['Row']
@@ -54,8 +55,19 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [addItemSheetOpen, setAddItemSheetOpen] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const { items, isLoading, isError, error, mutate, reorder } = useCollectionItems(id, sortOrder)
   const { isOpen, openItemDetail, closeItemDetail } = useItemDetailStore()
+
+  // Fetch current user
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = getClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserId(user?.id || null)
+    }
+    fetchUser()
+  }, [])
 
   // Fetch collection metadata
   const { data: collectionData, mutate: mutateCollection } = useSWR<CollectionResponse>(
@@ -64,6 +76,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   )
 
   const collection = collectionData?.data
+  const isOwner = !!(userId && collection?.owner_id === userId)
 
   // Get all item IDs for navigation
   const allItemIds = items.map(item => item.id)
@@ -268,7 +281,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
       {/* Enhanced AI Collection Overview */}
       {items.length > 0 && collection && (
         <div className="mb-6">
-          <EnhancedCollectionOverview collectionId={id} isPrivate={collection.visibility === 'private'} />
+          <EnhancedCollectionOverview collectionId={id} isPrivate={collection.visibility === 'private'} isOwner={isOwner} />
         </div>
       )}
 
