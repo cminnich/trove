@@ -83,6 +83,9 @@ export async function GET(
  * - Only generates if ai_overview_valid = false
  * - Stores result in collections.ai_overview
  * - Returns immediately if valid cache exists
+ *
+ * Query params:
+ * - reprocess_filters=true: Skip AI generation, just reprocess filters from existing overview
  */
 export async function POST(
   req: NextRequest,
@@ -90,6 +93,8 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    const url = new URL(req.url);
+    const reprocessFilters = url.searchParams.get("reprocess_filters") === "true";
     const supabase = getServiceRoleClient();
 
     // Step 1: Fetch collection with items
@@ -108,6 +113,57 @@ export async function POST(
 
     // Type assertion needed due to Supabase client type inference limitations
     const collection = collectionData as Collection;
+
+    // Handle reprocess_filters mode: skip AI, just reprocess from existing overview
+    if (reprocessFilters) {
+      if (!collection.ai_overview) {
+        return NextResponse.json(
+          { error: "No existing AI overview to reprocess filters from" },
+          { status: 400 }
+        );
+      }
+
+      const existingOverview = JSON.parse(collection.ai_overview) as CollectionOverview;
+      if (!existingOverview.discovered_filters || existingOverview.discovered_filters.length === 0) {
+        return NextResponse.json(
+          { error: "No discovered_filters in existing overview" },
+          { status: 400 }
+        );
+      }
+
+      // Fetch items for filter extraction
+      const { data: collectionItems, error: itemsError } = await supabase
+        .from("collection_items")
+        .select(`position, notes, items (*)`)
+        .eq("collection_id", id);
+
+      if (itemsError) {
+        return NextResponse.json({ error: "Failed to fetch items" }, { status: 500 });
+      }
+
+      // @ts-ignore - Supabase returns nested structure
+      const items: ItemWithCollectionMetadata[] = collectionItems.map((ci: any) => ({
+        ...ci.items,
+        collection_notes: ci.notes,
+        collection_position: ci.position,
+      }));
+
+      console.log(`[Reprocess] Processing ${existingOverview.discovered_filters.length} filters for ${items.length} items`);
+
+      const filterResult = await processDiscoveredFilters(
+        supabase,
+        id,
+        existingOverview.discovered_filters,
+        items
+      );
+
+      return NextResponse.json({
+        success: true,
+        mode: "reprocess_filters",
+        filter_processing: filterResult,
+        filters_attempted: existingOverview.discovered_filters.map(f => f.name),
+      });
+    }
 
     // Step 2: Check if overview is already valid
     if (collection.ai_overview_valid && collection.ai_overview) {
@@ -223,8 +279,9 @@ export async function POST(
     }
 
     // Step 6: Process discovered filters (if any)
+    let filterResult: { processed: string[]; failed: Array<{ name: string; error: string }> } | null = null;
     if (validated.discovered_filters && validated.discovered_filters.length > 0) {
-      await processDiscoveredFilters(supabase, id, validated.discovered_filters, items);
+      filterResult = await processDiscoveredFilters(supabase, id, validated.discovered_filters, items);
     }
 
     // Step 7: Return result
@@ -235,6 +292,7 @@ export async function POST(
       generated_at: new Date().toISOString(),
       model: CLAUDE_MODEL,
       has_custom_prompt: !!collection.custom_prompt,
+      filter_processing: filterResult,
     });
   } catch (error) {
     console.error("Overview generation error:", error);
@@ -253,13 +311,18 @@ type CollectionAttributeSchemaInsert = Database["public"]["Tables"]["collection_
  * Process discovered filters from AI overview
  * - Upserts schemas into collection_attribute_schemas
  * - Extracts values from items and populates item_attributes
+ *
+ * Returns summary of what was processed for debugging
  */
 async function processDiscoveredFilters(
   supabase: ReturnType<typeof getServiceRoleClient>,
   collectionId: string,
   discoveredFilters: DiscoveredFilter[],
   items: ItemWithCollectionMetadata[]
-) {
+): Promise<{ processed: string[]; failed: Array<{ name: string; error: string }> }> {
+  const processed: string[] = [];
+  const failed: Array<{ name: string; error: string }> = [];
+
   for (const filter of discoveredFilters) {
     try {
       // Prepare schema data for upsert
@@ -277,7 +340,10 @@ async function processDiscoveredFilters(
         is_visible: filter.usefulness_score >= 0.7,
       };
 
+      console.log(`[Filter] Upserting schema: ${filter.name}`, JSON.stringify(schemaData));
+
       // Upsert the schema
+      // Type assertion needed due to Supabase client type inference limitations
       const { data: schema, error: schemaError } = await (supabase as any)
         .from("collection_attribute_schemas")
         .upsert(schemaData, {
@@ -288,9 +354,13 @@ async function processDiscoveredFilters(
         .single();
 
       if (schemaError) {
-        console.error(`Failed to upsert schema ${filter.name}:`, schemaError);
+        const errorMsg = `Upsert failed: ${schemaError.code} - ${schemaError.message}`;
+        console.error(`[Filter] ${filter.name}: ${errorMsg}`, schemaError);
+        failed.push({ name: filter.name, error: errorMsg });
         continue;
       }
+
+      console.log(`[Filter] Schema upserted: ${filter.name}, id=${schema.id}`);
 
       // Extract attributes from items for this schema
       const attributes = extractDynamicAttributesForItems(
@@ -306,26 +376,51 @@ async function processDiscoveredFilters(
         }
       );
 
+      console.log(`[Filter] ${filter.name}: Extracted ${attributes.length} attributes from ${items.length} items`);
+
       if (attributes.length === 0) {
+        console.warn(`[Filter] ${filter.name}: No attributes extracted - items may not have ${filter.source_path}`);
+        processed.push(filter.name);
         continue;
       }
 
       // Delete existing attributes for this schema to avoid duplicates
-      await (supabase as any)
+      // Type assertion needed due to Supabase client type inference limitations
+      const { error: deleteError } = await (supabase as any)
         .from("item_attributes")
         .delete()
         .eq("collection_schema_id", schema.id);
 
+      if (deleteError) {
+        console.error(`[Filter] ${filter.name}: Delete existing failed:`, deleteError);
+      }
+
       // Insert new attributes
+      // Type assertion needed due to Supabase client type inference limitations
       const { error: insertError } = await (supabase as any)
         .from("item_attributes")
         .insert(attributes);
 
       if (insertError) {
-        console.error(`Failed to insert attributes for ${filter.name}:`, insertError);
+        const errorMsg = `Insert attributes failed: ${insertError.code} - ${insertError.message}`;
+        console.error(`[Filter] ${filter.name}: ${errorMsg}`, insertError);
+        failed.push({ name: filter.name, error: errorMsg });
+        continue;
       }
+
+      console.log(`[Filter] ${filter.name}: Successfully processed`);
+      processed.push(filter.name);
     } catch (err) {
-      console.error(`Error processing filter ${filter.name}:`, err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[Filter] ${filter.name}: Exception:`, err);
+      failed.push({ name: filter.name, error: errorMsg });
     }
   }
+
+  console.log(`[Filter] Summary: ${processed.length} processed, ${failed.length} failed`);
+  if (failed.length > 0) {
+    console.error(`[Filter] Failed filters:`, failed);
+  }
+
+  return { processed, failed };
 }

@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/database";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
@@ -15,25 +16,25 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 /**
  * Service role client for privileged server-side operations.
  * Bypasses RLS - use with caution.
- * Uses createServerClient for proper TypeScript type inference.
+ * Uses createClient directly (not createServerClient) to ensure proper service role behavior.
  */
 export function getServiceRoleClient(): SupabaseClient<Database> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
     throw new Error("Missing env.NEXT_PUBLIC_SUPABASE_URL");
   }
-  if (!process.env.SUPABASE_SECRET_KEY) {
-    throw new Error("Missing env.SUPABASE_SECRET_KEY");
+  // Support both env var names for backwards compatibility
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+  if (!serviceRoleKey) {
+    throw new Error("Missing env.SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY)");
   }
 
-  return createServerClient<Database>(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SECRET_KEY,
+    serviceRoleKey,
     {
-      cookies: {
-        // No-op cookie handlers for service role client (no auth needed)
-        get() { return undefined; },
-        set() {},
-        remove() {},
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
       },
     }
   );
