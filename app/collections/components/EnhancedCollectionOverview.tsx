@@ -159,8 +159,8 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ai_overview_valid: false }),
         });
-        // Re-fetch to show needs_generation state
-        fetchOverview();
+        // Trigger regeneration immediately
+        generateOverview();
       }
     } catch (err) {
       console.error("Failed to save custom prompt:", err);
@@ -189,7 +189,8 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ai_overview_valid: false }),
         });
-        fetchOverview();
+        // Trigger regeneration immediately
+        generateOverview();
       }
     } catch (err) {
       console.error("Failed to reset prompt:", err);
@@ -256,43 +257,161 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
 
   if (needsGeneration) {
     return (
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-pink-50/80 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/30 backdrop-blur-sm rounded-2xl p-6 border border-indigo-200/50 dark:border-indigo-800/50">
-        {/* Subtle animated gradient border effect */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 opacity-20 blur-sm animate-pulse" />
+      <>
+        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-pink-50/80 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/30 backdrop-blur-sm rounded-2xl p-6 border border-indigo-200/50 dark:border-indigo-800/50">
+          {/* Subtle animated gradient border effect */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 opacity-20 blur-sm animate-pulse" />
 
-        <div className="relative">
-          <div className="flex items-start gap-4 mb-4">
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+          <div className="relative">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      AI Curator's Analysis
+                    </h3>
+                    {hasCustomPrompt && (
+                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700">
+                        Custom Agent
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 text-sm mt-1">
+                    Get thematic insights, strategic analysis, and relationship mapping for this collection.
+                  </p>
+                </div>
+              </div>
+              {isOwner && (
+                <button
+                  onClick={openConfigDialog}
+                  className="flex-shrink-0 text-sm text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium flex items-center gap-1 transition-colors"
+                  title="Configure AI Agent"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="hidden sm:inline">Configure</span>
+                </button>
+              )}
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                AI Curator's Analysis
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300 text-sm">
-                Get thematic insights, strategic analysis, and relationship mapping for this collection.
-              </p>
+            <button
+              onClick={generateOverview}
+              disabled={generating}
+              className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-400 disabled:to-purple-400 text-white px-6 py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/30"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Generate Overview
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Configure AI Agent Dialog */}
+        {showConfigDialog && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Dialog Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Configure AI Agent
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Customize how the AI analyzes this collection
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowConfigDialog(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Dialog Body */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Custom Prompt Template
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Use these variables in your prompt: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_NAME}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_DESCRIPTION}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_TYPE}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{ITEM_COUNT}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{ITEMS_JSON}}"}</code>
+                  </p>
+                  <textarea
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    placeholder="Enter your custom prompt or load the default template..."
+                    className="w-full h-80 px-4 py-3 text-sm font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  />
+                </div>
+
+                {!customPrompt && (
+                  <button
+                    onClick={loadDefaultPrompt}
+                    disabled={loadingDefaultPrompt}
+                    className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+                  >
+                    {loadingDefaultPrompt ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <FileText className="w-4 h-4" />
+                    )}
+                    Load Default Template
+                  </button>
+                )}
+              </div>
+
+              {/* Dialog Footer */}
+              <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <button
+                  onClick={resetToDefault}
+                  disabled={savingPrompt || !hasCustomPrompt}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Reset to System Default
+                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowConfigDialog(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveCustomPrompt}
+                    disabled={savingPrompt}
+                    className="flex items-center gap-2 px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-400 disabled:to-purple-400 rounded-lg shadow-lg shadow-indigo-500/30 transition-all"
+                  >
+                    {savingPrompt ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save & Regenerate"
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-          <button
-            onClick={generateOverview}
-            disabled={generating}
-            className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-400 disabled:to-purple-400 text-white px-6 py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/30"
-          >
-            {generating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Generate Overview
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+        )}
+      </>
     );
   }
 
