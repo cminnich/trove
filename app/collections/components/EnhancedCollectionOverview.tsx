@@ -269,12 +269,12 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center items-start gap-2">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       AI Curator's Analysis
                     </h3>
                     {hasCustomPrompt && (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700">
+                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700 whitespace-nowrap">
                         Custom Agent
                       </span>
                     )}
@@ -429,16 +429,16 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
       <div className="relative p-6">
         {/* Header - Always visible */}
         <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center items-start gap-2">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 AI Curator's Analysis
               </h3>
               {hasCustomPrompt && (
-                <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700">
+                <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700 whitespace-nowrap">
                   Custom Agent
                 </span>
               )}
