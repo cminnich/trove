@@ -102,7 +102,7 @@ SUPABASE_SECRET_KEY=sb_secret_...     # Secret Key (server-side only)
 ## Deployment
 - **Hosting**: Vercel (free tier)
 - **Database**: Supabase (free tier)
-- **Domain**: TBD (trove.app?)
+- **Domain**: [opentrove.app](https://www.opentrove.app)
 
 ## Testing
 

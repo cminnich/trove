@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedServerClient, getServiceRoleClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
+import { sendEmail } from "@/lib/email";
+import { collaborationInviteEmail, joinInviteEmail } from "@/lib/email-templates";
 
 type CollectionAccess = Database["public"]["Tables"]["collection_access"]["Row"];
 type CollectionAccessInsert = Database["public"]["Tables"]["collection_access"]["Insert"];
@@ -238,6 +240,9 @@ export async function POST(
       .eq("id", user.id)
       .single();
 
+    const inviterEmail = (ownerProfile as Pick<Profile, "email"> | null)?.email || "";
+    const inviterName = inviterEmail.split("@")[0] || "A Trove user";
+
     if (ownerProfile && (ownerProfile as Pick<Profile, "email">).email?.toLowerCase() === normalizedEmail) {
       return NextResponse.json(
         { success: false, error: "You cannot invite yourself" } as CreateAccessResponse,
@@ -267,6 +272,14 @@ export async function POST(
       .eq("email", normalizedEmail)
       .maybeSingle();
 
+    // Fetch collection name for the email
+    const { data: collectionData } = await client
+      .from("collections")
+      .select("name")
+      .eq("id", collectionId)
+      .single();
+    const collectionName = (collectionData as { name: string } | null)?.name || "a collection";
+
     // Prepare the insert data
     const insertData: CollectionAccessInsert = {
       collection_id: collectionId,
@@ -292,6 +305,21 @@ export async function POST(
         { status: 500 }
       );
     }
+
+    // Fire-and-forget email (non-blocking)
+    sendEmail({
+      to: normalizedEmail,
+      subject: existingUser
+        ? `${inviterName} invited you to edit "${collectionName}" on Trove`
+        : `${inviterName} invited you to join Trove`,
+      html: existingUser
+        ? collaborationInviteEmail({ inviterName, collectionName, collectionId, accessLevel: access_level })
+        : joinInviteEmail({ inviterName, inviterEmail }),
+    }).then(result => {
+      if (!result.success) {
+        console.error(`Failed to send invitation email to ${normalizedEmail}:`, result.error);
+      }
+    });
 
     return NextResponse.json({
       success: true,

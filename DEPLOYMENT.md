@@ -32,7 +32,7 @@
 4. **Deploy**:
    - Click "Deploy"
    - Vercel builds and deploys automatically
-   - Your app will be live at `https://trove-xxx.vercel.app`
+   - Production URL: [https://www.opentrove.app](https://www.opentrove.app)
 
 ## Vercel CLI Deploy (Alternative)
 
@@ -120,7 +120,7 @@ vercel env add ANTHROPIC_API_KEY development
 
 ### 1. Health Check
 ```bash
-curl https://trove-xxx.vercel.app/api/health
+curl https://www.opentrove.app/api/health
 ```
 
 Expected response:
@@ -134,7 +134,7 @@ Expected response:
 
 ### 2. Test Extraction Endpoint
 ```bash
-curl -X POST https://trove-xxx.vercel.app/api/extract \
+curl -X POST https://www.opentrove.app/api/extract \
   -H "Content-Type: application/json" \
   -d '{"url": "https://www.amazon.com/dp/B0XXXXXX"}'
 ```
@@ -161,7 +161,7 @@ URL Encode [ProductURL]
 ↓
 Set variable [EncodedURL] to [URL Encoded]
 ↓
-Open URL: https://trove-xxx.vercel.app/add?url=[EncodedURL]
+Open URL: https://www.opentrove.app/add?url=[EncodedURL]
 ```
 
 4. Settings:
@@ -176,8 +176,8 @@ Open URL: https://trove-xxx.vercel.app/add?url=[EncodedURL]
 ### Auto-Deploy on Push
 
 Vercel automatically deploys:
-- **Production**: Pushes to `main` branch → `trove-xxx.vercel.app`
-- **Preview**: Pushes to other branches → `trove-xxx-git-branch.vercel.app`
+- **Production**: Pushes to `main` branch → [www.opentrove.app](https://www.opentrove.app)
+- **Preview**: Pushes to other branches → unique preview URLs
 - **PR Previews**: Pull requests get unique preview URLs
 
 ### Manual Deploy
@@ -194,18 +194,20 @@ vercel --prod
 **Via Dashboard:**
 - Deployments → ⋮ (three dots) → "Redeploy"
 
-## Domain Configuration (Optional)
+## Domain Configuration
 
-### Add Custom Domain
+### Current Production Domain
+
+- **Primary**: [www.opentrove.app](https://www.opentrove.app)
+- **Naked domain** (opentrove.app) redirects to www subdomain
+- SSL handled automatically by Vercel
+
+### Custom Domain Setup (Reference)
 
 1. Vercel Dashboard → Project → Settings → Domains
-2. Add domain: `trove.yourdomain.com`
-3. Follow DNS configuration instructions
+2. Add domain (e.g., `www.opentrove.app`)
+3. Configure DNS at registrar (Porkbun)
 4. Vercel handles SSL automatically
-
-### Recommended Domains for POC
-- Default: `trove-xxx.vercel.app` (works fine for testing)
-- Custom: `trove.yourname.com` (if you want a clean URL)
 
 ## Monitoring & Debugging
 
