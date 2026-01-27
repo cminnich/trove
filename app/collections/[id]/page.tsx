@@ -14,6 +14,7 @@ import { ItemDetailView } from '../components/ItemDetailView'
 import { AddItemSheet } from '../components/AddItemSheet'
 import { EnhancedCollectionOverview } from '../components/EnhancedCollectionOverview'
 import { CollectionSettingsDialog } from '../components/CollectionSettingsDialog'
+import { ShareCollectionDialog } from '../components/ShareCollectionDialog'
 import { useItemDetailStore } from '@/app/stores/useItemDetailStore'
 import {
   ArrowLeft,
@@ -25,6 +26,7 @@ import {
   Sparkles,
   Check,
   Share2,
+  Users,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -50,6 +52,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   const [sortOrder, setSortOrder] = useSortPreference(id)
   const [sortSheetOpen, setSortSheetOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [showEditToast, setShowEditToast] = useState(false)
   const [showToast, setShowToast] = useState(false)
@@ -235,6 +238,18 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             </button>
           )}
 
+          {/* Share with People Button - Only show for owner */}
+          {isOwner && (
+            <button
+              onClick={() => setShareOpen(true)}
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 text-sm"
+              title="Share collection with collaborators"
+            >
+              <Users className="w-4 h-4" />
+              <span className="hidden lg:inline">Share</span>
+            </button>
+          )}
+
           {/* Settings Button */}
           <button
             onClick={() => setSettingsOpen(true)}
@@ -349,6 +364,15 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           collection={collection}
           onUpdate={handleItemUpdate}
           onDelete={handleCollectionDeleted}
+        />
+      )}
+
+      {/* Share Collection Dialog */}
+      {collection && (
+        <ShareCollectionDialog
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          collection={collection}
         />
       )}
     </div>
