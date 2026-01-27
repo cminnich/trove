@@ -9,13 +9,13 @@ function escapeHtml(str: string): string {
 }
 
 function getBaseUrl(): string {
-  // Vercel preview/production URLs
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  // Explicit base URL override
+  // Explicit base URL (set this in production to avoid deployment-specific URLs)
   if (process.env.NEXT_PUBLIC_BASE_URL) {
     return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  // Vercel preview URLs (for staging/preview deployments)
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
   }
   // Fallback to production domain
   return "https://www.opentrove.app";
