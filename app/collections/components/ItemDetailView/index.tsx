@@ -23,10 +23,11 @@ interface ItemWithCollectionMetadata extends Item {
 
 interface ItemDetailViewProps {
   items: ItemWithCollectionMetadata[]
+  isOwner: boolean
   onUpdate?: () => void
 }
 
-export function ItemDetailView({ items, onUpdate }: ItemDetailViewProps) {
+export function ItemDetailView({ items, isOwner, onUpdate }: ItemDetailViewProps) {
   const {
     isOpen,
     itemId,
@@ -199,6 +200,7 @@ export function ItemDetailView({ items, onUpdate }: ItemDetailViewProps) {
             <ItemDetailContent
               item={currentItem}
               collectionId={collectionId}
+              isOwner={isOwner}
               onUpdate={onUpdate}
               onClose={closeItemDetail}
             />

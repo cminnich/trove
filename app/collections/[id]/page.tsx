@@ -216,6 +216,9 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             {collection && collection.fork_count > 0 && (
               <span className="ml-2 text-gray-400">• {collection.fork_count} {collection.fork_count === 1 ? 'fork' : 'forks'}</span>
             )}
+            {!isOwner && collection?.visibility === 'public' && (
+              <span className="ml-2 text-green-500 dark:text-green-400">• Public Collection</span>
+            )}
           </p>
         </div>
 
@@ -367,7 +370,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
       />
 
       {/* Item Detail View (Full-screen with swipe navigation) */}
-      <ItemDetailView items={items} onUpdate={handleItemUpdate} />
+      <ItemDetailView items={items} isOwner={isOwner} onUpdate={handleItemUpdate} />
 
       {/* Add Item Sheet */}
       <AddItemSheet

@@ -20,6 +20,9 @@ import { useCollections } from '@/app/hooks/useCollections'
 import type { Database } from '@/types/database'
 import { getItemDisplayTitle, formatUrlForDisplay } from '@/lib/url-formatter'
 import { toast } from 'sonner'
+import { AddToCollectionSheet } from './AddToCollectionSheet'
+import { getClient } from '@/lib/supabase-client'
+import { useRouter } from 'next/navigation'
 
 type Item = Database['public']['Tables']['items']['Row']
 type Snapshot = Database['public']['Tables']['item_snapshots']['Row']
@@ -33,6 +36,7 @@ interface ItemWithCollectionMetadata extends Item {
 interface ItemDetailContentProps {
   item: ItemWithCollectionMetadata
   collectionId: string
+  isOwner: boolean
   onUpdate?: () => void
   onClose: () => void
 }
@@ -40,6 +44,7 @@ interface ItemDetailContentProps {
 export function ItemDetailContent({
   item,
   collectionId,
+  isOwner,
   onUpdate,
   onClose,
 }: ItemDetailContentProps) {
@@ -59,6 +64,9 @@ export function ItemDetailContent({
   const [retrying, setRetrying] = useState(false)
   const [showTrashConfirm, setShowTrashConfirm] = useState(false)
   const [trashing, setTrashing] = useState(false)
+  const [addToCollectionOpen, setAddToCollectionOpen] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+  const router = useRouter()
 
   // Fetch user collections containing this item
   const {
@@ -72,6 +80,16 @@ export function ItemDetailContent({
 
   // Collection count
   const collectionCount = loadingUserCollections ? 1 : Math.max(userCollections.length, 1)
+
+  // Check user authentication status
+  useEffect(() => {
+    const checkUser = async () => {
+      const supabase = getClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserId(user?.id || null)
+    }
+    checkUser()
+  }, [])
 
   useEffect(() => {
     if (item) {
@@ -763,119 +781,164 @@ export function ItemDetailContent({
         </div>
       )}
 
-      {/* Edit/Save Buttons */}
-      <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-        {editMode ? (
-          <>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button
-              onClick={handleCancel}
-              disabled={saving}
-              className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-            >
-              <X className="w-4 h-4" />
-              Cancel
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => setEditMode(true)}
-            className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
-          >
-            Edit Item
-          </button>
-        )}
-      </div>
-
-      {/* Danger Zone - Move to Trash */}
-      <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h4 className="text-sm font-semibold text-red-900 dark:text-red-200 mb-1 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                Danger Zone
-              </h4>
-              <p className="text-xs text-red-800 dark:text-red-300">
-                Move this item to Trash. It will be removed from all your collections.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowTrashConfirm(true)}
-              disabled={trashing}
-              className="flex-shrink-0 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Trash
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Trash Confirmation Dialog */}
-      {showTrashConfirm && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 animate-fade-in"
-          onClick={() => setShowTrashConfirm(false)}
-        >
-          <div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md mx-4 p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start gap-4 mb-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  Move to Trash?
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  This item will be removed from{' '}
-                  <strong>
-                    all {userCollections.length} collection{userCollections.length !== 1 ? 's' : ''}
-                  </strong>
-                  . It will no longer appear in your Trove.
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                  You can undo this action immediately after.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
+      {/* Edit/Save Buttons - Owner Only */}
+      {isOwner && (
+        <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          {editMode ? (
+            <>
               <button
-                onClick={() => setShowTrashConfirm(false)}
-                disabled={trashing}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
               >
+                <Save className="w-4 h-4" />
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={saving}
+                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <X className="w-4 h-4" />
                 Cancel
               </button>
-              <button
-                onClick={handleMoveToTrash}
-                disabled={trashing}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                {trashing ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Moving...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Move to Trash
-                  </>
-                )}
-              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setEditMode(true)}
+              className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Edit Item
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Danger Zone - Move to Trash (Owner Only) */}
+      {isOwner && (
+        <>
+          <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-red-900 dark:text-red-200 mb-1 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Danger Zone
+                  </h4>
+                  <p className="text-xs text-red-800 dark:text-red-300">
+                    Move this item to Trash. It will be removed from all your collections.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowTrashConfirm(true)}
+                  disabled={trashing}
+                  className="flex-shrink-0 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Trash
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Trash Confirmation Dialog */}
+          {showTrashConfirm && (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 animate-fade-in"
+            onClick={() => setShowTrashConfirm(false)}
+          >
+            <div
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md mx-4 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    Move to Trash?
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    This item will be removed from{' '}
+                    <strong>
+                      all {userCollections.length} collection{userCollections.length !== 1 ? 's' : ''}
+                    </strong>
+                    . It will no longer appear in your Trove.
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                    You can undo this action immediately after.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowTrashConfirm(false)}
+                  disabled={trashing}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleMoveToTrash}
+                  disabled={trashing}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {trashing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Moving...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Move to Trash
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+          )}
+        </>
+      )}
+
+      {/* Viewer Actions - Add to My Collection */}
+      {!isOwner && (
+        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+          {userId ? (
+            <>
+              <button
+                onClick={() => setAddToCollectionOpen(true)}
+                className="w-full px-6 py-3 border border-slate-800 hover:border-open-green bg-slate-deep hover:bg-slate-800 text-slate-300 hover:text-open-green rounded-lg font-mono font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add to My Collection
+              </button>
+
+              <AddToCollectionSheet
+                isOpen={addToCollectionOpen}
+                onClose={() => setAddToCollectionOpen(false)}
+                itemId={item.id}
+                itemName={item.title || 'Item'}
+              />
+            </>
+          ) : (
+            <div className="bg-slate-deep border border-slate-800 rounded-lg p-4 text-center">
+              <p className="font-mono text-sm text-slate-400 mb-3">
+                Log in to add items to your collection
+              </p>
+              <button
+                onClick={() => {
+                  const returnUrl = encodeURIComponent(window.location.pathname);
+                  router.push(`/auth/login?returnTo=${returnUrl}`);
+                }}
+                className="px-6 py-2 bg-open-green hover:bg-emerald-400 text-void font-mono font-bold rounded-lg transition-colors"
+              >
+                Log In
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
