@@ -29,6 +29,8 @@ import {
   Users,
 } from 'lucide-react'
 import Link from 'next/link'
+import { ForkButton, ForkBreadcrumb } from '@/app/components/Fork'
+import { ExportButton } from '@/app/components/Export'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
@@ -200,8 +202,10 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             {collection?.name || 'Loading...'}
           </h1>
+          {/* Fork Breadcrumb - shows if this collection is a fork */}
+          <ForkBreadcrumb collectionId={id} />
           {collection?.description && (
-            <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base mb-2">
+            <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base mb-2 mt-2">
               {collection.description}
             </p>
           )}
@@ -210,21 +214,35 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             {collection?.type && (
               <span className="ml-2 text-gray-400">• {collection.type}</span>
             )}
+            {collection && collection.fork_count > 0 && (
+              <span className="ml-2 text-gray-400">• {collection.fork_count} {collection.fork_count === 1 ? 'fork' : 'forks'}</span>
+            )}
           </p>
         </div>
 
         {/* Actions Row - Horizontal Scrolling on Mobile */}
         <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-2 sm:pb-0">
-          {/* Add Existing Button */}
-          <button
-            onClick={handleAddItem}
-            className="flex-shrink-0 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
-            title="Add existing items to this collection"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Existing</span>
-            <span className="sm:hidden">Add</span>
-          </button>
+          {/* Fork Button - Show for public collections user doesn't own */}
+          {collection && collection.visibility === 'public' && !isOwner && collection.is_forkable && (
+            <ForkButton
+              collectionId={id}
+              collectionName={collection.name}
+              itemCount={items.length}
+            />
+          )}
+
+          {/* Add Existing Button - Only for owner */}
+          {isOwner && (
+            <button
+              onClick={handleAddItem}
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
+              title="Add existing items to this collection"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Existing</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+          )}
 
           {/* Share for AI Button */}
           {items.length > 0 && (
@@ -250,21 +268,31 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             </button>
           )}
 
-          {/* Settings Button */}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 text-sm"
-            title="Collection settings"
-          >
-            <Settings className="w-4 h-4" />
-            <span className="hidden lg:inline">Settings</span>
-          </button>
+          {/* Export Button */}
+          {collection && (
+            <ExportButton
+              collectionId={id}
+              collectionName={collection.name}
+            />
+          )}
 
-          {/* Divider */}
-          <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+          {/* Settings Button - Only for owner */}
+          {isOwner && (
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 text-sm"
+              title="Collection settings"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden lg:inline">Settings</span>
+            </button>
+          )}
 
-          {/* Edit Button - Only show when sort is position and view is grid */}
-          {sortOrder === 'position' && viewMode === 'grid' && !editMode && items.length > 0 && (
+          {/* Divider - Only for owner (before edit/sort controls) */}
+          {isOwner && <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 flex-shrink-0" />}
+
+          {/* Edit Button - Only show for owner when sort is position and view is grid */}
+          {isOwner && sortOrder === 'position' && viewMode === 'grid' && !editMode && items.length > 0 && (
             <button
               onClick={handleEnterEditMode}
               className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 text-sm"
@@ -275,16 +303,18 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             </button>
           )}
 
-          {/* Sort Button */}
-          <button
-            onClick={() => setSortSheetOpen(true)}
-            disabled={editMode}
-            className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            title="Sort items"
-          >
-            <SortAsc className="w-4 h-4" />
-            <span className="hidden lg:inline">Sort</span>
-          </button>
+          {/* Sort Button - Only for owner */}
+          {isOwner && (
+            <button
+              onClick={() => setSortSheetOpen(true)}
+              disabled={editMode}
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              title="Sort items"
+            >
+              <SortAsc className="w-4 h-4" />
+              <span className="hidden lg:inline">Sort</span>
+            </button>
+          )}
 
           {/* View Toggle */}
           <div className="flex-shrink-0">

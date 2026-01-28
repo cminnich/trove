@@ -22,7 +22,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
   return (
     <Link
       href={`/collections/${id}`}
-      className="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
+      className="block bg-slate-deep rounded-lg border border-slate-800 hover:border-open-green transition-colors shadow-hard"
       aria-label={`${name}, ${item_count} ${item_count === 1 ? 'item' : 'items'}`}
     >
       {/* 2×2 Thumbnail Grid */}
@@ -30,7 +30,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
         {thumbnails.slice(0, 4).map((url, index) => (
           <div
             key={index}
-            className="bg-gray-100 dark:bg-gray-700 rounded overflow-hidden flex items-center justify-center"
+            className="bg-slate-800 rounded overflow-hidden flex items-center justify-center"
           >
             {url ? (
               <img
@@ -40,18 +40,18 @@ export function CollectionCard({ collection }: CollectionCardProps) {
                 loading="lazy"
               />
             ) : (
-              <div className="text-4xl text-gray-300 dark:text-gray-600">📦</div>
+              <div className="text-4xl text-slate-600">📦</div>
             )}
           </div>
         ))}
       </div>
 
       {/* Collection Info */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1 truncate">
+      <div className="p-4 border-t border-slate-800">
+        <h3 className="font-mono font-semibold text-white mb-1 truncate">
           {name}
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-sm font-mono text-slate-400">
           {item_count} {item_count === 1 ? 'item' : 'items'}
         </p>
       </div>

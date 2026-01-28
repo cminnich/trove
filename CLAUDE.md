@@ -1,5 +1,42 @@
 # Claude Code Project Instructions
 
+## Design System: Terminal Noir
+
+Open Trove uses the "Terminal Noir" visual language - a dark, monospace-driven aesthetic inspired by terminal interfaces.
+
+### Color Palette
+
+```css
+--color-void: #050505;        /* Primary background */
+--color-slate-deep: #0a0a0a;  /* Secondary background */
+--color-slate-800: #1e293b;   /* Borders, dividers */
+--color-open-green: #10b981;  /* Primary accent, CTAs, active states */
+```
+
+### Typography
+
+- **Primary font:** JetBrains Mono (monospace) via `font-mono` class
+- **Headers:** Uppercase, wide tracking (`tracking-widest`)
+- **Body text:** Slate-300 for primary, slate-500 for secondary
+- **Logo:** "OPEN TROVE" in `text-open-green font-mono font-bold tracking-widest uppercase`
+
+### Component Patterns
+
+- **Containers:** `bg-void border border-slate-800 rounded-md shadow-hard`
+- **Terminal headers:** `font-mono text-xs uppercase tracking-widest text-slate-500 border-b border-slate-800 px-4 py-2`
+- **Primary buttons:** `bg-open-green hover:bg-emerald-400 text-void font-mono font-bold`
+- **Secondary buttons:** `border border-slate-800 hover:border-slate-600 text-slate-300`
+- **Active nav items:** `bg-slate-800 text-open-green`
+- **Inactive nav items:** `text-slate-400 hover:text-slate-200`
+
+### Key Components
+
+- `TerminalBox` / `TerminalHeader`: Terminal-style containers
+- Navigation: Dark theme with green accent on active items
+- Homepage: Full-screen void background, no navigation bars
+
+---
+
 ## Pre-Deployment Verification (CRITICAL)
 
 Before considering any code change complete, **always run**:

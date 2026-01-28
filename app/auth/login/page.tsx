@@ -101,42 +101,42 @@ function LoginContent() {
 
   if (user) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-900">
+      <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-void">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Redirecting...</p>
+          <div className="w-8 h-8 border-4 border-open-green border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-400 font-mono text-sm">Redirecting...</p>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-900">
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-void">
       <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+        <div className="bg-slate-deep rounded-2xl border border-slate-800 shadow-hard p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              {mode === 'signin' ? 'Sign In' : 'Create Account'}
+            <h1 className="text-3xl font-mono font-bold text-white tracking-wide mb-2">
+              {mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-slate-400 font-mono text-sm">
               {mode === 'signin'
-                ? 'Welcome back to Trove'
-                : 'Start building your personal knowledge graph'}
+                ? '// Welcome back to Open Trove'
+                : '// Start building your collection'}
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            <div className="mb-6 p-4 bg-red-900/20 border border-red-800 rounded-lg">
+              <p className="text-sm text-red-200 font-mono">{error}</p>
             </div>
           )}
 
           {/* Email/Password Form */}
           <form onSubmit={handleEmailAuth} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="email" className="block text-sm font-mono font-medium text-slate-300 mb-1">
                 Email
               </label>
               <input
@@ -147,12 +147,12 @@ function LoginContent() {
                 required
                 disabled={loading}
                 placeholder="you@example.com"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
+                className="w-full px-4 py-2 border border-slate-700 rounded-lg bg-slate-800 text-white font-mono placeholder-slate-500 focus:ring-2 focus:ring-open-green focus:border-transparent disabled:opacity-50"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="password" className="block text-sm font-mono font-medium text-slate-300 mb-1">
                 Password
               </label>
               <input
@@ -164,18 +164,18 @@ function LoginContent() {
                 disabled={loading}
                 placeholder={mode === 'signup' ? 'Create a password (min 6 characters)' : 'Enter your password'}
                 minLength={6}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
+                className="w-full px-4 py-2 border border-slate-700 rounded-lg bg-slate-800 text-white font-mono placeholder-slate-500 focus:ring-2 focus:ring-open-green focus:border-transparent disabled:opacity-50"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              className="w-full bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 text-void font-mono font-medium py-3 px-4 rounded-lg transition-colors"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-void border-t-transparent rounded-full animate-spin" />
                   {mode === 'signin' ? 'Signing in...' : 'Creating account...'}
                 </span>
               ) : (
@@ -187,10 +187,10 @@ function LoginContent() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+              <div className="w-full border-t border-slate-700" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or continue with</span>
+              <span className="px-2 bg-slate-deep text-slate-500 font-mono">Or continue with</span>
             </div>
           </div>
 
@@ -198,7 +198,7 @@ function LoginContent() {
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full bg-white hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-mono font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -229,7 +229,7 @@ function LoginContent() {
                 setError(null)
               }}
               disabled={loading}
-              className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 disabled:opacity-50"
+              className="text-sm text-open-green hover:text-emerald-400 font-mono disabled:opacity-50"
             >
               {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             </button>
@@ -239,7 +239,7 @@ function LoginContent() {
           <div className="mt-4 text-center">
             <Link
               href="/"
-              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              className="text-sm text-slate-500 hover:text-slate-300 font-mono"
             >
               ← Back to home
             </Link>
@@ -248,9 +248,9 @@ function LoginContent() {
 
         {/* Test Credentials Info */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Development Mode</p>
-            <p className="text-xs text-blue-700 dark:text-blue-300">
+          <div className="mt-4 p-4 bg-open-green/10 border border-open-green/30 rounded-lg">
+            <p className="text-xs text-open-green font-mono font-medium mb-1">Development Mode</p>
+            <p className="text-xs text-slate-300 font-mono">
               Test credentials: test@example.com / trove123
             </p>
           </div>
@@ -263,10 +263,10 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-900">
+      <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-void">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+          <div className="w-8 h-8 border-4 border-open-green border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-400 font-mono text-sm">Loading...</p>
         </div>
       </main>
     }>

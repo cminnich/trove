@@ -161,14 +161,14 @@ export function BottomSheet({ open, onClose, children, title }: BottomSheetProps
   return (
     <div
       ref={backdropRef}
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 md:items-center animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 md:items-center animate-fade-in"
       onClick={handleBackdropClick}
       aria-modal="true"
       role="dialog"
     >
       <div
         ref={sheetRef}
-        className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[95vh] md:max-h-[90vh] flex flex-col"
+        className="w-full max-w-2xl bg-slate-deep border border-slate-800 rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[95vh] md:max-h-[90vh] flex flex-col"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Drag handle - mobile only - this is the "safe zone" for dismissing */}
@@ -179,22 +179,22 @@ export function BottomSheet({ open, onClose, children, title }: BottomSheetProps
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className="w-10 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full" />
+          <div className="w-10 h-1.5 bg-slate-600 rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 flex-shrink-0">
           {title && (
-            <h2 id="sheet-title" className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            <h2 id="sheet-title" className="text-xl font-mono font-semibold text-white">
               {title}
             </h2>
           )}
           <button
             onClick={onClose}
-            className="ml-auto p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="ml-auto p-2 rounded-lg hover:bg-slate-800 transition-colors"
             aria-label="Close"
           >
-            <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <X className="w-5 h-5 text-slate-400" />
           </button>
         </div>
 

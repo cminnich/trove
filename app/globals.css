@@ -12,6 +12,12 @@
   --color-indigo-accent: #6366F1;
   --color-indigo-accent-dark: #4F46E5;
   --color-amber-status: #F59E0B;
+
+  /* Terminal Noir Palette */
+  --color-void: #050505;
+  --color-slate-deep: #0a0a0a;
+  --color-slate-800: #1e293b;
+  --color-open-green: #10b981;
 }
 
 @media (prefers-color-scheme: dark) {

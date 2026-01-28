@@ -43,7 +43,7 @@ export function ContextForm({ value, onChange, disabled = false }: ContextFormPr
     <div className="w-full">
       <label
         htmlFor="context-notes"
-        className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300"
+        className="block text-sm font-mono font-medium mb-2 text-slate-300"
       >
         Add Your Context
       </label>
@@ -55,10 +55,10 @@ export function ContextForm({ value, onChange, disabled = false }: ContextFormPr
         disabled={disabled}
         placeholder="e.g., Research for the kitchen remodel, a birthday gift idea for Shannon, or just 'want this'..."
         rows={3}
-        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full px-4 py-3 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-open-green bg-slate-deep text-white font-mono placeholder-slate-500 resize-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       />
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-        Why are you saving this? Add notes to give AI better context.
+      <p className="text-xs text-slate-500 font-mono mt-1">
+        // Why are you saving this? Add notes to give AI better context.
       </p>
     </div>
   )

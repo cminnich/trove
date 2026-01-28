@@ -11,6 +11,15 @@ export default {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        void: "var(--color-void)",
+        "slate-deep": "var(--color-slate-deep)",
+        "open-green": "var(--color-open-green)",
+      },
+      fontFamily: {
+        mono: ["var(--font-jetbrains-mono)", "JetBrains Mono", "monospace"],
+      },
+      boxShadow: {
+        hard: "2px 2px 0 rgba(0,0,0,0.15)",
       },
     },
   },

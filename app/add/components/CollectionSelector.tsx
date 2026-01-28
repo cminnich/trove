@@ -150,14 +150,14 @@ export function CollectionSelector({
   if (loading) {
     return (
       <div className="w-full">
-        <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-mono font-medium mb-2 text-slate-300">
           File Under
         </label>
         <div className="flex gap-2 overflow-x-auto pb-2">
           {[1, 2, 3].map(i => (
             <div
               key={i}
-              className="h-9 w-24 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"
+              className="h-9 w-24 bg-slate-800 rounded-full animate-pulse"
             />
           ))}
         </div>
@@ -172,16 +172,16 @@ export function CollectionSelector({
 
     // Inbox in fallback mode: dashed border, ghost background
     if (isInbox && isInboxFallback) {
-      return 'bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border-2 border-dashed border-indigo-300 dark:border-indigo-700 hover:border-indigo-400 dark:hover:border-indigo-600'
+      return 'bg-open-green/10 text-open-green border-2 border-dashed border-open-green/40 hover:border-open-green/60'
     }
 
     // Selected (explicit inbox or any other collection)
     if (selected || (isInbox && isInboxActive && !isInboxFallback)) {
-      return 'bg-indigo-600 text-white border-2 border-indigo-600'
+      return 'bg-open-green text-void border-2 border-open-green'
     }
 
     // Unselected
-    return 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-gray-600 hover:border-indigo-400'
+    return 'bg-slate-800 text-slate-300 border-2 border-slate-700 hover:border-open-green'
   }
 
   // Get inbox icon based on state
@@ -204,7 +204,7 @@ export function CollectionSelector({
 
   return (
     <div className="w-full">
-      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+      <label className="block text-sm font-mono font-medium mb-2 text-slate-300">
         File Under
       </label>
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -215,7 +215,7 @@ export function CollectionSelector({
             onClick={() => toggleCollection(collection.id)}
             disabled={disabled}
             className={`
-              flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all
+              flex-shrink-0 px-4 py-2 rounded-full text-sm font-mono font-medium transition-all
               flex items-center
               ${getChipStyle(collection)}
               disabled:opacity-50 disabled:cursor-not-allowed
@@ -232,7 +232,7 @@ export function CollectionSelector({
           type="button"
           onClick={() => setCreateSheetOpen(true)}
           disabled={disabled}
-          className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-mono font-medium bg-slate-800 text-slate-400 border-2 border-dashed border-slate-700 hover:border-open-green hover:text-open-green transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           + New
         </button>
@@ -240,7 +240,7 @@ export function CollectionSelector({
 
       {/* Fallback hint - only show when inbox is in fallback mode */}
       {isInboxFallback && (
-        <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-1 flex items-center gap-1">
+        <p className="text-xs text-open-green font-mono mt-1 flex items-center gap-1">
           <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
           </svg>

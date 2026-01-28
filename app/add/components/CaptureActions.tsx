@@ -37,8 +37,8 @@ export function CaptureActions({
     <div className="w-full space-y-3">
       {/* Status indicator */}
       {extractionComplete && saveIntent.type === 'ready' && (
-        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <p className="text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
+        <div className="p-3 bg-open-green/10 border border-open-green/30 rounded-lg">
+          <p className="text-sm text-open-green font-mono flex items-center gap-2">
             <span className="text-base">✓</span>
             <span>Item extracted - ready to save</span>
           </p>
@@ -50,7 +50,7 @@ export function CaptureActions({
         type="button"
         onClick={onSave}
         disabled={isSaveDisabled}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
+        className="w-full bg-open-green hover:bg-emerald-400 text-void font-mono font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-open-green"
       >
         {getSaveLabel()}
       </button>
@@ -60,15 +60,15 @@ export function CaptureActions({
         type="button"
         onClick={onCancel}
         disabled={isSaving || saveIntent.type === 'pending'}
-        className="w-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono font-medium py-3 px-4 rounded-lg transition-colors border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Cancel
       </button>
 
       {/* Helper text */}
       {!canSave && !isSaving && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-          Add context or select a collection to save
+        <p className="text-xs text-slate-500 font-mono text-center">
+          // Add context or select a collection to save
         </p>
       )}
     </div>

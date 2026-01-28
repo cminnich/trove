@@ -16,7 +16,7 @@ interface ItemWithCollectionMetadata extends Item {
 
 interface ItemCardProps {
   item: ItemWithCollectionMetadata
-  variant?: 'grid' | 'list'
+  variant?: 'grid' | 'list' | 'spec-sheet'
   onClick?: () => void
   onUpdate?: () => void
 }
@@ -65,7 +65,7 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
       <div className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors p-4">
         <div className="flex gap-4">
           {/* Thumbnail */}
-          <div 
+          <div
             className="flex-shrink-0 w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden flex items-center justify-center cursor-pointer"
             onClick={onClick}
           >
@@ -132,6 +132,89 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
               )}
             </div>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Spec-sheet variant - Terminal Noir style with metadata table
+  if (variant === 'spec-sheet') {
+    // Extract key attributes from item.attributes for display
+    const attributes = item.attributes as Record<string, unknown> || {}
+    const attributeEntries = Object.entries(attributes).filter(
+      ([key, value]) => value !== null && value !== undefined && value !== ''
+    ).slice(0, 4) // Show max 4 custom attributes
+
+    return (
+      <div
+        className="w-full bg-void border border-slate-800 rounded-md shadow-hard overflow-hidden cursor-pointer hover:border-slate-700 transition-colors"
+        onClick={onClick}
+      >
+        {/* Image */}
+        <div className="w-full aspect-square bg-slate-deep overflow-hidden flex items-center justify-center">
+          {item.image_url ? (
+            <img
+              src={item.image_url}
+              alt={displayTitle}
+              className="w-full h-full object-contain"
+              loading="lazy"
+            />
+          ) : (
+            <div className="text-6xl text-slate-700">📦</div>
+          )}
+        </div>
+
+        {/* Title */}
+        <div className="border-t border-slate-800 px-3 py-2">
+          <h3 className="font-mono font-bold text-white text-sm line-clamp-2 uppercase tracking-wide">
+            {displayTitle}
+          </h3>
+          {needsReview && (
+            <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 bg-amber-900/30 text-amber-400 rounded font-mono">
+              REVIEW
+            </span>
+          )}
+        </div>
+
+        {/* Spec Table */}
+        <div className="border-t border-slate-800">
+          <table className="w-full font-mono text-xs">
+            <tbody>
+              {item.brand && (
+                <tr className="border-b border-slate-800/50">
+                  <td className="px-3 py-1.5 text-slate-500 w-1/3">Brand</td>
+                  <td className="px-3 py-1.5 text-slate-300 text-right">{item.brand}</td>
+                </tr>
+              )}
+              {item.price && item.currency && (
+                <tr className="border-b border-slate-800/50">
+                  <td className="px-3 py-1.5 text-slate-500 w-1/3">Price</td>
+                  <td className="px-3 py-1.5 text-open-green font-bold text-right">
+                    {item.currency === 'USD' && '$'}
+                    {item.price.toLocaleString()}
+                    {item.currency !== 'USD' && ` ${item.currency}`}
+                  </td>
+                </tr>
+              )}
+              {item.category && (
+                <tr className="border-b border-slate-800/50">
+                  <td className="px-3 py-1.5 text-slate-500 w-1/3">Category</td>
+                  <td className="px-3 py-1.5 text-slate-300 text-right">{item.category}</td>
+                </tr>
+              )}
+              {/* Custom attributes from item.attributes */}
+              {attributeEntries.map(([key, value]) => (
+                <tr key={key} className="border-b border-slate-800/50 last:border-b-0">
+                  <td className="px-3 py-1.5 text-slate-500 w-1/3 capitalize">
+                    {key.replace(/_/g, ' ')}
+                  </td>
+                  <td className="px-3 py-1.5 text-slate-300 text-right truncate max-w-[150px]">
+                    {String(value)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     )

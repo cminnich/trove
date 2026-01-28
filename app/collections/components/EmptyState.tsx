@@ -14,16 +14,16 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] px-6 text-center">
       <div className="text-6xl mb-4">{icon}</div>
-      <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+      <h2 className="text-xl font-mono font-semibold text-white mb-2 tracking-wide">
         {title}
       </h2>
-      <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md">
+      <p className="text-slate-400 font-mono text-sm mb-6 max-w-md">
         {description}
       </p>
       {action && (
         <button
           onClick={action.onClick}
-          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+          className="px-6 py-3 bg-open-green hover:bg-emerald-400 text-void rounded-lg font-mono font-medium transition-colors"
         >
           {action.label}
         </button>

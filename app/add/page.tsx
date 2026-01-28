@@ -203,33 +203,33 @@ function AddPageContent() {
   const existingMemberships = isCapturing && state.extraction.status === 'complete' ? state.extraction.existingMemberships || [] : []
 
   return (
-    <main className="flex min-h-screen flex-col p-6 bg-gray-50 dark:bg-gray-900">
+    <main className="flex min-h-screen flex-col p-6 bg-void">
       <div className="w-full max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {isExistingItem ? 'Update in Trove' : 'Add to Trove'}
+          <h1 className="text-2xl font-mono font-bold text-white tracking-wide">
+            {isExistingItem ? 'UPDATE IN TROVE' : 'ADD TO TROVE'}
           </h1>
         </div>
 
         {/* Already in Trove indicator */}
         {isExistingItem && existingMemberships.length > 0 && (
-          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="bg-open-green/10 border border-open-green/30 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <div className="text-blue-600 dark:text-blue-400 text-lg">
+              <div className="text-open-green text-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                   <polyline points="22 4 12 14.01 9 11.01"></polyline>
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                <p className="text-sm font-mono font-medium text-open-green">
                   Already in your Trove
                 </p>
-                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                <p className="text-sm text-slate-300 font-mono mt-1">
                   Currently saved in: {existingMemberships.map(m => m.collection_name).join(', ')}
                 </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                <p className="text-xs text-slate-400 font-mono mt-2">
                   You can update the notes or add to more collections below.
                 </p>
               </div>
@@ -265,8 +265,8 @@ function AddPageContent() {
         {/* Extracted Item Card */}
         {isCapturing && (
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Extracted Item
+            <h3 className="text-sm font-mono font-medium text-slate-400">
+              // Extracted Item
             </h3>
             <ExtractedItemCard extractionState={state.extraction} />
           </div>
@@ -299,10 +299,10 @@ export default function AddPage() {
 // Loading Fallback
 function LoadingFallback() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-void">
       <div className="text-center">
-        <div className="inline-block w-12 h-12 border-4 border-gray-200 dark:border-gray-700 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-        <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        <div className="inline-block w-12 h-12 border-4 border-slate-800 border-t-open-green rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-400 font-mono text-sm">Loading...</p>
       </div>
     </main>
   )
@@ -319,23 +319,23 @@ function SuccessView({
   onAddAnother: () => void
 }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-void">
       <div className="w-full max-w-md">
         {/* Success header */}
         <div className="text-center mb-6">
-          <div className="text-5xl mb-2">✓</div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Added to Trove
+          <div className="text-5xl mb-2 text-open-green">✓</div>
+          <h2 className="text-2xl font-mono font-bold text-white tracking-wide">
+            ADDED TO TROVE
           </h2>
           {collections.length > 0 && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+            <p className="text-sm text-slate-400 font-mono mt-2">
               Saved to {collections.length} collection{collections.length > 1 ? 's' : ''}
             </p>
           )}
         </div>
 
         {/* Item preview */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div className="bg-slate-deep rounded-lg border border-slate-800 p-6 mb-6 shadow-hard">
           {item.image_url && (
             <img
               src={item.image_url}
@@ -344,16 +344,16 @@ function SuccessView({
             />
           )}
 
-          <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">
+          <h3 className="text-xl font-mono font-semibold mb-2 text-white">
             {item.title}
           </h3>
 
           {item.brand && (
-            <p className="text-gray-600 dark:text-gray-400 mb-2">{item.brand}</p>
+            <p className="text-slate-400 font-mono mb-2">{item.brand}</p>
           )}
 
           {item.price && item.currency && (
-            <p className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100 font-mono">
+            <p className="text-2xl font-bold mb-2 text-open-green font-mono">
               {item.currency === 'USD' && '$'}
               {item.price.toLocaleString()}
               {item.currency !== 'USD' && ` ${item.currency}`}
@@ -364,7 +364,7 @@ function SuccessView({
         {/* Actions */}
         <button
           onClick={onAddAnother}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+          className="w-full bg-open-green hover:bg-emerald-400 text-void font-mono font-medium py-3 px-4 rounded-lg transition-colors"
         >
           Add Another Item
         </button>
@@ -386,19 +386,19 @@ function ErrorView({
   onReset: () => void
 }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-void">
       <div className="w-full max-w-md text-center">
         <div className="text-5xl mb-4">⚠️</div>
-        <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
-          Could not add item
+        <h2 className="text-2xl font-mono font-bold mb-2 text-white tracking-wide">
+          ERROR
         </h2>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
+        <p className="text-slate-400 font-mono mb-6">{error}</p>
 
         <div className="space-y-3">
           {canRetry && (
             <button
               onClick={onRetry}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              className="w-full bg-open-green hover:bg-emerald-400 text-void font-mono font-medium py-3 px-4 rounded-lg transition-colors"
             >
               Retry
             </button>
@@ -406,7 +406,7 @@ function ErrorView({
 
           <button
             onClick={onReset}
-            className="w-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium py-3 px-4 rounded-lg transition-colors"
+            className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono font-medium py-3 px-4 rounded-lg transition-colors border border-slate-700"
           >
             Go Back
           </button>
@@ -430,16 +430,16 @@ function ProcessingView({
   const isFailed = state.deepExtraction.status === 'failed'
 
   return (
-    <main className="flex min-h-screen flex-col p-6 bg-gray-50 dark:bg-gray-900">
+    <main className="flex min-h-screen flex-col p-6 bg-void">
       <div className="w-full max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {isComplete ? 'Added to Trove' : 'Processing...'}
+          <h1 className="text-2xl font-mono font-bold text-white tracking-wide">
+            {isComplete ? 'ADDED TO TROVE' : 'PROCESSING...'}
           </h1>
           {!isComplete && !isFailed && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Enhancing your item with AI
+            <p className="text-sm text-slate-400 font-mono mt-1">
+              // Enhancing your item with AI
             </p>
           )}
         </div>
@@ -458,7 +458,7 @@ function ProcessingView({
           <div className="space-y-3">
             <button
               onClick={onAddAnother}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              className="w-full bg-open-green hover:bg-emerald-400 text-void font-mono font-medium py-3 px-4 rounded-lg transition-colors"
             >
               Add Another Item
             </button>
@@ -466,7 +466,7 @@ function ProcessingView({
             {state.collections.length > 0 && (
               <a
                 href={`/collections/${state.collections[0].id}`}
-                className="block w-full text-center bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-3 px-4 rounded-lg border border-gray-300 dark:border-gray-600 transition-colors"
+                className="block w-full text-center bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono font-medium py-3 px-4 rounded-lg border border-slate-700 transition-colors"
               >
                 View in {state.collections[0].name}
               </a>
@@ -497,20 +497,20 @@ function ManualEntryView({ user }: { user: any }) {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-900">
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-void">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">
-            Add to Trove
+          <h1 className="text-3xl font-mono font-bold mb-2 text-white tracking-wide">
+            ADD TO TROVE
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Enter a URL to extract and save
+          <p className="text-slate-400 font-mono text-sm">
+            // Enter a URL to extract and save
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="url" className="block text-sm font-mono font-medium text-slate-300 mb-2">
               URL
             </label>
             <input
@@ -522,15 +522,15 @@ function ManualEntryView({ user }: { user: any }) {
                 setIsValid(true)
               }}
               placeholder="https://example.com/product"
-              className={`w-full px-4 py-3 rounded-lg border ${
+              className={`w-full px-4 py-3 rounded-lg border font-mono ${
                 isValid
-                  ? 'border-gray-300 dark:border-gray-600'
-                  : 'border-red-500 dark:border-red-500'
-              } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                  ? 'border-slate-800'
+                  : 'border-red-500'
+              } bg-slate-deep text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-open-green`}
               autoFocus
             />
             {!isValid && (
-              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-2 text-sm text-red-400 font-mono">
                 Please enter a valid URL
               </p>
             )}
@@ -539,17 +539,17 @@ function ManualEntryView({ user }: { user: any }) {
           <button
             type="submit"
             disabled={!url.trim()}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            className="w-full bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-void font-mono font-medium py-3 px-4 rounded-lg transition-colors"
           >
             Extract & Save
           </button>
         </form>
 
-        <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-2">
+        <div className="mt-8 pt-8 border-t border-slate-800">
+          <p className="text-sm text-slate-400 font-mono text-center mb-2">
             Tip: Use the iOS Share Sheet shortcut for faster capturing
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-500 text-center">
+          <p className="text-xs text-slate-500 font-mono text-center">
             Signed in as {user.email}
           </p>
         </div>

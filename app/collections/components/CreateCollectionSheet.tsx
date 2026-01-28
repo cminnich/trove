@@ -82,8 +82,8 @@ export function CreateCollectionSheet({
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+          <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
+            <p className="text-sm text-red-200 font-mono">{error}</p>
           </div>
         )}
 
@@ -91,9 +91,9 @@ export function CreateCollectionSheet({
         <div>
           <label
             htmlFor="collection-name"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-mono font-medium text-slate-300 mb-1"
           >
-            Name <span className="text-red-500">*</span>
+            Name <span className="text-red-400">*</span>
           </label>
           <input
             id="collection-name"
@@ -102,7 +102,7 @@ export function CreateCollectionSheet({
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., My Wishlist"
             disabled={isSubmitting}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-open-green focus:border-transparent bg-slate-800 text-white font-mono placeholder-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
             autoComplete="off"
             required
           />
@@ -112,7 +112,7 @@ export function CreateCollectionSheet({
         <div>
           <label
             htmlFor="collection-description"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-mono font-medium text-slate-300 mb-1"
           >
             Description
           </label>
@@ -123,7 +123,7 @@ export function CreateCollectionSheet({
             placeholder="What's this collection for?"
             rows={3}
             disabled={isSubmitting}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+            className="w-full px-4 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-open-green focus:border-transparent bg-slate-800 text-white font-mono placeholder-slate-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
           />
         </div>
 
@@ -131,7 +131,7 @@ export function CreateCollectionSheet({
         <div>
           <label
             htmlFor="collection-type"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-mono font-medium text-slate-300 mb-1"
           >
             Type
           </label>
@@ -140,7 +140,7 @@ export function CreateCollectionSheet({
             value={type}
             onChange={(e) => setType(e.target.value)}
             disabled={isSubmitting}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-open-green focus:border-transparent bg-slate-800 text-white font-mono disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="">Choose a type (optional)</option>
             <option value="wishlist">Wishlist</option>
@@ -155,14 +155,14 @@ export function CreateCollectionSheet({
             type="button"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-800 transition-colors font-mono disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting || !name.trim()}
-            className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="flex-1 px-4 py-2 bg-open-green hover:bg-emerald-400 text-void rounded-lg transition-colors font-mono disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {isSubmitting ? (
               <>

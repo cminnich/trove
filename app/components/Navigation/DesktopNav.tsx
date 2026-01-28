@@ -2,11 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { AnimatedLogo } from '@/app/components/AnimatedLogo'
 
 const navLinks = [
   { name: 'Collections', href: '/collections' },
   { name: 'Add Item', href: '/add' },
+  { name: 'Settings', href: '/settings' },
 ]
 
 export function DesktopNav() {
@@ -14,16 +14,15 @@ export function DesktopNav() {
 
   return (
     <nav
-      className="hidden md:flex sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800"
+      className="hidden md:flex sticky top-0 z-50 bg-void/95 backdrop-blur-md border-b border-slate-800"
       aria-label="Desktop navigation"
     >
       <div className="max-w-7xl mx-auto w-full px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <AnimatedLogo size={40} />
-            <span className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Trove
+            <span className="font-mono text-xl font-bold tracking-widest uppercase text-open-green">
+              Open Trove
             </span>
           </Link>
 
@@ -36,10 +35,10 @@ export function DesktopNav() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-md font-mono text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                      ? 'bg-slate-800 text-open-green'
+                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
                   }`}
                   aria-current={isActive ? 'page' : undefined}
                 >
@@ -49,7 +48,7 @@ export function DesktopNav() {
             })}
           </div>
 
-          {/* Right side - placeholder for future actions */}
+          {/* Spacer for balance */}
           <div className="w-10" />
         </div>
       </div>

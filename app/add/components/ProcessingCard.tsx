@@ -48,15 +48,15 @@ export function ProcessingCard({
   const isProcessing = deepExtraction.status === 'pending' || deepExtraction.status === 'in_progress'
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-pink-50/80 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/30 backdrop-blur-sm rounded-2xl border border-indigo-200/50 dark:border-indigo-800/50">
+    <div className="relative overflow-hidden bg-slate-deep rounded-2xl border border-slate-800 shadow-hard">
       {/* AI Shimmer animation - only visible when processing */}
       {isProcessing && (
-        <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
+        <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-open-green/10 to-transparent" />
       )}
 
       {/* Subtle pulsing border when processing */}
       {isProcessing && (
-        <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 opacity-20 blur-sm animate-pulse" />
+        <div className="absolute -inset-0.5 rounded-2xl bg-open-green opacity-20 blur-sm animate-pulse" />
       )}
 
       <div className="relative p-6">
@@ -64,22 +64,22 @@ export function ProcessingCard({
         <div className="flex items-center gap-2 mb-4">
           {isProcessing ? (
             <>
-              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                Enhancing with AI...
+              <div className="w-2 h-2 bg-open-green rounded-full animate-pulse" />
+              <span className="text-sm font-mono font-medium text-open-green">
+                // Enhancing with AI...
               </span>
             </>
           ) : deepExtraction.status === 'complete' ? (
             <>
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
-              <span className="text-sm font-medium text-green-600 dark:text-green-400">
+              <div className="w-2 h-2 bg-open-green rounded-full" />
+              <span className="text-sm font-mono font-medium text-open-green">
                 Enhanced
               </span>
             </>
           ) : (
             <>
               <div className="w-2 h-2 bg-amber-500 rounded-full" />
-              <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
+              <span className="text-sm font-mono font-medium text-amber-400">
                 Basic extraction
               </span>
             </>
@@ -88,7 +88,7 @@ export function ProcessingCard({
 
         {/* Item image (if available) */}
         {item.image_url && (
-          <div className="w-full h-40 mb-4 rounded-lg overflow-hidden bg-white/50 dark:bg-gray-800/50">
+          <div className="w-full h-40 mb-4 rounded-lg overflow-hidden bg-slate-800">
             <img
               src={item.image_url}
               alt={item.title || 'Item image'}
@@ -99,21 +99,21 @@ export function ProcessingCard({
 
         {/* Title (if extracted) */}
         {item.title && (
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          <h3 className="text-lg font-mono font-semibold text-white mb-2">
             {item.title}
           </h3>
         )}
 
         {/* Brand */}
         {item.brand && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+          <p className="text-sm text-slate-400 font-mono mb-2">
             {item.brand}
           </p>
         )}
 
         {/* Price */}
         {item.price && item.currency && (
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 font-mono mb-3">
+          <p className="text-xl font-bold text-open-green font-mono mb-3">
             {item.currency === 'USD' && '$'}
             {item.price.toLocaleString()}
             {item.currency !== 'USD' && ` ${item.currency}`}
@@ -124,16 +124,16 @@ export function ProcessingCard({
         {context.notes && (
           <div className={`${!item.title ? 'mb-4' : 'mb-3'}`}>
             {!item.title && (
-              <p className="text-base text-gray-800 dark:text-gray-200 leading-relaxed">
+              <p className="text-base text-slate-200 font-mono leading-relaxed">
                 {context.notes}
               </p>
             )}
             {item.title && (
-              <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+              <div className="bg-slate-800 rounded-lg p-3">
+                <p className="text-xs font-mono font-medium text-slate-500 uppercase tracking-wide mb-1">
                   Your notes
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <p className="text-sm text-slate-300 font-mono">
                   {context.notes}
                 </p>
               </div>
@@ -147,7 +147,7 @@ export function ProcessingCard({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-500 hover:text-open-green transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -159,14 +159,14 @@ export function ProcessingCard({
         {/* Collection chips */}
         {collections.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mr-1 self-center">
+            <span className="text-xs text-slate-500 font-mono mr-1 self-center">
               Filed in:
             </span>
             {collections.map(collection => (
               <button
                 key={collection.id}
                 onClick={() => router.push(`/collections/${collection.id}`)}
-                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:border-open-green hover:text-open-green transition-colors"
               >
                 {collection.type === 'inbox' && (
                   <span className="mr-1">📥</span>

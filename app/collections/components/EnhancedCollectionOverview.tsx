@@ -209,18 +209,18 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
   if (loading) {
     return (
       <div
-        className="relative overflow-hidden bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-pink-50/80 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/30 backdrop-blur-sm rounded-2xl p-6 border border-indigo-200/50 dark:border-indigo-800/50"
+        className="relative overflow-hidden bg-void border border-slate-800 rounded-md shadow-hard"
         style={{ maxHeight: CONDENSED_HEIGHT + 48 }} // 48px for padding
       >
         {/* Shimmer animation */}
-        <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/30 dark:via-white/10 to-transparent" />
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-indigo-200/50 dark:bg-indigo-800/50" />
-            <div className="h-5 bg-indigo-200/50 dark:bg-indigo-800/50 rounded w-40" />
-          </div>
-          <div className="h-4 bg-indigo-200/50 dark:bg-indigo-800/50 rounded w-full" />
-          <div className="h-4 bg-indigo-200/50 dark:bg-indigo-800/50 rounded w-3/4" />
+        <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-800/30 to-transparent" />
+        <div className="font-mono text-xs uppercase tracking-widest text-slate-500 border-b border-slate-800 px-4 py-2">
+          // COLLECTION_ANALYSIS.log
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="h-4 bg-slate-800/50 rounded w-full" />
+          <div className="h-4 bg-slate-800/50 rounded w-3/4" />
+          <div className="h-4 bg-slate-800/50 rounded w-1/2" />
         </div>
       </div>
     );
@@ -237,17 +237,20 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
   // Private collection warning - AI features disabled
   if (isPrivate && !overview) {
     return (
-      <div className="relative overflow-hidden bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-300/50 dark:border-gray-700/50 opacity-60">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-gray-500 dark:text-gray-600" />
+      <div className="relative overflow-hidden bg-void border border-slate-800 rounded-md shadow-hard opacity-60">
+        <div className="font-mono text-xs uppercase tracking-widest text-slate-600 border-b border-slate-800 px-4 py-2">
+          // COLLECTION_ANALYSIS.log
+        </div>
+        <div className="p-4 flex items-start gap-4">
+          <div className="flex-shrink-0 w-8 h-8 rounded bg-slate-800 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-slate-600" />
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-400 mb-2">
-              AI Features Disabled
-            </h3>
-            <p className="text-gray-600 dark:text-gray-500 text-sm">
-              This collection is private. Make it public to enable AI-powered insights and context sharing.
+          <div className="font-mono">
+            <p className="text-sm text-slate-500 mb-1">
+              <span className="text-slate-600">[DISABLED]</span> AI analysis unavailable
+            </p>
+            <p className="text-xs text-slate-600">
+              Collection is private. Make it public to enable AI-powered insights.
             </p>
           </div>
         </div>
@@ -258,47 +261,39 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
   if (needsGeneration) {
     return (
       <>
-        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-pink-50/80 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/30 backdrop-blur-sm rounded-2xl p-6 border border-indigo-200/50 dark:border-indigo-800/50">
-          {/* Subtle animated gradient border effect */}
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 opacity-20 blur-sm animate-pulse" />
+        <div className="relative overflow-hidden bg-void border border-slate-800 rounded-md shadow-hard">
+          <div className="font-mono text-xs uppercase tracking-widest text-slate-500 border-b border-slate-800 px-4 py-2 flex items-center justify-between">
+            <span>// COLLECTION_ANALYSIS.log</span>
+            {hasCustomPrompt && (
+              <span className="text-open-green text-[10px]">[CUSTOM_AGENT]</span>
+            )}
+          </div>
 
-          <div className="relative">
+          <div className="p-4">
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center items-start gap-2">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      AI Curator's Analysis
-                    </h3>
-                    {hasCustomPrompt && (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700 whitespace-nowrap">
-                        Custom Agent
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm mt-1">
-                    Get thematic insights, strategic analysis, and relationship mapping for this collection.
-                  </p>
-                </div>
+              <div className="font-mono">
+                <p className="text-sm text-slate-300 mb-1">
+                  <span className="text-slate-500">[READY]</span> Analysis available
+                </p>
+                <p className="text-xs text-slate-500">
+                  Generate thematic insights, strategic analysis, and relationship mapping.
+                </p>
               </div>
               {isOwner && (
                 <button
                   onClick={openConfigDialog}
-                  className="flex-shrink-0 text-sm text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium flex items-center gap-1 transition-colors"
+                  className="flex-shrink-0 text-xs font-mono text-slate-500 hover:text-slate-300 flex items-center gap-1 transition-colors"
                   title="Configure AI Agent"
                 >
-                  <Settings className="w-4 h-4" />
-                  <span className="hidden sm:inline">Configure</span>
+                  <Settings className="w-3 h-3" />
+                  <span className="hidden sm:inline">config</span>
                 </button>
               )}
             </div>
             <button
               onClick={generateOverview}
               disabled={generating}
-              className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-400 disabled:to-purple-400 text-white px-6 py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/30"
+              className="w-full sm:w-auto bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 text-void disabled:text-slate-400 px-6 py-2.5 rounded-md font-mono font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-hard"
             >
               {generating ? (
                 <>
@@ -308,7 +303,7 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  Generate Overview
+                  Generate Analysis
                 </>
               )}
             </button>
@@ -317,45 +312,35 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
 
         {/* Configure AI Agent Dialog */}
         {showConfigDialog && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-void border border-slate-800 rounded-lg shadow-hard max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
               {/* Dialog Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Configure AI Agent
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Customize how the AI analyzes this collection
-                    </p>
-                  </div>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+                <div className="font-mono text-xs uppercase tracking-widest text-slate-500">
+                  // CONFIGURE_AGENT
                 </div>
                 <button
                   onClick={() => setShowConfigDialog(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className="text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Dialog Body */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-4">
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Custom Prompt Template
+                  <label className="block text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
+                    custom_prompt_template
                   </label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                    Use these variables in your prompt: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_NAME}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_DESCRIPTION}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_TYPE}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{ITEM_COUNT}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{ITEMS_JSON}}"}</code>
+                  <p className="text-xs font-mono text-slate-600 mb-3">
+                    Variables: <code className="text-open-green">{"{{COLLECTION_NAME}}"}</code>, <code className="text-open-green">{"{{COLLECTION_DESCRIPTION}}"}</code>, <code className="text-open-green">{"{{COLLECTION_TYPE}}"}</code>, <code className="text-open-green">{"{{ITEM_COUNT}}"}</code>, <code className="text-open-green">{"{{ITEMS_JSON}}"}</code>
                   </p>
                   <textarea
                     value={customPrompt}
                     onChange={(e) => setCustomPrompt(e.target.value)}
                     placeholder="Enter your custom prompt or load the default template..."
-                    className="w-full h-80 px-4 py-3 text-sm font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                    className="w-full h-80 px-4 py-3 text-sm font-mono bg-slate-deep border border-slate-800 rounded-md focus:ring-1 focus:ring-open-green focus:border-open-green text-slate-300 placeholder-slate-600 resize-none"
                   />
                 </div>
 
@@ -363,39 +348,39 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
                   <button
                     onClick={loadDefaultPrompt}
                     disabled={loadingDefaultPrompt}
-                    className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+                    className="flex items-center gap-2 text-xs font-mono text-open-green hover:text-emerald-400 transition-colors"
                   >
                     {loadingDefaultPrompt ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <FileText className="w-4 h-4" />
                     )}
-                    Load Default Template
+                    load_default_template
                   </button>
                 )}
               </div>
 
               {/* Dialog Footer */}
-              <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <div className="flex items-center justify-between p-4 border-t border-slate-800 bg-slate-deep/50">
                 <button
                   onClick={resetToDefault}
                   disabled={savingPrompt || !hasCustomPrompt}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-xs font-mono text-slate-500 hover:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  Reset to System Default
+                  reset_to_default
                 </button>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowConfigDialog(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    className="px-4 py-2 text-xs font-mono text-slate-500 hover:text-slate-300 transition-colors"
                   >
-                    Cancel
+                    cancel
                   </button>
                   <button
                     onClick={saveCustomPrompt}
                     disabled={savingPrompt}
-                    className="flex items-center gap-2 px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-400 disabled:to-purple-400 rounded-lg shadow-lg shadow-indigo-500/30 transition-all"
+                    className="flex items-center gap-2 px-6 py-2 text-sm font-mono font-bold text-void bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded-md shadow-hard transition-all"
                   >
                     {savingPrompt ? (
                       <>
@@ -422,55 +407,46 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
   const currentHeight = isExpanded ? contentHeight : CONDENSED_HEIGHT;
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-pink-50/80 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/30 backdrop-blur-sm rounded-2xl border border-indigo-200/50 dark:border-indigo-800/50">
-      {/* Subtle animated gradient border effect */}
-      <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 opacity-10 animate-pulse" />
-
-      <div className="relative p-6">
-        {/* Header - Always visible */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center items-start gap-2">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                AI Curator's Analysis
-              </h3>
-              {hasCustomPrompt && (
-                <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700 whitespace-nowrap">
-                  Custom Agent
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {isOwner && (
-              <button
-                onClick={openConfigDialog}
-                className="text-sm text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium flex items-center gap-1 transition-colors"
-                title="Configure AI Agent"
-              >
-                <Settings className="w-4 h-4" />
-                <span className="hidden sm:inline">Configure</span>
-              </button>
-            )}
-            <button
-              onClick={generateOverview}
-              disabled={generating}
-              className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center gap-1 transition-colors"
-              title="Refresh AI analysis"
-            >
-              {generating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              <span className="hidden sm:inline">{generating ? "Refreshing..." : "Refresh"}</span>
-            </button>
-          </div>
+    <div className="relative overflow-hidden bg-void border border-slate-800 rounded-md shadow-hard">
+      {/* Terminal Header */}
+      <div className="font-mono text-xs uppercase tracking-widest text-slate-500 border-b border-slate-800 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span>// COLLECTION_ANALYSIS.log</span>
+          {generating && (
+            <span className="inline-flex items-center gap-1 text-open-green">
+              <span className="animate-pulse">|</span>
+            </span>
+          )}
         </div>
+        <div className="flex items-center gap-3">
+          {hasCustomPrompt && (
+            <span className="text-open-green text-[10px]">[CUSTOM_AGENT]</span>
+          )}
+          {isOwner && (
+            <button
+              onClick={openConfigDialog}
+              className="text-slate-500 hover:text-slate-300 transition-colors"
+              title="Configure AI Agent"
+            >
+              <Settings className="w-3 h-3" />
+            </button>
+          )}
+          <button
+            onClick={generateOverview}
+            disabled={generating}
+            className="text-slate-500 hover:text-open-green disabled:opacity-50 transition-colors"
+            title="Refresh AI analysis"
+          >
+            {generating ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <RefreshCw className="w-3 h-3" />
+            )}
+          </button>
+        </div>
+      </div>
 
+      <div className="p-4">
         {/* Collapsible Content Container */}
         <div
           className="overflow-hidden transition-all duration-300 ease-in-out"
@@ -483,20 +459,20 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
             ref={contentRef}
             className={needsTruncation && !isExpanded ? 'mask-fade-bottom' : ''}
           >
-            <p className="text-gray-800 dark:text-gray-200 mb-4 leading-relaxed font-mono text-sm">
+            <p className="text-slate-300 mb-4 leading-relaxed font-mono text-sm">
               {overview.summary}
             </p>
 
             {overview.themes && overview.themes.length > 0 && (
               <div className="mb-4">
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 font-mono">
-                  Key Themes
+                <h4 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
+                  # KEY_THEMES
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {overview.themes.map((theme, i) => (
                     <span
                       key={i}
-                      className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-sm text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full text-sm border border-indigo-200/50 dark:border-indigo-700/50 font-mono"
+                      className="bg-slate-800/50 text-open-green px-3 py-1 rounded text-xs border border-slate-700 font-mono"
                     >
                       {theme}
                     </span>
@@ -506,14 +482,15 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
             )}
 
             {overview.insights && overview.insights.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 font-mono">
-                  Strategic Insights
+              <div className="mb-4">
+                <h4 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
+                  # STRATEGIC_INSIGHTS
                 </h4>
                 <ul className="space-y-2">
                   {overview.insights.map((insight, i) => (
-                    <li key={i} className="text-gray-800 dark:text-gray-200 text-sm font-mono">
-                      <span className="font-medium text-gray-900 dark:text-white">
+                    <li key={i} className="text-slate-300 text-sm font-mono">
+                      <span className="text-open-green">→</span>{" "}
+                      <span className="font-medium text-white">
                         {insight.title}:
                       </span>{" "}
                       {insight.description}
@@ -524,14 +501,15 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
             )}
 
             {overview.relationships && overview.relationships.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-indigo-200/50 dark:border-indigo-800/50">
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 font-mono">
-                  Item Relationships
+              <div className="mb-4 pt-4 border-t border-slate-800">
+                <h4 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
+                  # ITEM_RELATIONSHIPS
                 </h4>
                 <ul className="space-y-2 text-sm font-mono">
                   {overview.relationships.map((rel, i) => (
-                    <li key={i} className="text-gray-800 dark:text-gray-200">
-                      <span className="font-medium capitalize">{rel.relationship_type}:</span>{" "}
+                    <li key={i} className="text-slate-300">
+                      <span className="text-open-green">→</span>{" "}
+                      <span className="font-medium capitalize text-white">{rel.relationship_type}:</span>{" "}
                       {rel.description}
                     </li>
                   ))}
@@ -539,8 +517,8 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
               </div>
             )}
 
-            <div className="mt-4 pt-4 border-t border-indigo-200/50 dark:border-indigo-800/50 text-xs text-gray-600 dark:text-gray-400 font-mono">
-              Confidence: {(overview.confidence_score * 100).toFixed(0)}%
+            <div className="pt-4 border-t border-slate-800 text-xs text-slate-600 font-mono">
+              confidence_score: <span className="text-open-green">{(overview.confidence_score * 100).toFixed(0)}%</span>
             </div>
           </div>
         </div>
@@ -549,17 +527,17 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
         {needsTruncation && (
           <button
             onClick={toggleExpanded}
-            className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white/40 dark:bg-gray-900/40 hover:bg-white/60 dark:hover:bg-gray-900/60 rounded-lg border border-indigo-200/50 dark:border-indigo-700/50 transition-all duration-200 active:scale-[0.98]"
+            className="mt-4 w-full flex items-center justify-center gap-2 py-2 px-4 text-xs font-mono text-slate-500 hover:text-open-green bg-slate-800/30 hover:bg-slate-800/50 rounded border border-slate-800 transition-all duration-200"
           >
             {isExpanded ? (
               <>
-                <ChevronUp className="w-4 h-4" />
-                Show Less
+                <ChevronUp className="w-3 h-3" />
+                [collapse]
               </>
             ) : (
               <>
-                <ChevronDown className="w-4 h-4" />
-                Read Full Analysis
+                <ChevronDown className="w-3 h-3" />
+                [expand_full_analysis]
               </>
             )}
           </button>
@@ -568,45 +546,35 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
 
       {/* Configure AI Agent Dialog */}
       {showConfigDialog && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-void border border-slate-800 rounded-lg shadow-hard max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Dialog Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-                  <Settings className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Configure AI Agent
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Customize how the AI analyzes this collection
-                  </p>
-                </div>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+              <div className="font-mono text-xs uppercase tracking-widest text-slate-500">
+                // CONFIGURE_AGENT
               </div>
               <button
                 onClick={() => setShowConfigDialog(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                className="text-slate-500 hover:text-slate-300 transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Dialog Body */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4">
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Custom Prompt Template
+                <label className="block text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
+                  custom_prompt_template
                 </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  Use these variables in your prompt: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_NAME}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_DESCRIPTION}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{COLLECTION_TYPE}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{ITEM_COUNT}}"}</code>, <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{"{{ITEMS_JSON}}"}</code>
+                <p className="text-xs font-mono text-slate-600 mb-3">
+                  Variables: <code className="text-open-green">{"{{COLLECTION_NAME}}"}</code>, <code className="text-open-green">{"{{COLLECTION_DESCRIPTION}}"}</code>, <code className="text-open-green">{"{{COLLECTION_TYPE}}"}</code>, <code className="text-open-green">{"{{ITEM_COUNT}}"}</code>, <code className="text-open-green">{"{{ITEMS_JSON}}"}</code>
                 </p>
                 <textarea
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
                   placeholder="Enter your custom prompt or load the default template..."
-                  className="w-full h-80 px-4 py-3 text-sm font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  className="w-full h-80 px-4 py-3 text-sm font-mono bg-slate-deep border border-slate-800 rounded-md focus:ring-1 focus:ring-open-green focus:border-open-green text-slate-300 placeholder-slate-600 resize-none"
                 />
               </div>
 
@@ -614,39 +582,39 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
                 <button
                   onClick={loadDefaultPrompt}
                   disabled={loadingDefaultPrompt}
-                  className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+                  className="flex items-center gap-2 text-xs font-mono text-open-green hover:text-emerald-400 transition-colors"
                 >
                   {loadingDefaultPrompt ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <FileText className="w-4 h-4" />
                   )}
-                  Load Default Template
+                  load_default_template
                 </button>
               )}
             </div>
 
             {/* Dialog Footer */}
-            <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center justify-between p-4 border-t border-slate-800 bg-slate-deep/50">
               <button
                 onClick={resetToDefault}
                 disabled={savingPrompt || !hasCustomPrompt}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-xs font-mono text-slate-500 hover:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />
-                Reset to System Default
+                reset_to_default
               </button>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setShowConfigDialog(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className="px-4 py-2 text-xs font-mono text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  Cancel
+                  cancel
                 </button>
                 <button
                   onClick={saveCustomPrompt}
                   disabled={savingPrompt}
-                  className="flex items-center gap-2 px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-400 disabled:to-purple-400 rounded-lg shadow-lg shadow-indigo-500/30 transition-all"
+                  className="flex items-center gap-2 px-6 py-2 text-sm font-mono font-bold text-void bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded-md shadow-hard transition-all"
                 >
                   {savingPrompt ? (
                     <>

@@ -8,6 +8,7 @@ export type Database = {
           phone: string | null;
           avatar_url: string | null;
           default_visibility: 'public' | 'private';
+          username: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -17,6 +18,7 @@ export type Database = {
           phone?: string | null;
           avatar_url?: string | null;
           default_visibility?: 'public' | 'private';
+          username?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -26,6 +28,7 @@ export type Database = {
           phone?: string | null;
           avatar_url?: string | null;
           default_visibility?: 'public' | 'private';
+          username?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -43,6 +46,8 @@ export type Database = {
           ai_overview_model: string | null;
           ai_overview_valid: boolean;
           custom_prompt: string | null;
+          fork_count: number;
+          is_forkable: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -58,6 +63,8 @@ export type Database = {
           ai_overview_model?: string | null;
           ai_overview_valid?: boolean;
           custom_prompt?: string | null;
+          fork_count?: number;
+          is_forkable?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -73,8 +80,36 @@ export type Database = {
           ai_overview_model?: string | null;
           ai_overview_valid?: boolean;
           custom_prompt?: string | null;
+          fork_count?: number;
+          is_forkable?: boolean;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      collection_forks: {
+        Row: {
+          id: string;
+          source_collection_id: string | null;
+          forked_collection_id: string;
+          forked_at: string;
+          source_owner_username: string | null;
+          source_collection_name: string | null;
+        };
+        Insert: {
+          id?: string;
+          source_collection_id?: string | null;
+          forked_collection_id: string;
+          forked_at?: string;
+          source_owner_username?: string | null;
+          source_collection_name?: string | null;
+        };
+        Update: {
+          id?: string;
+          source_collection_id?: string | null;
+          forked_collection_id?: string;
+          forked_at?: string;
+          source_owner_username?: string | null;
+          source_collection_name?: string | null;
         };
       };
       items: {

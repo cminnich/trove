@@ -99,10 +99,10 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-void">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading settings...</p>
+          <Loader2 className="w-8 h-8 text-open-green animate-spin mx-auto mb-4" />
+          <p className="text-slate-400 font-mono text-sm">Loading settings...</p>
         </div>
       </main>
     )
@@ -117,31 +117,31 @@ export default function SettingsPage() {
   const deploymentVersion = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'dev-local'
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-24 md:pb-8">
+    <main className="min-h-screen bg-void pb-24 md:pb-8">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Settings className="w-8 h-8 text-indigo-400" />
-            <h1 className="text-3xl font-bold text-white">
-              Settings
+            <Settings className="w-8 h-8 text-open-green" />
+            <h1 className="text-3xl font-mono font-bold text-white tracking-wide">
+              SETTINGS
             </h1>
           </div>
-          <p className="text-slate-400">
-            Manage your account and preferences
+          <p className="text-slate-400 font-mono text-sm">
+            // Manage your account and preferences
           </p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
           {/* Vertical Navigation */}
           <nav className="md:w-64 flex-shrink-0">
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-2 shadow-xl">
+            <div className="bg-slate-deep border border-slate-800 rounded-lg p-2 shadow-hard">
               <button
                 onClick={() => setActiveSection('account')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-mono text-sm ${
                   activeSection === 'account'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                    ? 'bg-slate-800 text-open-green'
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
                 }`}
               >
                 <UserIcon className="w-5 h-5" />
@@ -150,10 +150,10 @@ export default function SettingsPage() {
 
               <button
                 onClick={() => setActiveSection('preferences')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-mono text-sm ${
                   activeSection === 'preferences'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                    ? 'bg-slate-800 text-open-green'
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
                 }`}
               >
                 <Palette className="w-5 h-5" />
@@ -162,10 +162,10 @@ export default function SettingsPage() {
 
               <button
                 onClick={() => setActiveSection('debug')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-mono text-sm ${
                   activeSection === 'debug'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                    ? 'bg-slate-800 text-open-green'
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
                 }`}
               >
                 <Bug className="w-5 h-5" />
@@ -176,50 +176,50 @@ export default function SettingsPage() {
 
           {/* Content Area */}
           <div className="flex-1">
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 md:p-8 shadow-xl">
+            <div className="bg-slate-deep border border-slate-800 rounded-lg p-6 md:p-8 shadow-hard">
               {/* Account Section */}
               {activeSection === 'account' && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Account</h2>
-                    <p className="text-slate-400">Manage your account information and authentication</p>
+                    <h2 className="text-xl font-mono font-bold text-white mb-2">ACCOUNT</h2>
+                    <p className="text-slate-400 font-mono text-sm">// Manage your account information</p>
                   </div>
 
                   {/* User Info */}
                   <div className="space-y-4">
-                    <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <div className="bg-void border border-slate-800 rounded-lg p-4">
+                      <label className="block text-sm font-mono font-medium text-slate-300 mb-2">
                         Email Address
                       </label>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-semibold text-lg">
+                        <div className="w-10 h-10 bg-open-green rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-void font-mono font-bold text-lg">
                             {user.email?.[0].toUpperCase() || '?'}
                           </span>
                         </div>
                         <div>
-                          <p className="text-white font-medium">{user.email}</p>
-                          <p className="text-sm text-slate-400">Logged in via {user.app_metadata.provider || 'email'}</p>
+                          <p className="text-white font-mono">{user.email}</p>
+                          <p className="text-sm text-slate-500 font-mono">via {user.app_metadata.provider || 'email'}</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <div className="bg-void border border-slate-800 rounded-lg p-4">
+                      <label className="block text-sm font-mono font-medium text-slate-300 mb-2">
                         User ID
                       </label>
-                      <code className="block text-xs text-indigo-300 font-mono bg-slate-950 px-3 py-2 rounded border border-slate-700">
+                      <code className="block text-xs text-open-green font-mono bg-slate-deep px-3 py-2 rounded border border-slate-800">
                         {user.id}
                       </code>
                     </div>
                   </div>
 
                   {/* Sign Out Button */}
-                  <div className="pt-4 border-t border-slate-700/50">
+                  <div className="pt-4 border-t border-slate-800">
                     <button
                       onClick={handleSignOut}
                       disabled={signingOut}
-                      className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:opacity-50 text-white font-medium rounded-lg transition-colors"
+                      className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:opacity-50 text-white font-mono font-medium rounded-lg transition-colors"
                     >
                       {signingOut ? (
                         <>
@@ -241,37 +241,37 @@ export default function SettingsPage() {
               {activeSection === 'preferences' && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Preferences</h2>
-                    <p className="text-slate-400">Customize your Trove experience</p>
+                    <h2 className="text-xl font-mono font-bold text-white mb-2">PREFERENCES</h2>
+                    <p className="text-slate-400 font-mono text-sm">// Customize your Trove experience</p>
                   </div>
 
                   {preferencesLoading ? (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+                      <Loader2 className="w-6 h-6 text-open-green animate-spin" />
                     </div>
                   ) : (
                     <>
                       {/* Default Visibility */}
-                      <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
+                      <div className="bg-void border border-slate-800 rounded-lg p-4">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               {defaultVisibility === 'public' ? (
-                                <Globe className="w-4 h-4 text-emerald-400" />
+                                <Globe className="w-4 h-4 text-open-green" />
                               ) : (
                                 <Lock className="w-4 h-4 text-amber-400" />
                               )}
-                              <label className="block text-sm font-medium text-white">
+                              <label className="block text-sm font-mono font-medium text-white">
                                 {defaultVisibility === 'public' ? 'Public by Default' : 'Privacy Mode Enabled'}
                               </label>
                             </div>
-                            <p className="text-sm text-slate-400 mb-2">
+                            <p className="text-sm text-slate-400 font-mono">
                               {defaultVisibility === 'public'
                                 ? 'New collections are public and can use AI features like smart descriptions and insights'
                                 : 'New collections are private. AI features are disabled for privacy.'}
                             </p>
                             {defaultVisibility === 'private' && (
-                              <div className="mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-300">
+                              <div className="mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-300 font-mono">
                                 <strong>Note:</strong> Privacy mode disables AI-powered features like collection overviews and smart recommendations.
                               </div>
                             )}
@@ -280,7 +280,7 @@ export default function SettingsPage() {
                             onClick={handleVisibilityToggle}
                             disabled={isUpdatingVisibility}
                             className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors flex-shrink-0 ${
-                              defaultVisibility === 'public' ? 'bg-emerald-600' : 'bg-amber-600'
+                              defaultVisibility === 'public' ? 'bg-open-green' : 'bg-amber-600'
                             } ${isUpdatingVisibility ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             {isUpdatingVisibility ? (
@@ -297,18 +297,18 @@ export default function SettingsPage() {
                       </div>
 
                       {/* Appearance */}
-                      <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
+                      <div className="bg-void border border-slate-800 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <label className="block text-sm font-medium text-white mb-1">
+                            <label className="block text-sm font-mono font-medium text-white mb-1">
                               Appearance
                             </label>
-                            <p className="text-sm text-slate-400">Toggle between light and dark mode</p>
+                            <p className="text-sm text-slate-400 font-mono">Toggle between light and dark mode</p>
                           </div>
                           <button
                             onClick={() => setDarkMode(!darkMode)}
                             className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                              darkMode ? 'bg-indigo-600' : 'bg-slate-700'
+                              darkMode ? 'bg-open-green' : 'bg-slate-700'
                             }`}
                           >
                             <span
@@ -319,22 +319,22 @@ export default function SettingsPage() {
                           </button>
                         </div>
                         {darkMode && (
-                          <div className="mt-2 text-xs text-indigo-300">
+                          <div className="mt-2 text-xs text-open-green font-mono">
                             Dark mode enabled (UI preview)
                           </div>
                         )}
                       </div>
 
                       {/* AI Tone */}
-                      <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-                        <label className="block text-sm font-medium text-white mb-2">
+                      <div className="bg-void border border-slate-800 rounded-lg p-4">
+                        <label className="block text-sm font-mono font-medium text-white mb-2">
                           AI Tone
                         </label>
-                        <p className="text-sm text-slate-400 mb-3">Select the tone for AI-generated descriptions</p>
+                        <p className="text-sm text-slate-400 font-mono mb-3">Select the tone for AI-generated descriptions</p>
                         <select
                           value={aiTone}
                           onChange={(e) => setAiTone(e.target.value)}
-                          className="w-full px-4 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          className="w-full px-4 py-2 bg-slate-deep border border-slate-800 rounded-lg text-white font-mono focus:ring-2 focus:ring-open-green focus:border-transparent"
                         >
                           <option value="concise">Concise</option>
                           <option value="technical">Technical</option>
@@ -342,9 +342,9 @@ export default function SettingsPage() {
                         </select>
                       </div>
 
-                      <div className="pt-4 border-t border-slate-700/50">
-                        <p className="text-xs text-slate-500 italic">
-                          Note: Appearance and AI Tone are UI stubs and are not currently persisted.
+                      <div className="pt-4 border-t border-slate-800">
+                        <p className="text-xs text-slate-500 font-mono italic">
+                          // Note: Appearance and AI Tone are UI stubs and are not currently persisted.
                         </p>
                       </div>
                     </>
@@ -356,60 +356,60 @@ export default function SettingsPage() {
               {activeSection === 'debug' && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Debug</h2>
-                    <p className="text-slate-400">Technical information about your deployment</p>
+                    <h2 className="text-xl font-mono font-bold text-white mb-2">DEBUG</h2>
+                    <p className="text-slate-400 font-mono text-sm">// Technical information about your deployment</p>
                   </div>
 
                   {/* Deployment Version */}
-                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <div className="bg-void border border-slate-800 rounded-lg p-4">
+                    <label className="block text-sm font-mono font-medium text-slate-300 mb-2">
                       Deployment Version
                     </label>
-                    <code className="block text-sm text-emerald-300 font-mono bg-slate-950 px-4 py-3 rounded border border-slate-700">
+                    <code className="block text-sm text-open-green font-mono bg-slate-deep px-4 py-3 rounded border border-slate-800">
                       {deploymentVersion}
                     </code>
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs text-slate-500 font-mono mt-2">
                       Git commit SHA (first 7 characters)
                     </p>
                   </div>
 
                   {/* Build Timestamp */}
-                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <div className="bg-void border border-slate-800 rounded-lg p-4">
+                    <label className="block text-sm font-mono font-medium text-slate-300 mb-2">
                       Last Build Timestamp
                     </label>
-                    <code className="block text-sm text-emerald-300 font-mono bg-slate-950 px-4 py-3 rounded border border-slate-700">
+                    <code className="block text-sm text-open-green font-mono bg-slate-deep px-4 py-3 rounded border border-slate-800">
                       {new Date(buildTimestamp).toLocaleString()}
                     </code>
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs text-slate-500 font-mono mt-2">
                       ISO 8601 format: {buildTimestamp}
                     </p>
                   </div>
 
                   {/* Environment Info */}
-                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <div className="bg-void border border-slate-800 rounded-lg p-4">
+                    <label className="block text-sm font-mono font-medium text-slate-300 mb-2">
                       Environment
                     </label>
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm font-mono">
                         <span className="text-slate-400">Node Environment:</span>
-                        <code className="text-emerald-300 font-mono">
+                        <code className="text-open-green">
                           {process.env.NODE_ENV || 'production'}
                         </code>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm font-mono">
                         <span className="text-slate-400">Vercel Deployment:</span>
-                        <code className="text-emerald-300 font-mono">
+                        <code className="text-open-green">
                           {process.env.NEXT_PUBLIC_VERCEL_ENV || 'false'}
                         </code>
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-700/50">
-                    <p className="text-xs text-slate-500 italic">
-                      Debug information is useful for troubleshooting and support.
+                  <div className="pt-4 border-t border-slate-800">
+                    <p className="text-xs text-slate-500 font-mono italic">
+                      // Debug information is useful for troubleshooting and support.
                     </p>
                   </div>
                 </div>

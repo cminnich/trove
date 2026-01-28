@@ -23,9 +23,9 @@ export function MockProgressBar({ extractionState, onComplete }: MockProgressBar
   // Determine visual state
   const getProgressColor = (): string => {
     if (extractionState.status === 'failed') return 'bg-red-500'
-    if (extractionState.status === 'complete') return 'bg-green-500'
+    if (extractionState.status === 'complete') return 'bg-open-green'
     if (isStalled) return 'bg-amber-500'
-    return 'bg-indigo-600'
+    return 'bg-open-green'
   }
 
   const getStatusText = (): string => {
@@ -38,30 +38,30 @@ export function MockProgressBar({ extractionState, onComplete }: MockProgressBar
     if (isStalled) {
       return 'Still working...'
     }
-    return 'Librarian is cataloging details...'
+    return '// Librarian is cataloging details...'
   }
 
   const getContainerColor = (): string => {
-    if (extractionState.status === 'failed') return 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
-    if (extractionState.status === 'complete') return 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20'
-    if (isStalled) return 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20'
-    return 'border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20'
+    if (extractionState.status === 'failed') return 'border-red-800 bg-red-900/20'
+    if (extractionState.status === 'complete') return 'border-open-green/30 bg-open-green/10'
+    if (isStalled) return 'border-amber-800 bg-amber-900/20'
+    return 'border-slate-800 bg-slate-deep'
   }
 
   return (
     <div className={`w-full p-4 rounded-lg border ${getContainerColor()} transition-colors duration-300`}>
       {/* Status text */}
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <p className="text-sm font-mono font-medium text-slate-300">
           {getStatusText()}
         </p>
-        <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+        <span className="text-xs font-mono text-slate-500">
           {Math.round(progress)}%
         </span>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+      <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
         <div
           className={`h-full ${getProgressColor()} transition-all duration-200 ease-linear`}
           style={{ width: `${progress}%` }}
@@ -70,7 +70,7 @@ export function MockProgressBar({ extractionState, onComplete }: MockProgressBar
 
       {/* Stalled indicator */}
       {isStalled && extractionState.status === 'in_progress' && (
-        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+        <p className="text-xs text-amber-400 font-mono mt-2">
           This is taking longer than expected...
         </p>
       )}

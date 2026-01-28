@@ -31,14 +31,14 @@ export function SourceUrlBadge({ url }: SourceUrlBadgeProps) {
 
   return (
     <div className="flex items-center gap-2 mb-4">
-      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+      <span className="text-xs text-slate-500 font-mono font-medium">
         Source:
       </span>
       <a
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-mono text-gray-700 dark:text-gray-300 hover:border-indigo-400 transition-colors"
+        className="inline-flex items-center px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono text-slate-300 hover:border-open-green transition-colors"
       >
         {formatUrl(url)}
       </a>

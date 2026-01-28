@@ -13,17 +13,17 @@ interface CollectionGridProps {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 animate-pulse">
+    <div className="bg-slate-deep rounded-lg border border-slate-800 animate-pulse shadow-hard">
       {/* Skeleton thumbnail grid */}
       <div className="aspect-square grid grid-cols-2 gap-1 p-2">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-gray-200 dark:bg-gray-700 rounded" />
+          <div key={i} className="bg-slate-800 rounded" />
         ))}
       </div>
       {/* Skeleton info */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+      <div className="p-4 border-t border-slate-800 space-y-2">
+        <div className="h-5 bg-slate-800 rounded w-3/4" />
+        <div className="h-4 bg-slate-800 rounded w-1/2" />
       </div>
     </div>
   )

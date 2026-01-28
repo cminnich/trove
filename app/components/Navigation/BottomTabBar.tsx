@@ -15,7 +15,7 @@ export function BottomTabBar() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
+      className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-void border-t border-slate-800"
       style={{
         height: '80px',
         paddingBottom: 'env(safe-area-inset-bottom)',
@@ -33,13 +33,13 @@ export function BottomTabBar() {
               href={tab.href}
               className={`flex flex-col items-center justify-center min-w-[64px] h-14 rounded-lg transition-colors ${
                 isActive
-                  ? 'text-indigo-600 dark:text-indigo-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  ? 'text-open-green'
+                  : 'text-slate-500 hover:text-slate-300'
               }`}
               aria-current={isActive ? 'page' : undefined}
             >
               <Icon className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">{tab.name}</span>
+              <span className="text-xs font-mono font-medium">{tab.name}</span>
             </Link>
           )
         })}

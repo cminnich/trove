@@ -1,11 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { BottomTabBar } from "@/app/components/Navigation/BottomTabBar";
-import { DesktopNav } from "@/app/components/Navigation/DesktopNav";
+import { NavigationWrapper } from "@/app/components/Navigation/NavigationWrapper";
+import { MainContent } from "@/app/components/Navigation/MainContent";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -17,8 +22,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Trove - Personal Knowledge Graph",
-  description: "Your collections, AI-ready",
+  title: "Open Trove - Community Library for Enthusiasts",
+  description: "The community-owned library of gear, collections, and enthusiast knowledge. Public by default. Open source. Exportable forever.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -36,10 +41,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <DesktopNav />
-        <main className="pb-20 md:pb-0">{children}</main>
-        <BottomTabBar />
+      <body className={`${inter.className} ${jetbrainsMono.variable}`}>
+        <NavigationWrapper />
+        <MainContent>{children}</MainContent>
         <Toaster position="top-center" richColors closeButton />
       </body>
     </html>
