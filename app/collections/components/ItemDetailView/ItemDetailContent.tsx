@@ -19,6 +19,7 @@ import { useUserCollections } from '@/app/hooks/useUserCollections'
 import { useCollections } from '@/app/hooks/useCollections'
 import type { Database } from '@/types/database'
 import { getItemDisplayTitle, formatUrlForDisplay } from '@/lib/url-formatter'
+import { formatPrice } from '@/lib/price-formatter'
 import { toast } from 'sonner'
 import { AddToCollectionSheet } from './AddToCollectionSheet'
 import { getClient } from '@/lib/supabase-client'
@@ -53,6 +54,8 @@ export function ItemDetailContent({
   const [category, setCategory] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [imageUrl, setImageUrl] = useState('')
+  const [price, setPrice] = useState<number | null>(null)
+  const [currency, setCurrency] = useState('USD')
   const [saving, setSaving] = useState(false)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [loadingSnapshots, setLoadingSnapshots] = useState(false)
@@ -97,6 +100,8 @@ export function ItemDetailContent({
       setCategory(item.category || '')
       setTags(item.tags || [])
       setImageUrl(item.image_url || '')
+      setPrice(item.price)
+      setCurrency(item.currency || 'USD')
 
       // Fetch snapshots for this item
       setLoadingSnapshots(true)
@@ -168,16 +173,24 @@ export function ItemDetailContent({
   const handleSave = async () => {
     setSaving(true)
     try {
-      // Update item fields (category, tags, image_url)
+      // Update item fields (category, tags, image_url, price, currency)
       if (
         category !== item.category ||
         JSON.stringify(tags) !== JSON.stringify(item.tags || []) ||
-        imageUrl !== (item.image_url || '')
+        imageUrl !== (item.image_url || '') ||
+        price !== item.price ||
+        currency !== item.currency
       ) {
         await fetch(`/api/items/${item.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ category, tags, image_url: imageUrl || null }),
+          body: JSON.stringify({
+            category,
+            tags,
+            image_url: imageUrl || null,
+            price,
+            currency,
+          }),
         })
       }
 
@@ -290,6 +303,8 @@ export function ItemDetailContent({
     setCategory(item.category || '')
     setTags(item.tags || [])
     setImageUrl(item.image_url || '')
+    setPrice(item.price)
+    setCurrency(item.currency || 'USD')
     setEditMode(false)
   }
 
@@ -417,12 +432,12 @@ export function ItemDetailContent({
         </div>
       )}
 
-      {/* Image URL - Editable */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Image URL
-        </label>
-        {editMode ? (
+      {/* Image URL - Editable (only shown in edit mode) */}
+      {editMode && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Image URL
+          </label>
           <input
             type="url"
             value={imageUrl}
@@ -430,12 +445,8 @@ export function ItemDetailContent({
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             placeholder="https://example.com/image.jpg"
           />
-        ) : (
-          <p className="text-gray-900 dark:text-gray-100 text-sm truncate">
-            {item.image_url || <span className="text-gray-400">No image</span>}
-          </p>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Title & Brand */}
       <div>
@@ -452,12 +463,41 @@ export function ItemDetailContent({
       )}
 
       {/* Price */}
-      {item.price && item.currency && (
+      {editMode && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Price
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={price ?? ''}
+              onChange={(e) => setPrice(e.target.value ? parseFloat(e.target.value) : null)}
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              placeholder="19.99"
+            />
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            >
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="CAD">CAD</option>
+              <option value="AUD">AUD</option>
+              <option value="JPY">JPY</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {!editMode && item.price && item.currency && (
         <div>
           <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 font-mono">
-            {item.currency === 'USD' && '$'}
-            {item.price.toLocaleString()}
-            {item.currency !== 'USD' && ` ${item.currency}`}
+            {formatPrice(item.price, item.currency)}
           </div>
 
           {/* Price History Indicator */}

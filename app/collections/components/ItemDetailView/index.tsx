@@ -55,7 +55,7 @@ export function ItemDetailView({ items, isOwner, onUpdate }: ItemDetailViewProps
     preferences: filterPreferences,
     toggleFilter,
     resetFilter,
-  } = useFilterPreferences(collectionId)
+  } = useFilterPreferences(collectionId, !isOwner)
 
   // Get collection attribute schema management
   const { toggleSchemaVisibility } = useCollectionAttributeSchemas(collectionId)

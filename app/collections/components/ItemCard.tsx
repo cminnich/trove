@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { Database } from '@/types/database'
 import { ConfidenceBadge } from '@/app/components/ConfidenceBadge'
 import { getItemDisplayTitle, formatUrlForDisplay } from '@/lib/url-formatter'
+import { formatPrice } from '@/lib/price-formatter'
 import { RefreshCw, AlertCircle } from 'lucide-react'
 
 type Item = Database['public']['Tables']['items']['Row']
@@ -109,9 +110,7 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
             )}
             {item.price && item.currency && (
               <p className="text-lg font-bold text-gray-900 dark:text-gray-100 font-mono">
-                {item.currency === 'USD' && '$'}
-                {item.price.toLocaleString()}
-                {item.currency !== 'USD' && ` ${item.currency}`}
+                {formatPrice(item.price, item.currency)}
               </p>
             )}
             <div className="flex gap-2 mt-2 flex-wrap">
@@ -190,9 +189,7 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
                 <tr className="border-b border-slate-800/50">
                   <td className="px-3 py-1.5 text-slate-500 w-1/3">Price</td>
                   <td className="px-3 py-1.5 text-open-green font-bold text-right">
-                    {item.currency === 'USD' && '$'}
-                    {item.price.toLocaleString()}
-                    {item.currency !== 'USD' && ` ${item.currency}`}
+                    {formatPrice(item.price, item.currency)}
                   </td>
                 </tr>
               )}
@@ -279,9 +276,7 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
 
         {item.price && item.currency && (
           <p className="text-xl font-bold text-gray-900 dark:text-gray-100 font-mono mb-2">
-            {item.currency === 'USD' && '$'}
-            {item.price.toLocaleString()}
-            {item.currency !== 'USD' && ` ${item.currency}`}
+            {formatPrice(item.price, item.currency)}
           </p>
         )}
 

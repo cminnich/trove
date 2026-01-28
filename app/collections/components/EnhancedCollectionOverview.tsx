@@ -290,23 +290,25 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
                 </button>
               )}
             </div>
-            <button
-              onClick={generateOverview}
-              disabled={generating}
-              className="w-full sm:w-auto bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 text-void disabled:text-slate-400 px-6 py-2.5 rounded-md font-mono font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-hard"
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Generate Analysis
-                </>
-              )}
-            </button>
+            {isOwner && (
+              <button
+                onClick={generateOverview}
+                disabled={generating}
+                className="w-full sm:w-auto bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 text-void disabled:text-slate-400 px-6 py-2.5 rounded-md font-mono font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-hard"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Generate Analysis
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -423,26 +425,28 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
             <span className="text-open-green text-[10px]">[CUSTOM_AGENT]</span>
           )}
           {isOwner && (
-            <button
-              onClick={openConfigDialog}
-              className="text-slate-500 hover:text-slate-300 transition-colors"
-              title="Configure AI Agent"
-            >
-              <Settings className="w-3 h-3" />
-            </button>
+            <>
+              <button
+                onClick={openConfigDialog}
+                className="text-slate-500 hover:text-slate-300 transition-colors"
+                title="Configure AI Agent"
+              >
+                <Settings className="w-3 h-3" />
+              </button>
+              <button
+                onClick={generateOverview}
+                disabled={generating}
+                className="text-slate-500 hover:text-open-green disabled:opacity-50 transition-colors"
+                title="Refresh AI analysis"
+              >
+                {generating ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3" />
+                )}
+              </button>
+            </>
           )}
-          <button
-            onClick={generateOverview}
-            disabled={generating}
-            className="text-slate-500 hover:text-open-green disabled:opacity-50 transition-colors"
-            title="Refresh AI analysis"
-          >
-            {generating ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <RefreshCw className="w-3 h-3" />
-            )}
-          </button>
         </div>
       </div>
 

@@ -59,7 +59,7 @@ export async function PATCH(
     const body = await req.json();
 
     // Allowed fields to update
-    const allowedFields = ["category", "tags", "item_type", "image_url"];
+    const allowedFields = ["category", "tags", "item_type", "image_url", "price", "currency"];
     const updateData: Partial<Item> = {};
 
     for (const field of allowedFields) {

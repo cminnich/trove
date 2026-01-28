@@ -17,7 +17,7 @@ interface FilterPreferencesResponse {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-export function useFilterPreferences(collectionId: string | null) {
+export function useFilterPreferences(collectionId: string | null, isReadOnly: boolean = false) {
   const url = collectionId ? `/api/collections/${collectionId}/filter-preferences` : null
 
   const { data, error, mutate, isLoading } = useSWR<FilterPreferencesResponse>(
@@ -33,6 +33,9 @@ export function useFilterPreferences(collectionId: string | null) {
   const toggleFilter = useCallback(
     async (schemaId: string, isHidden: boolean, forceShow: boolean) => {
       if (!collectionId) return
+
+      // Read-only mode: don't save changes to database
+      if (isReadOnly) return
 
       try {
         const response = await fetch(`/api/collections/${collectionId}/filter-preferences`, {
@@ -52,13 +55,16 @@ export function useFilterPreferences(collectionId: string | null) {
         console.error('Failed to update filter preference:', err)
       }
     },
-    [collectionId, mutate]
+    [collectionId, isReadOnly, mutate]
   )
 
   // Delete a filter preference (reset to auto-hide behavior)
   const resetFilter = useCallback(
     async (schemaId: string) => {
       if (!collectionId) return
+
+      // Read-only mode: don't save changes to database
+      if (isReadOnly) return
 
       try {
         const response = await fetch(
@@ -73,7 +79,7 @@ export function useFilterPreferences(collectionId: string | null) {
         console.error('Failed to reset filter preference:', err)
       }
     },
-    [collectionId, mutate]
+    [collectionId, isReadOnly, mutate]
   )
 
   // Build a map of schema_id -> preference for easy lookup

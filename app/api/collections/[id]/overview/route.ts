@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceRoleClient } from "@/lib/supabase-server";
+import { getServiceRoleClient, getAuthenticatedServerClient } from "@/lib/supabase-server";
 import { loadPrompt, replaceVars, callClaudeJSON } from "@/lib/ai";
 import {
   CollectionOverviewSchema,
@@ -95,6 +95,16 @@ export async function POST(
     const { id } = await params;
     const url = new URL(req.url);
     const reprocessFilters = url.searchParams.get("reprocess_filters") === "true";
+
+    // Get authenticated user for owner check
+    const { user, error: authError } = await getAuthenticatedServerClient();
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const supabase = getServiceRoleClient();
 
     // Step 1: Fetch collection with items
@@ -113,6 +123,14 @@ export async function POST(
 
     // Type assertion needed due to Supabase client type inference limitations
     const collection = collectionData as Collection;
+
+    // Security: Only allow owner to trigger AI generation
+    if (collection.owner_id !== user.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
 
     // Handle reprocess_filters mode: skip AI, just reprocess from existing overview
     if (reprocessFilters) {
