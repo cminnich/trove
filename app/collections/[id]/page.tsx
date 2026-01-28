@@ -30,7 +30,6 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { ForkButton, ForkBreadcrumb } from '@/app/components/Fork'
-import { ExportButton } from '@/app/components/Export'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
@@ -266,14 +265,6 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
               <Users className="w-4 h-4" />
               <span className="hidden lg:inline">Share</span>
             </button>
-          )}
-
-          {/* Export Button */}
-          {collection && (
-            <ExportButton
-              collectionId={id}
-              collectionName={collection.name}
-            />
           )}
 
           {/* Settings Button - Only for owner */}

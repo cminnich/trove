@@ -12,6 +12,10 @@ import {
   Shield,
   Loader2,
   Check,
+  Download,
+  Link2,
+  FileJson,
+  FileSpreadsheet,
 } from "lucide-react";
 import type { Database } from "@/types/database";
 
@@ -49,6 +53,7 @@ export function CollectionSettingsDialog({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Reset form when collection changes
   useEffect(() => {
@@ -123,6 +128,23 @@ export function CollectionSettingsDialog({
       setError(err instanceof Error ? err.message : "Failed to delete collection");
       setShowDeleteConfirm(false);
     }
+  };
+
+  const handleCopyContextUrl = async () => {
+    const contextUrl = `${window.location.origin}/api/v1/collections/${collection.id}/context?level=full`;
+    try {
+      await navigator.clipboard.writeText(contextUrl);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy to clipboard:", err);
+      setError("Failed to copy URL to clipboard");
+    }
+  };
+
+  const handleExport = (format: "json" | "csv") => {
+    const url = `/api/collections/${collection.id}/export?format=${format}`;
+    window.open(url, "_blank");
   };
 
   const handleClose = () => {
@@ -297,7 +319,68 @@ export function CollectionSettingsDialog({
             </div>
           </div>
 
-          {/* Section 3: Danger Zone */}
+          {/* Section 3: Data & Export */}
+          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Download className="w-5 h-5" />
+              Data & Export
+            </h3>
+
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Export your collection data for backups or use with external AI agents and tools.
+            </p>
+
+            {/* AI Context URL */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Full AI Context URL
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Markdown + JSON hybrid format with full product metadata for AI agents
+              </p>
+              <button
+                onClick={handleCopyContextUrl}
+                className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-sm"
+              >
+                {copySuccess ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <span className="text-green-600 dark:text-green-400">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="w-4 h-4" />
+                    Copy AI Context URL
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Legacy Export Options */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Legacy Export
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleExport("json")}
+                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                >
+                  <FileJson className="w-4 h-4" />
+                  JSON
+                </button>
+                <button
+                  onClick={() => handleExport("csv")}
+                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  CSV
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Danger Zone */}
           <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
