@@ -105,9 +105,12 @@ export function SwipeNavigator({
       <motion.div
         key={currentIndex}
         className="w-full h-full touch-pan-y"
+        style={{ touchAction: 'pan-y' }}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.2}
+        dragDirectionLock
+        dragMomentum={false}
         onDragEnd={handleDragEnd}
         animate={controls}
         initial={{ opacity: 1, x: 0 }}
