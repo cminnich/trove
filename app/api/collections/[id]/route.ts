@@ -226,44 +226,25 @@ export async function DELETE(
       }
     }
 
-    // If there are orphans, ensure Inbox exists and add them to it
+    // If there are orphans, add them to the Inbox
     if (orphanItemIds.length > 0) {
-      // Find or create Inbox collection
+      // Find Inbox collection (guaranteed to exist via database trigger in migration 017)
       const { data: inboxCollection, error: inboxFindError } = await client
         .from("collections")
         .select("id")
         .eq("owner_id", user.id)
         .eq("type", "inbox")
-        .maybeSingle();
-
-      let inboxId: string;
+        .single();
 
       if (inboxFindError || !inboxCollection) {
-        // Create Inbox if it doesn't exist
-        const { data: newInbox, error: inboxCreateError } = await (client as any)
-          .from("collections")
-          .insert({
-            owner_id: user.id,
-            name: "Inbox",
-            description: "Default collection for items without a home",
-            type: "inbox",
-            visibility: "private",
-          })
-          .select("id")
-          .single();
-
-        if (inboxCreateError || !newInbox) {
-          console.error("Failed to create Inbox collection:", inboxCreateError);
-          return NextResponse.json(
-            { success: false, error: "Failed to create Inbox collection for orphaned items" } as CollectionResponse,
-            { status: 500 }
-          );
-        }
-
-        inboxId = (newInbox as { id: string }).id;
-      } else {
-        inboxId = (inboxCollection as { id: string }).id;
+        console.error("Failed to find Inbox collection:", inboxFindError);
+        return NextResponse.json(
+          { success: false, error: "Failed to find Inbox collection for orphaned items" } as CollectionResponse,
+          { status: 500 }
+        );
       }
+
+      const inboxId = (inboxCollection as { id: string }).id;
 
       // Add orphan items to Inbox (these will be moved after collection deletion)
       // We need to insert before deletion because cascade will remove collection_items entries

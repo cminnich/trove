@@ -17,7 +17,6 @@ interface CollectionResponse {
 }
 
 // GET /api/collections - List all collections with thumbnails and item counts
-// Automatically ensures Inbox collection exists
 export async function GET() {
   try {
     // Get authenticated user
@@ -30,27 +29,8 @@ export async function GET() {
       );
     }
 
-    // Ensure Inbox collection exists for this user
-    const { data: existingInbox } = await client
-      .from("collections")
-      .select("id")
-      .eq("owner_id", user.id)
-      .eq("name", "Inbox")
-      .eq("type", "inbox")
-      .maybeSingle();
-
-    if (!existingInbox) {
-      // Create Inbox collection using SECURITY DEFINER function
-      // This ensures proper RLS context while creating the default collection
-      await (client as any).rpc('create_user_collection', {
-        collection_name: "Inbox",
-        collection_description: "Default collection for new items",
-        collection_type: "inbox",
-        collection_visibility: "private",
-      });
-    }
-
     // Get all collections owned by this user
+    // Note: The Inbox collection is now guaranteed to exist via database trigger (migration 017)
     const { data: collections, error } = await client
       .from("collections")
       .select("*")

@@ -91,45 +91,18 @@ export async function DELETE(
 
     // If item doesn't exist in any other user collections, add to Inbox
     if (!otherCollections || otherCollections.length === 0) {
-      // Find or create Inbox collection (type: "inbox")
-      const { data: inboxCollection, error: inboxFindError } = await client
+      // Find Inbox collection (guaranteed to exist via database trigger in migration 017)
+      const { data: inbox, error: inboxFindError } = await client
         .from("collections")
         .select("id")
         .eq("owner_id", user.id)
         .eq("type", "inbox")
-        .maybeSingle();
+        .single();
 
-      let inbox: Collection | null = inboxCollection;
-
-      // Create Inbox if it doesn't exist
       if (inboxFindError || !inbox) {
-        const { data: newInbox, error: inboxCreateError } = await client
-          .from("collections")
-          .insert({
-            owner_id: user.id,
-            name: "Inbox",
-            description: "Default collection for items without a home",
-            type: "inbox",
-            visibility: "private",
-          } as any)
-          .select()
-          .single();
-
-        if (inboxCreateError || !newInbox) {
-          console.error("Failed to create Inbox collection:", inboxCreateError);
-          return NextResponse.json(
-            { success: false, error: "Failed to create Inbox collection" } as DeleteItemResponse,
-            { status: 500 }
-          );
-        }
-
-        inbox = newInbox;
-      }
-
-      // Ensure inbox is not null (TypeScript guard)
-      if (!inbox) {
+        console.error("Failed to find Inbox collection:", inboxFindError);
         return NextResponse.json(
-          { success: false, error: "Failed to get or create Inbox collection" } as DeleteItemResponse,
+          { success: false, error: "Failed to find Inbox collection" } as DeleteItemResponse,
           { status: 500 }
         );
       }
