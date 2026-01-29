@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
     const supabase = getServiceRoleClient();
 
     // Fetch public collections with owner profile
+    // Sort by fork_count descending (most popular first), then by created_at
     const { data: collections, error, count } = await supabase
       .from("collections")
       .select(`
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
         profiles!collections_owner_id_fkey(username, email)
       `, { count: "exact" })
       .eq("visibility", "public")
+      .order("fork_count", { ascending: false })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
