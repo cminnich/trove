@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getClient } from '@/lib/supabase-client'
 import { User } from '@supabase/supabase-js'
-import { Settings, User as UserIcon, Palette, Bug, LogOut, Loader2, Globe, Lock } from 'lucide-react'
+import { Settings, User as UserIcon, Palette, Bug, LogOut, Loader2, Globe, Lock, RefreshCw } from 'lucide-react'
 
 type Section = 'account' | 'preferences' | 'debug'
 
@@ -21,6 +21,14 @@ export default function SettingsPage() {
   const [defaultVisibility, setDefaultVisibility] = useState<'public' | 'private'>('public')
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false)
   const [preferencesLoading, setPreferencesLoading] = useState(true)
+
+  // Username state
+  const [username, setUsername] = useState('')
+  const [originalUsername, setOriginalUsername] = useState('')
+  const [isUpdatingUsername, setIsUpdatingUsername] = useState(false)
+  const [isGeneratingUsername, setIsGeneratingUsername] = useState(false)
+  const [usernameError, setUsernameError] = useState('')
+  const [usernameSuccess, setUsernameSuccess] = useState(false)
 
   // Check authentication and load preferences
   useEffect(() => {
@@ -48,6 +56,27 @@ export default function SettingsPage() {
         console.error('Failed to load preferences:', error)
       } finally {
         setPreferencesLoading(false)
+      }
+
+      // Load username from profile
+      try {
+        const supabase = getClient()
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single()
+
+        // Explicit type annotation needed for single-column select
+        type ProfileUsername = { username: string | null }
+        const typedProfile = profile as ProfileUsername | null
+
+        if (typedProfile?.username) {
+          setUsername(typedProfile.username)
+          setOriginalUsername(typedProfile.username)
+        }
+      } catch (error) {
+        console.error('Failed to load username:', error)
       }
     }
 
@@ -94,6 +123,73 @@ export default function SettingsPage() {
       // Optionally show error toast here
     } finally {
       setIsUpdatingVisibility(false)
+    }
+  }
+
+  const handleGenerateUsername = async () => {
+    setUsernameError('')
+    setUsernameSuccess(false)
+
+    try {
+      setIsGeneratingUsername(true)
+
+      const response = await fetch('/api/user/profile')
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        setUsernameError(data.error || 'Failed to generate username')
+        return
+      }
+
+      setUsername(data.data.username)
+    } catch (error) {
+      console.error('Failed to generate username:', error)
+      setUsernameError(error instanceof Error ? error.message : 'Failed to generate username')
+    } finally {
+      setIsGeneratingUsername(false)
+    }
+  }
+
+  const handleSaveUsername = async () => {
+    setUsernameError('')
+    setUsernameSuccess(false)
+
+    if (username === originalUsername) {
+      return
+    }
+
+    try {
+      setIsUpdatingUsername(true)
+
+      const response = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        setUsernameError(data.error || 'Failed to update username')
+        return
+      }
+
+      setOriginalUsername(username)
+      setUsernameSuccess(true)
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setUsernameSuccess(false)
+      }, 3000)
+    } catch (error) {
+      console.error('Failed to update username:', error)
+      setUsernameError(error instanceof Error ? error.message : 'Failed to update username')
+    } finally {
+      setIsUpdatingUsername(false)
     }
   }
 
@@ -201,6 +297,61 @@ export default function SettingsPage() {
                           <p className="text-white font-mono">{user.email}</p>
                           <p className="text-sm text-slate-500 font-mono">via {user.app_metadata.provider || 'email'}</p>
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-void border border-slate-800 rounded-lg p-4">
+                      <label className="block text-sm font-mono font-medium text-slate-300 mb-2">
+                        Username
+                      </label>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => {
+                              setUsername(e.target.value)
+                              setUsernameError('')
+                              setUsernameSuccess(false)
+                            }}
+                            placeholder="Enter username"
+                            className="flex-1 px-4 py-2 bg-slate-deep border border-slate-800 rounded-lg text-white font-mono focus:ring-2 focus:ring-open-green focus:border-transparent"
+                          />
+                          <button
+                            onClick={handleGenerateUsername}
+                            disabled={isGeneratingUsername}
+                            className="px-3 py-2 border border-slate-800 hover:border-slate-600 rounded-lg transition-colors disabled:opacity-50"
+                            title="Generate random username"
+                          >
+                            <RefreshCw className={`w-5 h-5 text-slate-400 hover:text-open-green transition-colors ${isGeneratingUsername ? 'animate-spin' : ''}`} />
+                          </button>
+                        </div>
+                        {username !== originalUsername && (
+                          <button
+                            onClick={handleSaveUsername}
+                            disabled={isUpdatingUsername || !username.trim()}
+                            className="flex items-center gap-2 px-4 py-2 bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 disabled:opacity-50 text-void font-mono font-bold rounded-lg transition-colors"
+                          >
+                            {isUpdatingUsername ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Saving...</span>
+                              </>
+                            ) : (
+                              <span>Save Username</span>
+                            )}
+                          </button>
+                        )}
+                        {usernameError && (
+                          <p className="text-sm text-red-400 font-mono">
+                            {usernameError}
+                          </p>
+                        )}
+                        {usernameSuccess && (
+                          <p className="text-sm text-open-green font-mono">
+                            Username updated successfully!
+                          </p>
+                        )}
                       </div>
                     </div>
 
