@@ -17,6 +17,7 @@
     "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.31",
     "@anthropic-ai/sdk": "^0.32.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
@@ -24,6 +25,7 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.39.0",
     "@types/bad-words": "^3.0.3",
+    "ai": "^6.0.62",
     "bad-words": "^4.0.0",
     "framer-motion": "^12.25.0",
     "lucide-react": "^0.562.0",

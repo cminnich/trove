@@ -60,6 +60,7 @@ export type Database = {
           ai_overview_generated_at: string | null;
           ai_overview_model: string | null;
           ai_overview_valid: boolean;
+          ai_mode: 'standard' | 'researcher' | 'curator';
           custom_prompt: string | null;
           fork_count: number;
           star_count: number;
@@ -78,6 +79,7 @@ export type Database = {
           ai_overview_generated_at?: string | null;
           ai_overview_model?: string | null;
           ai_overview_valid?: boolean;
+          ai_mode?: 'standard' | 'researcher' | 'curator';
           custom_prompt?: string | null;
           fork_count?: number;
           star_count?: number;
@@ -96,6 +98,7 @@ export type Database = {
           ai_overview_generated_at?: string | null;
           ai_overview_model?: string | null;
           ai_overview_valid?: boolean;
+          ai_mode?: 'standard' | 'researcher' | 'curator';
           custom_prompt?: string | null;
           fork_count?: number;
           star_count?: number;

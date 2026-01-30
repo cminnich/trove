@@ -49,6 +49,7 @@ export function CollectionSettingsDialog({
   const [description, setDescription] = useState(collection.description || "");
   const [type, setType] = useState(collection.type || "other");
   const [visibility, setVisibility] = useState<"public" | "private">(collection.visibility);
+  const [aiMode, setAiMode] = useState<"standard" | "researcher" | "curator">(collection.ai_mode);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +62,7 @@ export function CollectionSettingsDialog({
     setDescription(collection.description || "");
     setType(collection.type || "other");
     setVisibility(collection.visibility);
+    setAiMode(collection.ai_mode);
     setError(null);
     setSaveSuccess(false);
   }, [collection]);
@@ -84,6 +86,7 @@ export function CollectionSettingsDialog({
           description: description.trim() || null,
           type,
           visibility,
+          ai_mode: aiMode,
         }),
       });
 
@@ -230,6 +233,27 @@ export function CollectionSettingsDialog({
                     {ct.label}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            {/* AI Persona */}
+            <div>
+              <label htmlFor="ai_mode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                AI Persona
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Choose how AI analyzes this collection
+              </p>
+              <select
+                id="ai_mode"
+                value={aiMode}
+                onChange={(e) => setAiMode(e.target.value as "standard" | "researcher" | "curator")}
+                disabled={saving}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
+              >
+                <option value="standard">Standard - General insights and themes</option>
+                <option value="researcher">Researcher - Gap analysis and recommendations</option>
+                <option value="curator">Curator - Redundancy detection and optimization</option>
               </select>
             </div>
           </div>

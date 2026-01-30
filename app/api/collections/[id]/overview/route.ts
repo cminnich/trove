@@ -1,23 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient, getAuthenticatedServerClient } from "@/lib/supabase-server";
-import { loadPrompt, replaceVars, callClaudeJSON } from "@/lib/ai";
+import { loadPrompt, replaceVars, generateStructuredData, generateMarkdown } from "@/lib/ai";
 import {
   CollectionOverviewSchema,
   REQUIRED_SCHEMA_SUFFIX,
   type CollectionOverview,
   type DiscoveredFilter,
 } from "@/types/collection-overview";
+import {
+  ResearcherSchema,
+  CuratorSchema,
+  STANDARD_SYSTEM_PROMPT,
+  RESEARCHER_SYSTEM_PROMPT,
+  CURATOR_SYSTEM_PROMPT,
+  formatResearcherOutput,
+  formatCuratorOutput,
+  type ResearcherOutput,
+  type CuratorOutput,
+} from "@/lib/ai/prompts";
 import type { Database } from "@/types/database";
 import { extractDynamicAttributesForItems } from "@/lib/attribute-normalizer";
 
-const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const CLAUDE_MODEL = "claude-3-5-sonnet-20240620";
 
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
 type Item = Database["public"]["Tables"]["items"]["Row"];
+type ItemAttribute = Database["public"]["Tables"]["item_attributes"]["Row"];
+type AttributeSchema = Database["public"]["Tables"]["attribute_schemas"]["Row"];
 
 interface ItemWithCollectionMetadata extends Item {
   collection_notes: string | null;
   collection_position: number | null;
+}
+
+interface ItemWithAttributes extends ItemWithCollectionMetadata {
+  attributes_data?: Array<{
+    schema_name: string;
+    display_name: string;
+    raw_value: string;
+    normalized_value: string;
+  }>;
 }
 
 /**
@@ -47,7 +69,6 @@ export async function GET(
       );
     }
 
-    // Type assertion needed due to Supabase client type inference limitations
     const collection = data as Collection;
 
     if (!collection.ai_overview_valid || !collection.ai_overview) {
@@ -56,16 +77,18 @@ export async function GET(
         overview: null,
         needs_generation: true,
         has_custom_prompt: !!collection.custom_prompt,
+        ai_mode: collection.ai_mode,
       });
     }
 
     return NextResponse.json({
       success: true,
-      overview: JSON.parse(collection.ai_overview),
+      overview: collection.ai_overview,
       generated_at: collection.ai_overview_generated_at,
       model: collection.ai_overview_model,
       needs_generation: false,
       has_custom_prompt: !!collection.custom_prompt,
+      ai_mode: collection.ai_mode,
     });
   } catch (error) {
     console.error("Overview fetch error:", error);
@@ -83,6 +106,7 @@ export async function GET(
  * - Only generates if ai_overview_valid = false
  * - Stores result in collections.ai_overview
  * - Returns immediately if valid cache exists
+ * - Supports three AI modes: standard, researcher, curator
  *
  * Query params:
  * - reprocess_filters=true: Skip AI generation, just reprocess filters from existing overview
@@ -121,7 +145,6 @@ export async function POST(
       );
     }
 
-    // Type assertion needed due to Supabase client type inference limitations
     const collection = collectionData as Collection;
 
     // Security: Only allow owner to trigger AI generation
@@ -132,8 +155,15 @@ export async function POST(
       );
     }
 
-    // Handle reprocess_filters mode: skip AI, just reprocess from existing overview
+    // Handle reprocess_filters mode (only valid for standard mode)
     if (reprocessFilters) {
+      if (collection.ai_mode !== "standard") {
+        return NextResponse.json(
+          { error: "Filter reprocessing only supported for standard mode" },
+          { status: 400 }
+        );
+      }
+
       if (!collection.ai_overview) {
         return NextResponse.json(
           { error: "No existing AI overview to reprocess filters from" },
@@ -188,14 +218,15 @@ export async function POST(
       return NextResponse.json({
         success: true,
         cached: true,
-        overview: JSON.parse(collection.ai_overview),
+        overview: collection.ai_overview,
         generated_at: collection.ai_overview_generated_at,
         model: collection.ai_overview_model,
         has_custom_prompt: !!collection.custom_prompt,
+        ai_mode: collection.ai_mode,
       });
     }
 
-    // Step 3: Fetch items in collection
+    // Step 3: Fetch items in collection with their attributes
     const { data: collectionItems, error: itemsError } = await supabase
       .from("collection_items")
       .select(
@@ -231,57 +262,144 @@ export async function POST(
       );
     }
 
-    // Step 4: Generate AI overview
-    // Use custom_prompt if defined, otherwise use default template
-    // Append required schema suffix to custom prompts ONLY if not already present
-    const isCustomPrompt = !!collection.custom_prompt;
-    const baseTemplate = collection.custom_prompt || loadPrompt("collection_overview.txt");
+    // Step 4: Fetch item attributes for enhanced context
+    const itemIds = items.map(item => item.id);
+    const { data: attributesData } = await supabase
+      .from("item_attributes")
+      .select(`
+        item_id,
+        raw_value,
+        normalized_value,
+        schema:attribute_schemas (name, display_name)
+      `)
+      .in("item_id", itemIds);
 
-    // Check if custom prompt already contains schema instructions (avoid duplicate context)
-    // Look for unique identifier phrases from REQUIRED_SCHEMA_SUFFIX
-    const hasSchemaInstructions = isCustomPrompt && (
-      baseTemplate.includes("REQUIRED RESPONSE FORMAT") ||
-      baseTemplate.includes("value_type MUST be one of") ||
-      baseTemplate.includes('"string", "number", "numeric_range"')
-    );
-
-    const promptTemplate = isCustomPrompt && !hasSchemaInstructions
-      ? baseTemplate + REQUIRED_SCHEMA_SUFFIX
-      : baseTemplate;
-
-    const prompt = replaceVars(promptTemplate, {
-      COLLECTION_NAME: collection.name,
-      COLLECTION_DESCRIPTION: collection.description || "No description provided",
-      COLLECTION_TYPE: collection.type || "General",
-      ITEM_COUNT: items.length.toString(),
-      ITEMS_JSON: JSON.stringify(items, null, 2),
-    });
-
-    const { data: overview, raw: rawResponse } = await callClaudeJSON<CollectionOverview>(
-      prompt,
-      {
-        model: CLAUDE_MODEL,
-        max_tokens: 2048,
+    // @ts-ignore - Supabase nested query
+    const attributesByItem = new Map<string, Array<{ schema_name: string; display_name: string; raw_value: string; normalized_value: string }>>();
+    if (attributesData) {
+      for (const attr of attributesData as any[]) {
+        if (!attr.schema) continue;
+        if (!attributesByItem.has(attr.item_id)) {
+          attributesByItem.set(attr.item_id, []);
+        }
+        attributesByItem.get(attr.item_id)!.push({
+          schema_name: attr.schema.name,
+          display_name: attr.schema.display_name,
+          raw_value: attr.raw_value,
+          normalized_value: attr.normalized_value,
+        });
       }
-    );
-
-    // Validate with Zod - the schema uses preprocess functions to auto-correct common AI mistakes
-    let validated: CollectionOverview;
-    try {
-      validated = CollectionOverviewSchema.parse(overview);
-    } catch (zodError) {
-      // Log the raw response for debugging
-      console.error("Zod validation failed. Raw AI response:", rawResponse);
-      console.error("Parsed overview object:", JSON.stringify(overview, null, 2));
-      throw zodError;
     }
 
-    // Step 5: Store in database
-    // Type assertion needed due to Supabase client type inference limitations
+    // Attach attributes to items
+    const itemsWithAttributes: ItemWithAttributes[] = items.map(item => ({
+      ...item,
+      attributes_data: attributesByItem.get(item.id) || [],
+    }));
+
+    // Step 5: Generate AI overview based on mode
+    let overviewMarkdown: string;
+    let filterResult: { processed: string[]; failed: Array<{ name: string; error: string }> } | null = null;
+
+    const itemsJson = JSON.stringify(itemsWithAttributes, null, 2);
+
+    switch (collection.ai_mode) {
+      case "standard": {
+        // Use custom_prompt if defined, otherwise use default template
+        const isCustomPrompt = !!collection.custom_prompt;
+        const baseTemplate = collection.custom_prompt || loadPrompt("collection_overview.txt");
+
+        // Check if custom prompt already contains schema instructions
+        const hasSchemaInstructions = isCustomPrompt && (
+          baseTemplate.includes("REQUIRED RESPONSE FORMAT") ||
+          baseTemplate.includes("value_type MUST be one of") ||
+          baseTemplate.includes('"string", "number", "numeric_range"')
+        );
+
+        const promptTemplate = isCustomPrompt && !hasSchemaInstructions
+          ? baseTemplate + REQUIRED_SCHEMA_SUFFIX
+          : baseTemplate;
+
+        const prompt = replaceVars(promptTemplate, {
+          COLLECTION_NAME: collection.name,
+          COLLECTION_DESCRIPTION: collection.description || "No description provided",
+          COLLECTION_TYPE: collection.type || "General",
+          ITEM_COUNT: items.length.toString(),
+          ITEMS_JSON: itemsJson,
+        });
+
+        // Generate structured overview (legacy mode for backward compatibility)
+        const overview = await generateStructuredData({
+          model: CLAUDE_MODEL,
+          schema: CollectionOverviewSchema,
+          prompt,
+          max_tokens: 2048,
+        });
+
+        // Convert to markdown
+        overviewMarkdown = formatStandardOverview(overview);
+
+        // Process discovered filters
+        if (overview.discovered_filters && overview.discovered_filters.length > 0) {
+          filterResult = await processDiscoveredFilters(supabase, id, overview.discovered_filters, items);
+        }
+
+        break;
+      }
+
+      case "researcher": {
+        const prompt = `Collection: ${collection.name}
+${collection.description ? `Description: ${collection.description}` : ""}
+
+Here are the items in this collection with their attributes:
+
+${itemsJson}
+
+Analyze this collection and identify gaps, missing items, and recommendations.`;
+
+        const researcherData = await generateStructuredData({
+          model: CLAUDE_MODEL,
+          schema: ResearcherSchema,
+          system: RESEARCHER_SYSTEM_PROMPT,
+          prompt,
+          max_tokens: 2048,
+        });
+
+        overviewMarkdown = formatResearcherOutput(researcherData);
+        break;
+      }
+
+      case "curator": {
+        const prompt = `Collection: ${collection.name}
+${collection.description ? `Description: ${collection.description}` : ""}
+
+Here are the items in this collection with their attributes:
+
+${itemsJson}
+
+Analyze this collection for redundant or overlapping items. Reference specific attributes when explaining why items are redundant.`;
+
+        const curatorData = await generateStructuredData({
+          model: CLAUDE_MODEL,
+          schema: CuratorSchema,
+          system: CURATOR_SYSTEM_PROMPT,
+          prompt,
+          max_tokens: 2048,
+        });
+
+        overviewMarkdown = formatCuratorOutput(curatorData);
+        break;
+      }
+
+      default:
+        throw new Error(`Unknown ai_mode: ${collection.ai_mode}`);
+    }
+
+    // Step 6: Store in database (as markdown string for all modes)
     const { error: updateError } = await (supabase as any)
       .from("collections")
       .update({
-        ai_overview: JSON.stringify(validated),
+        ai_overview: overviewMarkdown,
         ai_overview_generated_at: new Date().toISOString(),
         ai_overview_model: CLAUDE_MODEL,
         ai_overview_valid: true,
@@ -296,20 +414,15 @@ export async function POST(
       );
     }
 
-    // Step 6: Process discovered filters (if any)
-    let filterResult: { processed: string[]; failed: Array<{ name: string; error: string }> } | null = null;
-    if (validated.discovered_filters && validated.discovered_filters.length > 0) {
-      filterResult = await processDiscoveredFilters(supabase, id, validated.discovered_filters, items);
-    }
-
     // Step 7: Return result
     return NextResponse.json({
       success: true,
       cached: false,
-      overview: validated,
+      overview: overviewMarkdown,
       generated_at: new Date().toISOString(),
       model: CLAUDE_MODEL,
       has_custom_prompt: !!collection.custom_prompt,
+      ai_mode: collection.ai_mode,
       filter_processing: filterResult,
     });
   } catch (error) {
@@ -361,7 +474,6 @@ async function processDiscoveredFilters(
       console.log(`[Filter] Upserting schema: ${filter.name}`, JSON.stringify(schemaData));
 
       // Upsert the schema
-      // Type assertion needed due to Supabase client type inference limitations
       const { data: schema, error: schemaError } = await (supabase as any)
         .from("collection_attribute_schemas")
         .upsert(schemaData, {
@@ -403,7 +515,6 @@ async function processDiscoveredFilters(
       }
 
       // Delete existing attributes for this schema to avoid duplicates
-      // Type assertion needed due to Supabase client type inference limitations
       const { error: deleteError } = await (supabase as any)
         .from("item_attributes")
         .delete()
@@ -414,7 +525,6 @@ async function processDiscoveredFilters(
       }
 
       // Insert new attributes
-      // Type assertion needed due to Supabase client type inference limitations
       const { error: insertError } = await (supabase as any)
         .from("item_attributes")
         .insert(attributes);
@@ -441,4 +551,30 @@ async function processDiscoveredFilters(
   }
 
   return { processed, failed };
+}
+
+/**
+ * Format standard overview to Markdown
+ */
+function formatStandardOverview(overview: CollectionOverview): string {
+  let markdown = `# Collection Overview\n\n`;
+  markdown += `${overview.summary}\n\n`;
+
+  if (overview.themes && overview.themes.length > 0) {
+    markdown += `## Themes\n\n`;
+    for (const theme of overview.themes) {
+      markdown += `- ${theme}\n`;
+    }
+    markdown += `\n`;
+  }
+
+  if (overview.insights && overview.insights.length > 0) {
+    markdown += `## Insights\n\n`;
+    for (const insight of overview.insights) {
+      markdown += `### ${insight.title}\n`;
+      markdown += `${insight.description}\n\n`;
+    }
+  }
+
+  return markdown;
 }

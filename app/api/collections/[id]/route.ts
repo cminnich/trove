@@ -15,6 +15,7 @@ interface UpdateCollectionRequest {
   description?: string;
   type?: string;
   visibility?: 'public' | 'private';
+  ai_mode?: 'standard' | 'researcher' | 'curator';
   custom_prompt?: string | null;
   ai_overview_valid?: boolean;
 }
@@ -79,7 +80,7 @@ export async function PATCH(
 
     // Validate that at least one field is being updated
     // Note: custom_prompt can be null (to reset to default), so check for undefined
-    if (!body.name && !body.description && !body.type && !body.visibility && body.custom_prompt === undefined && body.ai_overview_valid === undefined) {
+    if (!body.name && !body.description && !body.type && !body.visibility && !body.ai_mode && body.custom_prompt === undefined && body.ai_overview_valid === undefined) {
       return NextResponse.json(
         { success: false, error: "No fields to update" } as CollectionResponse,
         { status: 400 }
@@ -101,6 +102,11 @@ export async function PATCH(
     if (body.description !== undefined) updateData.description = body.description;
     if (body.type !== undefined) updateData.type = body.type;
     if (body.visibility !== undefined) updateData.visibility = body.visibility;
+    if (body.ai_mode !== undefined) {
+      updateData.ai_mode = body.ai_mode;
+      // Invalidate AI overview when mode changes (forces regeneration)
+      updateData.ai_overview_valid = false;
+    }
     if (body.custom_prompt !== undefined) updateData.custom_prompt = body.custom_prompt;
     if (body.ai_overview_valid !== undefined) updateData.ai_overview_valid = body.ai_overview_valid;
 
