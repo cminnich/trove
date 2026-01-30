@@ -24,6 +24,7 @@ import { extractDynamicAttributesForItems } from "@/lib/attribute-normalizer";
 const CLAUDE_MODEL = "claude-3-5-sonnet-20240620";
 
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
+type CollectionAiOverview = Database["public"]["Tables"]["collection_ai_overviews"]["Row"];
 type Item = Database["public"]["Tables"]["items"]["Row"];
 type ItemAttribute = Database["public"]["Tables"]["item_attributes"]["Row"];
 type AttributeSchema = Database["public"]["Tables"]["attribute_schemas"]["Row"];
@@ -45,8 +46,8 @@ interface ItemWithAttributes extends ItemWithCollectionMetadata {
 /**
  * GET /api/collections/[id]/overview
  *
- * Returns cached overview if valid, otherwise returns null
- * Client should call POST to trigger generation
+ * Returns cached overview from collection_ai_overviews table for the current ai_mode
+ * Client should call POST to trigger generation if no cached overview exists
  */
 export async function GET(
   req: NextRequest,
@@ -56,38 +57,50 @@ export async function GET(
     const { id } = await params;
     const supabase = getServiceRoleClient();
 
-    const { data, error } = await supabase
+    // Fetch collection to get current ai_mode
+    const { data: collectionData, error: collectionError } = await supabase
       .from("collections")
-      .select("*")
+      .select("ai_mode, custom_prompt")
       .eq("id", id)
       .single();
 
-    if (error || !data) {
+    if (collectionError || !collectionData) {
       return NextResponse.json(
         { error: "Collection not found" },
         { status: 404 }
       );
     }
 
-    const collection = data as Collection;
+    type CollectionModeData = Pick<Collection, "ai_mode" | "custom_prompt">;
+    const collection = collectionData as CollectionModeData;
 
-    if (!collection.ai_overview_valid || !collection.ai_overview) {
+    // Check for existing overview for this mode in collection_ai_overviews table
+    const { data: existingOverview } = await supabase
+      .from("collection_ai_overviews")
+      .select("*")
+      .eq("collection_id", id)
+      .eq("ai_mode", collection.ai_mode)
+      .single();
+
+    if (existingOverview) {
+      const overview = existingOverview as CollectionAiOverview;
       return NextResponse.json({
         success: true,
-        overview: null,
-        needs_generation: true,
-        has_custom_prompt: !!collection.custom_prompt,
+        overview: overview.overview,
+        generated_at: overview.generated_at,
+        model: overview.model,
+        needs_generation: false,
+        has_custom_prompt: collection.ai_mode === 'custom',
         ai_mode: collection.ai_mode,
       });
     }
 
+    // No cached overview for this mode - needs generation
     return NextResponse.json({
       success: true,
-      overview: collection.ai_overview,
-      generated_at: collection.ai_overview_generated_at,
-      model: collection.ai_overview_model,
-      needs_generation: false,
-      has_custom_prompt: !!collection.custom_prompt,
+      overview: null,
+      needs_generation: true,
+      has_custom_prompt: collection.ai_mode === 'custom',
       ai_mode: collection.ai_mode,
     });
   } catch (error) {
@@ -164,14 +177,24 @@ export async function POST(
         );
       }
 
-      if (!collection.ai_overview) {
+      // Check for existing overview in collection_ai_overviews table
+      const { data: existingOverviewData } = await supabase
+        .from("collection_ai_overviews")
+        .select("overview")
+        .eq("collection_id", id)
+        .eq("ai_mode", "standard")
+        .single();
+
+      if (!existingOverviewData) {
         return NextResponse.json(
           { error: "No existing AI overview to reprocess filters from" },
           { status: 400 }
         );
       }
 
-      const existingOverview = JSON.parse(collection.ai_overview) as CollectionOverview;
+      type OverviewData = Pick<CollectionAiOverview, "overview">;
+      const overviewData = existingOverviewData as OverviewData;
+      const existingOverview = JSON.parse(overviewData.overview) as CollectionOverview;
       if (!existingOverview.discovered_filters || existingOverview.discovered_filters.length === 0) {
         return NextResponse.json(
           { error: "No discovered_filters in existing overview" },
@@ -213,15 +236,23 @@ export async function POST(
       });
     }
 
-    // Step 2: Check if overview is already valid
-    if (collection.ai_overview_valid && collection.ai_overview) {
+    // Step 2: Check if cached overview exists in collection_ai_overviews table
+    const { data: cachedOverview } = await supabase
+      .from("collection_ai_overviews")
+      .select("*")
+      .eq("collection_id", id)
+      .eq("ai_mode", collection.ai_mode)
+      .single();
+
+    if (cachedOverview) {
+      const cached = cachedOverview as CollectionAiOverview;
       return NextResponse.json({
         success: true,
         cached: true,
-        overview: collection.ai_overview,
-        generated_at: collection.ai_overview_generated_at,
-        model: collection.ai_overview_model,
-        has_custom_prompt: !!collection.custom_prompt,
+        overview: cached.overview,
+        generated_at: cached.generated_at,
+        model: cached.model,
+        has_custom_prompt: collection.ai_mode === 'custom',
         ai_mode: collection.ai_mode,
       });
     }
@@ -305,22 +336,10 @@ export async function POST(
 
     switch (collection.ai_mode) {
       case "standard": {
-        // Use custom_prompt if defined, otherwise use default template
-        const isCustomPrompt = !!collection.custom_prompt;
-        const baseTemplate = collection.custom_prompt || loadPrompt("collection_overview.txt");
+        // Standard mode always uses the default template
+        const baseTemplate = loadPrompt("collection_overview.txt");
 
-        // Check if custom prompt already contains schema instructions
-        const hasSchemaInstructions = isCustomPrompt && (
-          baseTemplate.includes("REQUIRED RESPONSE FORMAT") ||
-          baseTemplate.includes("value_type MUST be one of") ||
-          baseTemplate.includes('"string", "number", "numeric_range"')
-        );
-
-        const promptTemplate = isCustomPrompt && !hasSchemaInstructions
-          ? baseTemplate + REQUIRED_SCHEMA_SUFFIX
-          : baseTemplate;
-
-        const prompt = replaceVars(promptTemplate, {
+        const prompt = replaceVars(baseTemplate, {
           COLLECTION_NAME: collection.name,
           COLLECTION_DESCRIPTION: collection.description || "No description provided",
           COLLECTION_TYPE: collection.type || "General",
@@ -328,7 +347,7 @@ export async function POST(
           ITEMS_JSON: itemsJson,
         });
 
-        // Generate structured overview (legacy mode for backward compatibility)
+        // Generate structured overview
         const overview = await generateStructuredData({
           model: CLAUDE_MODEL,
           schema: CollectionOverviewSchema,
@@ -391,23 +410,76 @@ Analyze this collection for redundant or overlapping items. Reference specific a
         break;
       }
 
+      case "custom": {
+        // Custom mode uses the user's custom_prompt
+        if (!collection.custom_prompt) {
+          return NextResponse.json(
+            { error: "Custom mode requires a custom prompt" },
+            { status: 400 }
+          );
+        }
+
+        const baseTemplate = collection.custom_prompt;
+
+        // Check if custom prompt already contains schema instructions
+        const hasSchemaInstructions =
+          baseTemplate.includes("REQUIRED RESPONSE FORMAT") ||
+          baseTemplate.includes("value_type MUST be one of") ||
+          baseTemplate.includes('"string", "number", "numeric_range"');
+
+        const promptTemplate = !hasSchemaInstructions
+          ? baseTemplate + REQUIRED_SCHEMA_SUFFIX
+          : baseTemplate;
+
+        const prompt = replaceVars(promptTemplate, {
+          COLLECTION_NAME: collection.name,
+          COLLECTION_DESCRIPTION: collection.description || "No description provided",
+          COLLECTION_TYPE: collection.type || "General",
+          ITEM_COUNT: items.length.toString(),
+          ITEMS_JSON: itemsJson,
+        });
+
+        // Generate structured overview using custom prompt
+        const overview = await generateStructuredData({
+          model: CLAUDE_MODEL,
+          schema: CollectionOverviewSchema,
+          prompt,
+          max_tokens: 2048,
+        });
+
+        // Convert to markdown
+        overviewMarkdown = formatStandardOverview(overview);
+
+        // Process discovered filters
+        if (overview.discovered_filters && overview.discovered_filters.length > 0) {
+          filterResult = await processDiscoveredFilters(supabase, id, overview.discovered_filters, items);
+        }
+
+        break;
+      }
+
       default:
         throw new Error(`Unknown ai_mode: ${collection.ai_mode}`);
     }
 
-    // Step 6: Store in database (as markdown string for all modes)
-    const { error: updateError } = await (supabase as any)
-      .from("collections")
-      .update({
-        ai_overview: overviewMarkdown,
-        ai_overview_generated_at: new Date().toISOString(),
-        ai_overview_model: CLAUDE_MODEL,
-        ai_overview_valid: true,
-      })
-      .eq("id", id);
+    // Step 6: Save to collection_ai_overviews table (upsert)
+    const { error: saveError } = await (supabase as any)
+      .from("collection_ai_overviews")
+      .upsert(
+        {
+          collection_id: id,
+          ai_mode: collection.ai_mode,
+          overview: overviewMarkdown,
+          model: CLAUDE_MODEL,
+          generated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "collection_id,ai_mode", // Replace existing for this mode
+        }
+      );
 
-    if (updateError) {
-      console.error("Failed to save overview:", updateError);
+    if (saveError) {
+      console.error("Failed to save overview:", saveError);
       return NextResponse.json(
         { error: "Failed to save overview" },
         { status: 500 }
@@ -421,7 +493,7 @@ Analyze this collection for redundant or overlapping items. Reference specific a
       overview: overviewMarkdown,
       generated_at: new Date().toISOString(),
       model: CLAUDE_MODEL,
-      has_custom_prompt: !!collection.custom_prompt,
+      has_custom_prompt: collection.ai_mode === 'custom',
       ai_mode: collection.ai_mode,
       filter_processing: filterResult,
     });

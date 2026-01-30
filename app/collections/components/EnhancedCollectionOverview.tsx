@@ -32,8 +32,10 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
   // Configure dialog state
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [customPrompt, setCustomPrompt] = useState("");
+  const [savedCustomPrompt, setSavedCustomPrompt] = useState(""); // Store saved prompt for reset
   const [savingPrompt, setSavingPrompt] = useState(false);
-  const [loadingDefaultPrompt, setLoadingDefaultPrompt] = useState(false);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<"current" | "standard" | "researcher" | "curator">("current");
 
   useEffect(() => {
     fetchOverview();
@@ -121,27 +123,63 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
       const res = await fetch(`/api/collections/${collectionId}`);
       const data = await res.json();
       if (data.success && data.data) {
-        setCustomPrompt(data.data.custom_prompt || "");
+        const prompt = data.data.custom_prompt || "";
+        setCustomPrompt(prompt);
+        setSavedCustomPrompt(prompt); // Store for reset functionality
+        setSelectedTemplate("current");
       }
     } catch (err) {
       console.error("Failed to fetch collection:", err);
     }
   }
 
-  // Load default prompt template
-  async function loadDefaultPrompt() {
+  // Load template by name
+  async function loadTemplate(templateName: "standard" | "researcher" | "curator") {
+    const templateFiles: Record<string, string> = {
+      standard: "collection_overview.txt",
+      researcher: "researcher_mode.txt",
+      curator: "curator_mode.txt",
+    };
+
     try {
-      setLoadingDefaultPrompt(true);
-      const res = await fetch("/api/prompts/collection_overview.txt");
+      setLoadingTemplate(true);
+      const res = await fetch(`/api/prompts/${templateFiles[templateName]}`);
       const data = await res.json();
       if (data.success) {
         setCustomPrompt(data.content);
       }
     } catch (err) {
-      console.error("Failed to load default prompt:", err);
+      console.error(`Failed to load ${templateName} template:`, err);
     } finally {
-      setLoadingDefaultPrompt(false);
+      setLoadingTemplate(false);
     }
+  }
+
+  // Handle template selection change
+  function handleTemplateChange(newTemplate: "current" | "standard" | "researcher" | "curator") {
+    if (newTemplate === "current") {
+      setSelectedTemplate("current");
+      return;
+    }
+
+    // If textarea has content and it differs from saved, confirm before overwriting
+    if (customPrompt && customPrompt !== savedCustomPrompt) {
+      const confirmed = window.confirm(
+        "This will replace your current prompt. Continue?"
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setSelectedTemplate(newTemplate);
+    loadTemplate(newTemplate);
+  }
+
+  // Reset to saved custom prompt
+  function resetToSavedPrompt() {
+    setCustomPrompt(savedCustomPrompt);
+    setSelectedTemplate("current");
   }
 
   // Save custom prompt
@@ -151,18 +189,17 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
       const res = await fetch(`/api/collections/${collectionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ custom_prompt: customPrompt || null }),
+        body: JSON.stringify({
+          custom_prompt: customPrompt || null,
+          ai_mode: "custom", // Switch to custom mode when saving custom prompt
+        }),
       });
       const data = await res.json();
       if (data.success) {
         setHasCustomPrompt(!!customPrompt);
+        setAiMode("custom");
+        setSavedCustomPrompt(customPrompt);
         setShowConfigDialog(false);
-        // Invalidate overview to force regeneration with new prompt
-        await fetch(`/api/collections/${collectionId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ai_overview_valid: false }),
-        });
         // Trigger regeneration immediately
         generateOverview();
       }
@@ -180,19 +217,18 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
       const res = await fetch(`/api/collections/${collectionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ custom_prompt: null }),
+        body: JSON.stringify({
+          custom_prompt: null,
+          ai_mode: "standard", // Switch back to standard mode when clearing custom prompt
+        }),
       });
       const data = await res.json();
       if (data.success) {
         setCustomPrompt("");
+        setSavedCustomPrompt("");
         setHasCustomPrompt(false);
+        setAiMode("standard");
         setShowConfigDialog(false);
-        // Invalidate overview
-        await fetch(`/api/collections/${collectionId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ai_overview_valid: false }),
-        });
         // Trigger regeneration immediately
         generateOverview();
       }
@@ -268,7 +304,7 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
         <div className="relative overflow-hidden bg-void border border-slate-800 rounded-md shadow-hard">
           <div className="font-mono text-xs uppercase tracking-widest text-slate-500 border-b border-slate-800 px-4 py-2 flex items-center justify-between">
             <span>// COLLECTION_ANALYSIS.log</span>
-            {hasCustomPrompt && (
+            {aiMode === "custom" && (
               <span className="text-open-green text-[10px]">[CUSTOM_AGENT]</span>
             )}
           </div>
@@ -323,7 +359,7 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
               {/* Dialog Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
                 <div className="font-mono text-xs uppercase tracking-widest text-slate-500">
-                  // CONFIGURE_AGENT
+                  // CONFIGURE_CUSTOM_AGENT
                 </div>
                 <button
                   onClick={() => setShowConfigDialog(false)}
@@ -334,8 +370,27 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
               </div>
 
               {/* Dialog Body */}
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="mb-4">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Template Selector */}
+                <div>
+                  <label className="block text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
+                    load_template_from
+                  </label>
+                  <select
+                    value={selectedTemplate}
+                    onChange={(e) => handleTemplateChange(e.target.value as "current" | "standard" | "researcher" | "curator")}
+                    disabled={loadingTemplate}
+                    className="w-full px-4 py-2 text-sm font-mono bg-slate-deep border border-slate-800 rounded-md focus:ring-1 focus:ring-open-green focus:border-open-green text-slate-300"
+                  >
+                    <option value="current">Keep current content</option>
+                    <option value="standard">Standard (General insights)</option>
+                    <option value="researcher">Researcher (Gap analysis)</option>
+                    <option value="curator">Curator (Redundancy detection)</option>
+                  </select>
+                </div>
+
+                {/* Custom Prompt Textarea */}
+                <div>
                   <label className="block text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
                     custom_prompt_template
                   </label>
@@ -345,23 +400,20 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
                   <textarea
                     value={customPrompt}
                     onChange={(e) => setCustomPrompt(e.target.value)}
-                    placeholder="Enter your custom prompt or load the default template..."
-                    className="w-full h-80 px-4 py-3 text-sm font-mono bg-slate-deep border border-slate-800 rounded-md focus:ring-1 focus:ring-open-green focus:border-open-green text-slate-300 placeholder-slate-600 resize-none"
+                    placeholder="Enter your custom prompt or select a template to start from..."
+                    className="w-full h-64 px-4 py-3 text-sm font-mono bg-slate-deep border border-slate-800 rounded-md focus:ring-1 focus:ring-open-green focus:border-open-green text-slate-300 placeholder-slate-600 resize-none"
                   />
                 </div>
 
-                {!customPrompt && (
+                {/* Reset to Saved Button (only shown if content differs from saved) */}
+                {customPrompt !== savedCustomPrompt && savedCustomPrompt && (
                   <button
-                    onClick={loadDefaultPrompt}
-                    disabled={loadingDefaultPrompt}
-                    className="flex items-center gap-2 text-xs font-mono text-open-green hover:text-emerald-400 transition-colors"
+                    onClick={resetToSavedPrompt}
+                    disabled={loadingTemplate}
+                    className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-slate-300 transition-colors"
                   >
-                    {loadingDefaultPrompt ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <FileText className="w-4 h-4" />
-                    )}
-                    load_default_template
+                    <RotateCcw className="w-4 h-4" />
+                    reset_to_saved_custom_prompt
                   </button>
                 )}
               </div>
@@ -370,11 +422,11 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
               <div className="flex items-center justify-between p-4 border-t border-slate-800 bg-slate-deep/50">
                 <button
                   onClick={resetToDefault}
-                  disabled={savingPrompt || !hasCustomPrompt}
+                  disabled={savingPrompt || !savedCustomPrompt}
                   className="flex items-center gap-2 px-4 py-2 text-xs font-mono text-slate-500 hover:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  reset_to_default
+                  clear_custom_prompt
                 </button>
                 <div className="flex items-center gap-3">
                   <button
@@ -514,7 +566,7 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
             {/* Dialog Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
               <div className="font-mono text-xs uppercase tracking-widest text-slate-500">
-                // CONFIGURE_AGENT
+                // CONFIGURE_CUSTOM_AGENT
               </div>
               <button
                 onClick={() => setShowConfigDialog(false)}
@@ -525,8 +577,27 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
             </div>
 
             {/* Dialog Body */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="mb-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Template Selector */}
+              <div>
+                <label className="block text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
+                  load_template_from
+                </label>
+                <select
+                  value={selectedTemplate}
+                  onChange={(e) => handleTemplateChange(e.target.value as "current" | "standard" | "researcher" | "curator")}
+                  disabled={loadingTemplate}
+                  className="w-full px-4 py-2 text-sm font-mono bg-slate-deep border border-slate-800 rounded-md focus:ring-1 focus:ring-open-green focus:border-open-green text-slate-300"
+                >
+                  <option value="current">Keep current content</option>
+                  <option value="standard">Standard (General insights)</option>
+                  <option value="researcher">Researcher (Gap analysis)</option>
+                  <option value="curator">Curator (Redundancy detection)</option>
+                </select>
+              </div>
+
+              {/* Custom Prompt Textarea */}
+              <div>
                 <label className="block text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
                   custom_prompt_template
                 </label>
@@ -536,23 +607,20 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
                 <textarea
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
-                  placeholder="Enter your custom prompt or load the default template..."
-                  className="w-full h-80 px-4 py-3 text-sm font-mono bg-slate-deep border border-slate-800 rounded-md focus:ring-1 focus:ring-open-green focus:border-open-green text-slate-300 placeholder-slate-600 resize-none"
+                  placeholder="Enter your custom prompt or select a template to start from..."
+                  className="w-full h-64 px-4 py-3 text-sm font-mono bg-slate-deep border border-slate-800 rounded-md focus:ring-1 focus:ring-open-green focus:border-open-green text-slate-300 placeholder-slate-600 resize-none"
                 />
               </div>
 
-              {!customPrompt && (
+              {/* Reset to Saved Button (only shown if content differs from saved) */}
+              {customPrompt !== savedCustomPrompt && savedCustomPrompt && (
                 <button
-                  onClick={loadDefaultPrompt}
-                  disabled={loadingDefaultPrompt}
-                  className="flex items-center gap-2 text-xs font-mono text-open-green hover:text-emerald-400 transition-colors"
+                  onClick={resetToSavedPrompt}
+                  disabled={loadingTemplate}
+                  className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  {loadingDefaultPrompt ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <FileText className="w-4 h-4" />
-                  )}
-                  load_default_template
+                  <RotateCcw className="w-4 h-4" />
+                  reset_to_saved_custom_prompt
                 </button>
               )}
             </div>
@@ -561,11 +629,11 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
             <div className="flex items-center justify-between p-4 border-t border-slate-800 bg-slate-deep/50">
               <button
                 onClick={resetToDefault}
-                disabled={savingPrompt || !hasCustomPrompt}
+                disabled={savingPrompt || !savedCustomPrompt}
                 className="flex items-center gap-2 px-4 py-2 text-xs font-mono text-slate-500 hover:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />
-                reset_to_default
+                clear_custom_prompt
               </button>
               <div className="flex items-center gap-3">
                 <button

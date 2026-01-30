@@ -60,7 +60,7 @@ export type Database = {
           ai_overview_generated_at: string | null;
           ai_overview_model: string | null;
           ai_overview_valid: boolean;
-          ai_mode: 'standard' | 'researcher' | 'curator';
+          ai_mode: 'standard' | 'researcher' | 'curator' | 'custom';
           custom_prompt: string | null;
           fork_count: number;
           star_count: number;
@@ -79,7 +79,7 @@ export type Database = {
           ai_overview_generated_at?: string | null;
           ai_overview_model?: string | null;
           ai_overview_valid?: boolean;
-          ai_mode?: 'standard' | 'researcher' | 'curator';
+          ai_mode?: 'standard' | 'researcher' | 'curator' | 'custom';
           custom_prompt?: string | null;
           fork_count?: number;
           star_count?: number;
@@ -98,13 +98,42 @@ export type Database = {
           ai_overview_generated_at?: string | null;
           ai_overview_model?: string | null;
           ai_overview_valid?: boolean;
-          ai_mode?: 'standard' | 'researcher' | 'curator';
+          ai_mode?: 'standard' | 'researcher' | 'curator' | 'custom';
           custom_prompt?: string | null;
           fork_count?: number;
           star_count?: number;
           is_forkable?: boolean;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      collection_ai_overviews: {
+        Row: {
+          id: string;
+          collection_id: string;
+          ai_mode: 'standard' | 'researcher' | 'curator' | 'custom';
+          overview: string;
+          model: string;
+          generated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          collection_id: string;
+          ai_mode: 'standard' | 'researcher' | 'curator' | 'custom';
+          overview: string;
+          model: string;
+          generated_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          collection_id?: string;
+          ai_mode?: 'standard' | 'researcher' | 'curator' | 'custom';
+          overview?: string;
+          model?: string;
+          generated_at?: string;
+          created_at?: string;
         };
       };
       collection_forks: {

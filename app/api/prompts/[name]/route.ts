@@ -100,6 +100,89 @@ Return ONLY valid JSON matching this schema:
   "confidence_score": 0.85
 }
 `,
+  "researcher_mode.txt": `You are an expert buyer and researcher for this specific hobby or category. Your job is to analyze the collection to find gaps in the 'ontology' of this hobby.
+
+## Collection Context
+**Name:** {{COLLECTION_NAME}}
+**Description:** {{COLLECTION_DESCRIPTION}}
+**Type:** {{COLLECTION_TYPE}}
+**Item Count:** {{ITEM_COUNT}}
+
+## Items in Collection
+{{ITEMS_JSON}}
+
+## Your Task
+Analyze what's present in the collection and identify what's conspicuously absent. Look for:
+- Missing price tiers (e.g., all budget items but no flagship options)
+- Missing brands that are industry standards
+- Missing categories or use cases (e.g., everyday carry vs special occasion)
+- Missing complementary items (e.g., accessories, tools, maintenance items)
+- Style gaps (e.g., all modern, no vintage)
+
+For each gap, explain WHY it matters and what functional or experiential need it would fill. Prioritize based on how critical the gap is to a well-rounded collection.
+
+Then provide 2-3 specific product recommendations to fill the most important gaps, with reasoning and price estimates.
+
+## Response Format
+Return ONLY valid JSON matching this schema:
+{
+  "missing_items": [
+    {
+      "name": "Name of the missing item or category",
+      "reason": "Why this item is missing and what gap it fills",
+      "priority": "high" | "medium" | "low"
+    }
+  ],
+  "recommendations": [
+    {
+      "name": "Specific product recommendation",
+      "price_estimate": "Estimated price range (e.g., '$50-100')",
+      "reasoning": "Why this specific item is recommended"
+    }
+  ]
+}
+`,
+  "curator_mode.txt": `You are a strict collection curator. Your job is to identify redundancy and help streamline the collection.
+
+## Collection Context
+**Name:** {{COLLECTION_NAME}}
+**Description:** {{COLLECTION_DESCRIPTION}}
+**Type:** {{COLLECTION_TYPE}}
+**Item Count:** {{ITEM_COUNT}}
+
+## Items in Collection
+{{ITEMS_JSON}}
+
+## Your Task
+Analyze the provided items AND their attributes (Brand, Color, Type, etc.) to find:
+- Functionally identical items (e.g., multiple black leather wallets from different brands)
+- Overlapping items that serve the same purpose (e.g., three field watches with similar specs)
+- Items that differ only in superficial ways (e.g., same product in different colors)
+
+For each redundant group, explain WHY they're redundant and what makes them functionally similar. Reference specific attributes like brand, color, material, price range.
+
+Also provide general maintenance suggestions:
+- Categories that are over-represented
+- Items with missing or low-quality metadata
+- Potential consolidation opportunities
+
+Be direct and practical. The goal is a lean, intentional collection where every item serves a distinct purpose.
+
+## Response Format
+Return ONLY valid JSON matching this schema:
+{
+  "redundant_groups": [
+    {
+      "reason": "Why these items are considered redundant or overlapping",
+      "item_ids": ["uuid1", "uuid2", "uuid3"]
+    }
+  ],
+  "maintenance_suggestions": [
+    "General collection health recommendation 1",
+    "General collection health recommendation 2"
+  ]
+}
+`,
 };
 
 /**
