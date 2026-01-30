@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { ForkButton, ForkBreadcrumb } from '@/app/components/Fork'
+import { StarButton } from '@/app/components/StarButton'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
@@ -81,6 +82,16 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
 
   const collection = collectionData?.data
   const isOwner = !!(userId && collection?.owner_id === userId)
+
+  // Fetch star status
+  interface StarStatusResponse {
+    isStarred: boolean
+    starCount: number
+  }
+  const { data: starData } = useSWR<StarStatusResponse>(
+    `/api/collections/${id}/star`,
+    fetcher
+  )
 
   // Get all item IDs for navigation
   const allItemIds = items.map(item => item.id)
@@ -213,6 +224,9 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             {collection?.type && (
               <span className="ml-2 text-gray-400">• {collection.type}</span>
             )}
+            {collection && collection.star_count > 0 && (
+              <span className="ml-2 text-gray-400">• {collection.star_count} {collection.star_count === 1 ? 'star' : 'stars'}</span>
+            )}
             {collection && collection.fork_count > 0 && (
               <span className="ml-2 text-gray-400">• {collection.fork_count} {collection.fork_count === 1 ? 'fork' : 'forks'}</span>
             )}
@@ -231,6 +245,19 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
               collectionName={collection.name}
               itemCount={items.length}
             />
+          )}
+
+          {/* Star Button - Show for all collections with star data */}
+          {collection && starData && (
+            <div className="flex-shrink-0">
+              <StarButton
+                collectionId={id}
+                initialIsStarred={starData.isStarred}
+                initialStarCount={starData.starCount}
+                ownerId={collection.owner_id || undefined}
+                className="px-3 sm:px-4 py-2 bg-slate-deep border border-slate-800 hover:border-slate-600 rounded-lg"
+              />
+            </div>
           )}
 
           {/* Add Existing Button - Only for owner */}

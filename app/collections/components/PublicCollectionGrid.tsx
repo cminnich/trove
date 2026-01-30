@@ -6,6 +6,7 @@ interface PublicCollection {
   owner_username: string
   item_count: number
   fork_count: number
+  star_count: number
   thumbnail_urls: string[]
 }
 

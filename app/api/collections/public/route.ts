@@ -11,6 +11,7 @@ interface PublicCollectionData {
   type: string | null;
   visibility: "public";
   fork_count: number;
+  star_count: number;
   is_forkable: boolean;
   created_at: string;
   owner_username: string;
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
     const supabase = getServiceRoleClient();
 
     // Fetch public collections with owner profile
-    // Sort by fork_count descending (most popular first), then by created_at
+    // Sort by star_count descending (most popular first), then fork_count, then by created_at
     const { data: collections, error, count } = await supabase
       .from("collections")
       .select(`
@@ -46,6 +47,7 @@ export async function GET(req: NextRequest) {
         profiles!collections_owner_id_fkey(username, email)
       `, { count: "exact" })
       .eq("visibility", "public")
+      .order("star_count", { ascending: false })
       .order("fork_count", { ascending: false })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -102,6 +104,7 @@ export async function GET(req: NextRequest) {
           type: collection.type,
           visibility: "public",
           fork_count: collection.fork_count,
+          star_count: collection.star_count || 0,
           is_forkable: collection.is_forkable,
           created_at: collection.created_at,
           owner_username: ownerUsername,

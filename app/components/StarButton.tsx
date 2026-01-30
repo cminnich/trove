@@ -33,11 +33,6 @@ export function StarButton({
     });
   }, []);
 
-  // Don't show button if user owns the collection
-  if (ownerId && currentUserId && ownerId === currentUserId) {
-    return null;
-  }
-
   async function handleToggleStar(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();

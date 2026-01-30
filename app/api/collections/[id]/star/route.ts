@@ -106,14 +106,6 @@ export async function POST(
 
     const typedCollection = collection as { owner_id: string; star_count: number | null };
 
-    // Prevent starring own collection
-    if (typedCollection.owner_id === user.id) {
-      return NextResponse.json(
-        { isStarred: false, starCount: typedCollection.star_count || 0, error: "Cannot star your own collection" } as StarResponse,
-        { status: 403 }
-      );
-    }
-
     // Check if already starred
     const { data: existingStar } = await client
       .from("collection_stars")
