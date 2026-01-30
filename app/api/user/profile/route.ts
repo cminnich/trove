@@ -12,7 +12,12 @@ interface ProfileResponse {
 }
 
 interface UpdateProfileRequest {
-  username: string;
+  username?: string;
+  bio?: string;
+  website?: string;
+  social_reddit?: string;
+  social_x?: string;
+  social_github?: string;
 }
 
 // Word lists for username generation (matching migration)
@@ -97,40 +102,10 @@ export async function GET() {
   }
 }
 
-// PATCH /api/user/profile - Update user profile (username)
+// PATCH /api/user/profile - Update user profile
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json() as UpdateProfileRequest;
-
-    if (!body.username) {
-      return NextResponse.json(
-        { success: false, error: "Username is required" } as ProfileResponse,
-        { status: 400 }
-      );
-    }
-
-    const username = body.username.trim();
-
-    // Sanity check: 3-20 characters, alphanumeric and underscores only
-    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-    if (!usernameRegex.test(username)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Username must be 3-20 characters and contain only letters, numbers, and underscores"
-        } as ProfileResponse,
-        { status: 400 }
-      );
-    }
-
-    // Profanity check
-    const filter = new Filter();
-    if (filter.isProfane(username)) {
-      return NextResponse.json(
-        { success: false, error: "Username contains inappropriate language" } as ProfileResponse,
-        { status: 400 }
-      );
-    }
 
     const { client, user, error: authError } = await getAuthenticatedServerClient();
 
@@ -141,35 +116,130 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Uniqueness check (excluding current user)
-    const { data: existingUser } = await client
-      .from("profiles")
-      .select("id")
-      .eq("username", username)
-      .neq("id", user.id)
-      .maybeSingle();
-
-    if (existingUser) {
-      return NextResponse.json(
-        { success: false, error: "Username is already taken" } as ProfileResponse,
-        { status: 409 }
-      );
-    }
-
-    // Update profile
+    // Build update object
     type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
     const updateData: ProfileUpdate = {
-      username: username,
       updated_at: new Date().toISOString(),
     };
 
+    // Validate and add username if provided
+    if (body.username !== undefined) {
+      const username = body.username.trim();
+
+      if (username.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "Username cannot be empty" } as ProfileResponse,
+          { status: 400 }
+        );
+      }
+
+      // Sanity check: 3-20 characters, alphanumeric and underscores only
+      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+      if (!usernameRegex.test(username)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Username must be 3-20 characters and contain only letters, numbers, and underscores"
+          } as ProfileResponse,
+          { status: 400 }
+        );
+      }
+
+      // Profanity check
+      const filter = new Filter();
+      if (filter.isProfane(username)) {
+        return NextResponse.json(
+          { success: false, error: "Username contains inappropriate language" } as ProfileResponse,
+          { status: 400 }
+        );
+      }
+
+      // Uniqueness check (excluding current user)
+      const { data: existingUser } = await client
+        .from("profiles")
+        .select("id")
+        .eq("username", username)
+        .neq("id", user.id)
+        .maybeSingle();
+
+      if (existingUser) {
+        return NextResponse.json(
+          { success: false, error: "Username is already taken" } as ProfileResponse,
+          { status: 409 }
+        );
+      }
+
+      updateData.username = username;
+    }
+
+    // Validate and add bio if provided
+    if (body.bio !== undefined) {
+      const bio = body.bio.trim();
+      if (bio.length > 160) {
+        return NextResponse.json(
+          { success: false, error: "Bio must be 160 characters or less" } as ProfileResponse,
+          { status: 400 }
+        );
+      }
+      updateData.bio = bio || null;
+    }
+
+    // Validate and add website if provided
+    if (body.website !== undefined) {
+      const website = body.website.trim();
+      if (website && !website.match(/^https?:\/\//)) {
+        return NextResponse.json(
+          { success: false, error: "Website must be a valid URL (http:// or https://)" } as ProfileResponse,
+          { status: 400 }
+        );
+      }
+      updateData.website = website || null;
+    }
+
+    // Validate and add Reddit username if provided
+    if (body.social_reddit !== undefined) {
+      const reddit = body.social_reddit.trim();
+      if (reddit && !reddit.match(/^[a-zA-Z0-9_-]{1,20}$/)) {
+        return NextResponse.json(
+          { success: false, error: "Reddit username must be 1-20 characters (letters, numbers, _, -)" } as ProfileResponse,
+          { status: 400 }
+        );
+      }
+      updateData.social_reddit = reddit || null;
+    }
+
+    // Validate and add X/Twitter username if provided
+    if (body.social_x !== undefined) {
+      const x = body.social_x.trim();
+      if (x && !x.match(/^[a-zA-Z0-9_]{1,15}$/)) {
+        return NextResponse.json(
+          { success: false, error: "X username must be 1-15 characters (letters, numbers, _)" } as ProfileResponse,
+          { status: 400 }
+        );
+      }
+      updateData.social_x = x || null;
+    }
+
+    // Validate and add GitHub username if provided
+    if (body.social_github !== undefined) {
+      const github = body.social_github.trim();
+      if (github && !github.match(/^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$/)) {
+        return NextResponse.json(
+          { success: false, error: "GitHub username must start with letter/number and be 1-39 characters" } as ProfileResponse,
+          { status: 400 }
+        );
+      }
+      updateData.social_github = github || null;
+    }
+
+    // Update profile
     const { error: updateError } = await (client as any)
       .from("profiles")
       .update(updateData)
       .eq("id", user.id);
 
     if (updateError) {
-      console.error("Failed to update username:", updateError);
+      console.error("Failed to update profile:", updateError);
       return NextResponse.json(
         { success: false, error: updateError.message } as ProfileResponse,
         { status: 500 }
@@ -179,7 +249,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        username: username,
+        username: updateData.username || "",
       },
     } as ProfileResponse);
   } catch (error) {

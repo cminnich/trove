@@ -9,6 +9,11 @@ export type Database = {
           avatar_url: string | null;
           default_visibility: 'public' | 'private';
           username: string | null;
+          bio: string | null;
+          website: string | null;
+          social_reddit: string | null;
+          social_x: string | null;
+          social_github: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -19,6 +24,11 @@ export type Database = {
           avatar_url?: string | null;
           default_visibility?: 'public' | 'private';
           username?: string | null;
+          bio?: string | null;
+          website?: string | null;
+          social_reddit?: string | null;
+          social_x?: string | null;
+          social_github?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -29,6 +39,11 @@ export type Database = {
           avatar_url?: string | null;
           default_visibility?: 'public' | 'private';
           username?: string | null;
+          bio?: string | null;
+          website?: string | null;
+          social_reddit?: string | null;
+          social_x?: string | null;
+          social_github?: string | null;
           created_at?: string;
           updated_at?: string;
         };
