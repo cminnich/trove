@@ -83,8 +83,8 @@ export const DiscoveredFilterSchema = z.object({
   ),
   value_type: z.preprocess(coerceValueType, z.enum(VALID_VALUE_TYPES)),
   sample_values: z.preprocess(flattenToStringArray, z.array(z.string())),
-  item_coverage: z.preprocess(coerceScore, z.number().min(0).max(1)),
-  usefulness_score: z.preprocess(coerceScore, z.number().min(0).max(1)),
+  item_coverage: z.preprocess(coerceScore, z.number()),
+  usefulness_score: z.preprocess(coerceScore, z.number()),
 });
 
 export type DiscoveredFilter = z.infer<typeof DiscoveredFilterSchema>;
@@ -204,7 +204,7 @@ export const CollectionOverviewSchema = z.object({
     coerceDiscoveredFilters,
     z.array(DiscoveredFilterSchema).optional()
   ),
-  confidence_score: z.preprocess(coerceScore, z.number().min(0).max(1)),
+  confidence_score: z.preprocess(coerceScore, z.number()),
 });
 
 export type CollectionOverview = z.infer<typeof CollectionOverviewSchema>;

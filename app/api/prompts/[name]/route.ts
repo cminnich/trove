@@ -3,60 +3,23 @@ import { NextRequest, NextResponse } from "next/server";
 // Embedded prompts for serverless compatibility
 // (readFileSync doesn't work reliably in Vercel's serverless environment)
 const PROMPTS: Record<string, string> = {
-  "collection_overview.txt": `You are a collection curator and strategic analyst. Analyze this collection and provide thematic insights.
+  "collection_overview.txt": `Analyze this collection for thematic insights.
 
-## Collection Context
-**Name:** {{COLLECTION_NAME}}
-**Description:** {{COLLECTION_DESCRIPTION}}
-**Type:** {{COLLECTION_TYPE}}
-**Item Count:** {{ITEM_COUNT}}
+{{COLLECTION_NAME}} ({{ITEM_COUNT}} items)
+{{COLLECTION_DESCRIPTION}}
 
-## Items in Collection
 {{ITEMS_JSON}}
 
-## Your Task
-Analyze this collection and return a JSON response with:
+Provide:
+1. **summary**: 2-3 sentence overview
+2. **themes**: 3-5 key themes
+3. **insights**: 2-4 insights with title + description (reference specific items)
+4. **relationships**: (optional) how items relate (complementary, alternatives, progression)
+5. **confidence_score**: 0-1
 
-1. **summary** (string): 2-3 sentence high-level summary of what this collection represents
-2. **themes** (array of strings): 3-5 key themes discovered across items
-3. **insights** (array of objects): 2-4 strategic insights about the collection
-   - Each insight should have:
-     - title: Short insight title
-     - description: 1-2 sentence explanation with specific examples from items
-4. **relationships** (optional array): Notable relationships between items
-   - item_ids: Array of 2+ item UUIDs
-   - relationship_type: "complementary", "alternatives", "progression", etc.
-   - description: How they relate
-5. **confidence_score** (number 0-1): How confident you are in this analysis
+Focus on WHY items were collected. Look for patterns in types, price, brands, categories. Prioritize collection_notes field when present.
 
-## Analysis Guidelines
-- Focus on WHY the user collected these items, not just WHAT they are
-- Look for patterns in: item types, price points, brands, categories, user notes
-- Identify gaps or missing pieces in the collection
-- Consider relationships: Do items work together? Are they alternatives? Is there a progression?
-- Be specific: Reference actual item names/brands in insights
-- User notes (collection_notes field) are the most valuable signal - prioritize them
-
-## Filter Discovery
-
-Analyze the "attributes" field across all items. For each attribute key that appears in multiple items:
-
-1. Count how many items have this attribute
-2. List unique values (max 10 most common)
-3. Score usefulness 0-1 based on:
-   - Diversity: More unique values = more useful for filtering (but not too many)
-   - Coverage: Higher % of items having this attribute = more useful
-   - Filterability: Discrete values (strings, small numbers) > long text > unique IDs
-
-Return an additional "discovered_filters" array. Only include filters with usefulness_score >= 0.6.
-
-**IMPORTANT**: The sample_values array MUST contain strings only, even for numeric data. For example, years should be ["2020", "2021"] not [2020, 2021]. Always quote all values.
-
-Skip these common but non-filterable attributes:
-- description, notes, features (long text)
-- id, uuid, sku, upc (unique identifiers)
-- url, link, image (URLs)
-- created_at, updated_at (timestamps unless date filtering is useful)
+**Filter Discovery**: For attributes appearing in 2+ items, score usefulness (0-1) based on diversity, coverage, and filterability. Only include if score >= 0.6. Sample values must be strings. Skip: long text, unique IDs, URLs, timestamps.
 
 ## Response Format
 Return ONLY valid JSON matching this schema:
@@ -100,28 +63,21 @@ Return ONLY valid JSON matching this schema:
   "confidence_score": 0.85
 }
 `,
-  "researcher_mode.txt": `You are an expert buyer and researcher for this specific hobby or category. Your job is to analyze the collection to find gaps in the 'ontology' of this hobby.
+  "researcher_mode.txt": `Analyze this collection for gaps in its ontology. Identify what's missing to make it well-rounded.
 
-## Collection Context
-**Name:** {{COLLECTION_NAME}}
-**Description:** {{COLLECTION_DESCRIPTION}}
-**Type:** {{COLLECTION_TYPE}}
-**Item Count:** {{ITEM_COUNT}}
+{{COLLECTION_NAME}} ({{ITEM_COUNT}} items)
+{{COLLECTION_DESCRIPTION}}
 
-## Items in Collection
 {{ITEMS_JSON}}
 
-## Your Task
-Analyze what's present in the collection and identify what's conspicuously absent. Look for:
-- Missing price tiers (e.g., all budget items but no flagship options)
-- Missing brands that are industry standards
-- Missing categories or use cases (e.g., everyday carry vs special occasion)
-- Missing complementary items (e.g., accessories, tools, maintenance items)
-- Style gaps (e.g., all modern, no vintage)
+Find gaps:
+- Missing price tiers
+- Missing industry-standard brands
+- Missing categories or use cases
+- Missing complementary items/accessories
+- Style gaps
 
-For each gap, explain WHY it matters and what functional or experiential need it would fill. Prioritize based on how critical the gap is to a well-rounded collection.
-
-Then provide 2-3 specific product recommendations to fill the most important gaps, with reasoning and price estimates.
+Explain why each gap matters and prioritize by importance. Provide 2-3 specific product recommendations with price estimates.
 
 ## Response Format
 Return ONLY valid JSON matching this schema:
@@ -142,31 +98,19 @@ Return ONLY valid JSON matching this schema:
   ]
 }
 `,
-  "curator_mode.txt": `You are a strict collection curator. Your job is to identify redundancy and help streamline the collection.
+  "curator_mode.txt": `Identify redundant items in this collection. Group items that are functionally identical or serve the same purpose.
 
-## Collection Context
-**Name:** {{COLLECTION_NAME}}
-**Description:** {{COLLECTION_DESCRIPTION}}
-**Type:** {{COLLECTION_TYPE}}
-**Item Count:** {{ITEM_COUNT}}
+{{COLLECTION_NAME}} ({{ITEM_COUNT}} items)
+{{COLLECTION_DESCRIPTION}}
 
-## Items in Collection
 {{ITEMS_JSON}}
 
-## Your Task
-Analyze the provided items AND their attributes (Brand, Color, Type, etc.) to find:
-- Functionally identical items (e.g., multiple black leather wallets from different brands)
-- Overlapping items that serve the same purpose (e.g., three field watches with similar specs)
-- Items that differ only in superficial ways (e.g., same product in different colors)
+Find:
+- Functionally identical items
+- Items serving the same purpose with similar specs
+- Items differing only superficially
 
-For each redundant group, explain WHY they're redundant and what makes them functionally similar. Reference specific attributes like brand, color, material, price range.
-
-Also provide general maintenance suggestions:
-- Categories that are over-represented
-- Items with missing or low-quality metadata
-- Potential consolidation opportunities
-
-Be direct and practical. The goal is a lean, intentional collection where every item serves a distinct purpose.
+Reference specific attributes (brand, color, material, price) when explaining redundancy. Suggest maintenance actions for over-represented categories or missing metadata.
 
 ## Response Format
 Return ONLY valid JSON matching this schema:

@@ -9,7 +9,7 @@ const anthropic = new Anthropic({
 });
 
 const JINA_READER_BASE = "https://r.jina.ai/";
-const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
 const LOW_CONFIDENCE_THRESHOLD = 0.7;
 
 // Load extraction prompt from file

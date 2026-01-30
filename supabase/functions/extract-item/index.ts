@@ -2,59 +2,19 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const JINA_READER_BASE = "https://r.jina.ai/";
-const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
 const EXTRACTION_TIMEOUT_MS = 90000; // 90 seconds
 
-// Extraction prompt template
-const EXTRACTION_PROMPT = `You are a product data extraction assistant. Extract structured product information from the following webpage content.
+// Extraction prompt template (optimized for token efficiency)
+const EXTRACTION_PROMPT = `Extract structured product data from webpage content.
 
-## Entity Type Detection
-Identify what type of item this is and set item_type to a lowercase singular noun
-(e.g., "watch", "wine", "book", "sneaker", "camera", "product").
+**Entity Type**: Set item_type to lowercase singular noun (watch, wine, book, sneaker, camera). Default to "product" only if no better fit.
 
-Use your knowledge to determine the most specific accurate type.
-Default to "product" only if no better classification fits.
+**Core Fields**: title (required), brand, price (number), currency, retailer, image_url, category, tags
 
-## Core Field Extraction
-Extract these fields for ALL item types:
-- title: Product name or title (required)
-- brand: Brand or manufacturer
-- price: Price as a number (no currency symbols)
-- currency: Currency code (USD, EUR, GBP, etc.)
-- retailer: Website or store name
-- image_url: Main product image URL (full URL)
-- category: Retail-level category (Electronics, Luxury Goods, etc.)
-- tags: Relevant descriptive tags
+**Attributes**: Extract technical specs into attributes object. Use snake_case keys with units (weight_kg, power_reserve_hours). Numbers not strings. Arrays for multi-value. Omit nulls.
 
-## Attribute Extraction
-Extract all relevant technical specifications and characteristics into the
-attributes object. Use your domain knowledge to identify what matters for this
-type of item.
-
-### Formatting Rules (IMPORTANT):
-- Use snake_case for all keys (e.g., case_size_mm, not caseSize)
-- Include units in numeric key names (e.g., weight_kg, power_reserve_hours)
-- Use arrays for multi-value fields (e.g., complications: ["date", "chronograph"])
-- Use numbers for numeric values, not strings (e.g., 42 not "42mm")
-- Omit fields rather than using null for missing data in attributes
-
-## Response Format
-Return ONLY valid JSON matching this schema:
-{
-  "item_type": "string (lowercase singular noun)",
-  "title": "string (required)",
-  "brand": "string or null",
-  "price": "number or null",
-  "currency": "string or null",
-  "retailer": "string or null",
-  "image_url": "string or null (full URL)",
-  "category": "string or null",
-  "tags": ["array", "of", "strings"] or null,
-  "attributes": { /* domain-specific attributes */ },
-  "confidence_score": "number 0-1"
-}
-
-Be thorough and accurate. The confidence_score should reflect how confident you are in the overall extraction quality.
+Return valid JSON: {item_type, title, brand, price, currency, retailer, image_url, category, tags, attributes, confidence_score}. Be accurate.
 
 Webpage content:
 

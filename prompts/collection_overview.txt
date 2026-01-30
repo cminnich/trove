@@ -1,57 +1,20 @@
-You are a collection curator and strategic analyst. Analyze this collection and provide thematic insights.
+Analyze this collection for thematic insights.
 
-## Collection Context
-**Name:** {{COLLECTION_NAME}}
-**Description:** {{COLLECTION_DESCRIPTION}}
-**Type:** {{COLLECTION_TYPE}}
-**Item Count:** {{ITEM_COUNT}}
+{{COLLECTION_NAME}} ({{ITEM_COUNT}} items)
+{{COLLECTION_DESCRIPTION}}
 
-## Items in Collection
 {{ITEMS_JSON}}
 
-## Your Task
-Analyze this collection and return a JSON response with:
+Provide:
+1. **summary**: 2-3 sentence overview
+2. **themes**: 3-5 key themes
+3. **insights**: 2-4 insights with title + description (reference specific items)
+4. **relationships**: (optional) how items relate (complementary, alternatives, progression)
+5. **confidence_score**: 0-1
 
-1. **summary** (string): 2-3 sentence high-level summary of what this collection represents
-2. **themes** (array of strings): 3-5 key themes discovered across items
-3. **insights** (array of objects): 2-4 strategic insights about the collection
-   - Each insight should have:
-     - title: Short insight title
-     - description: 1-2 sentence explanation with specific examples from items
-4. **relationships** (optional array): Notable relationships between items
-   - item_ids: Array of 2+ item UUIDs
-   - relationship_type: "complementary", "alternatives", "progression", etc.
-   - description: How they relate
-5. **confidence_score** (number 0-1): How confident you are in this analysis
+Focus on WHY items were collected. Look for patterns in types, price, brands, categories. Prioritize collection_notes field when present.
 
-## Analysis Guidelines
-- Focus on WHY the user collected these items, not just WHAT they are
-- Look for patterns in: item types, price points, brands, categories, user notes
-- Identify gaps or missing pieces in the collection
-- Consider relationships: Do items work together? Are they alternatives? Is there a progression?
-- Be specific: Reference actual item names/brands in insights
-- User notes (collection_notes field) are the most valuable signal - prioritize them
-
-## Filter Discovery
-
-Analyze the "attributes" field across all items. For each attribute key that appears in multiple items:
-
-1. Count how many items have this attribute
-2. List unique values (max 10 most common)
-3. Score usefulness 0-1 based on:
-   - Diversity: More unique values = more useful for filtering (but not too many)
-   - Coverage: Higher % of items having this attribute = more useful
-   - Filterability: Discrete values (strings, small numbers) > long text > unique IDs
-
-Return an additional "discovered_filters" array. Only include filters with usefulness_score >= 0.6.
-
-**IMPORTANT**: The sample_values array MUST contain strings only, even for numeric data. For example, years should be ["2020", "2021"] not [2020, 2021]. Always quote all values.
-
-Skip these common but non-filterable attributes:
-- description, notes, features (long text)
-- id, uuid, sku, upc (unique identifiers)
-- url, link, image (URLs)
-- created_at, updated_at (timestamps unless date filtering is useful)
+**Filter Discovery**: For attributes appearing in 2+ items, score usefulness (0-1) based on diversity, coverage, and filterability. Only include if score >= 0.6. Sample values must be strings. Skip: long text, unique IDs, URLs, timestamps.
 
 ## Response Format
 Return ONLY valid JSON matching this schema:

@@ -54,7 +54,7 @@ The core POC loop is complete and working:
   - Endpoint: `https://r.jina.ai/{url}`
   
 - **Anthropic Claude** - Data extraction
-  - Model: claude-sonnet-4-20250514
+  - Model: claude-sonnet-4-5-20250929
   - Cost: ~$0.02 per product
 
 ## Getting Started

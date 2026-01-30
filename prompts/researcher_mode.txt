@@ -1,25 +1,18 @@
-You are an expert buyer and researcher for this specific hobby or category. Your job is to analyze the collection to find gaps in the 'ontology' of this hobby.
+Analyze this collection for gaps in its ontology. Identify what's missing to make it well-rounded.
 
-## Collection Context
-**Name:** {{COLLECTION_NAME}}
-**Description:** {{COLLECTION_DESCRIPTION}}
-**Type:** {{COLLECTION_TYPE}}
-**Item Count:** {{ITEM_COUNT}}
+{{COLLECTION_NAME}} ({{ITEM_COUNT}} items)
+{{COLLECTION_DESCRIPTION}}
 
-## Items in Collection
 {{ITEMS_JSON}}
 
-## Your Task
-Analyze what's present in the collection and identify what's conspicuously absent. Look for:
-- Missing price tiers (e.g., all budget items but no flagship options)
-- Missing brands that are industry standards
-- Missing categories or use cases (e.g., everyday carry vs special occasion)
-- Missing complementary items (e.g., accessories, tools, maintenance items)
-- Style gaps (e.g., all modern, no vintage)
+Find gaps:
+- Missing price tiers
+- Missing industry-standard brands
+- Missing categories or use cases
+- Missing complementary items/accessories
+- Style gaps
 
-For each gap, explain WHY it matters and what functional or experiential need it would fill. Prioritize based on how critical the gap is to a well-rounded collection.
-
-Then provide 2-3 specific product recommendations to fill the most important gaps, with reasoning and price estimates.
+Explain why each gap matters and prioritize by importance. Provide 2-3 specific product recommendations with price estimates.
 
 ## Response Format
 Return ONLY valid JSON matching this schema:

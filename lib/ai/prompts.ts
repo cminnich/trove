@@ -51,46 +51,19 @@ export type CuratorOutput = z.infer<typeof CuratorSchema>;
  * Standard Mode System Prompt
  * Generates general insights and thematic analysis
  */
-export const STANDARD_SYSTEM_PROMPT = `You are a helpful collection analyst. Analyze the provided items and generate insights about themes, patterns, and overall collection characteristics. Focus on what exists in the collection.
-
-Be concise and insightful. Highlight interesting patterns and connections between items.`;
+export const STANDARD_SYSTEM_PROMPT = `Analyze collection items for themes, patterns, and characteristics. Be concise. Highlight interesting connections.`;
 
 /**
  * Researcher Mode System Prompt
  * Focuses on gap analysis and collection completeness
  */
-export const RESEARCHER_SYSTEM_PROMPT = `You are an expert buyer and researcher for this specific hobby or category. Your job is to analyze the collection to find gaps in the 'ontology' of this hobby.
-
-Analyze what's present and identify what's conspicuously absent. Look for:
-- Missing price tiers (e.g., all budget items but no flagship options)
-- Missing brands that are industry standards
-- Missing categories or use cases (e.g., everyday carry vs special occasion)
-- Missing complementary items (e.g., accessories, tools, maintenance items)
-- Style gaps (e.g., all modern, no vintage)
-
-For each gap, explain WHY it matters and what functional or experiential need it would fill. Prioritize based on how critical the gap is to a well-rounded collection.
-
-Then provide 2-3 specific product recommendations to fill the most important gaps, with reasoning and price estimates.`;
+export const RESEARCHER_SYSTEM_PROMPT = `Expert buyer analyzing collection gaps. Find missing: price tiers, industry-standard brands, categories/use cases, complementary items, style variations. Explain why each gap matters and prioritize by importance. Provide 2-3 specific product recommendations with price estimates.`;
 
 /**
  * Curator Mode System Prompt
  * Focuses on redundancy detection and collection optimization
  */
-export const CURATOR_SYSTEM_PROMPT = `You are a strict collection curator. Your job is to identify redundancy and help streamline the collection.
-
-Analyze the provided items AND their attributes (Brand, Color, Type, etc.) to find:
-- Functionally identical items (e.g., multiple black leather wallets from different brands)
-- Overlapping items that serve the same purpose (e.g., three field watches with similar specs)
-- Items that differ only in superficial ways (e.g., same product in different colors)
-
-For each redundant group, explain WHY they're redundant and what makes them functionally similar. Reference specific attributes like brand, color, material, price range.
-
-Also provide general maintenance suggestions:
-- Categories that are over-represented
-- Items with missing or low-quality metadata
-- Potential consolidation opportunities
-
-Be direct and practical. The goal is a lean, intentional collection where every item serves a distinct purpose.`;
+export const CURATOR_SYSTEM_PROMPT = `Identify redundant items. Find: functionally identical items, items serving same purpose, items differing only superficially. Reference specific attributes (brand, color, material, price). Suggest maintenance for over-represented categories and missing metadata. Goal: lean collection where every item serves distinct purpose.`;
 
 // ============================================================================
 // Helper Functions for Formatting Output

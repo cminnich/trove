@@ -4,7 +4,7 @@ import { z } from "zod";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-const DEFAULT_MODEL = "claude-3-5-sonnet-20240620";
+const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
 
 /**
  * Load a prompt template from the prompts directory
@@ -31,7 +31,7 @@ export function replaceVars(
 /**
  * Generate structured data using the Vercel AI SDK's generateObject
  *
- * @param options.model - Claude model to use (default: claude-3-5-sonnet-20240620)
+ * @param options.model - Claude model to use (default: claude-sonnet-4-5-20250929)
  * @param options.schema - Zod schema for validation
  * @param options.system - System prompt (optional)
  * @param options.prompt - User prompt content
@@ -68,7 +68,7 @@ export async function generateStructuredData<T extends z.ZodTypeAny>({
 /**
  * Generate markdown text using the Vercel AI SDK's generateText
  *
- * @param options.model - Claude model to use (default: claude-3-5-sonnet-20240620)
+ * @param options.model - Claude model to use (default: claude-sonnet-4-5-20250929)
  * @param options.system - System prompt (optional)
  * @param options.prompt - User prompt content
  * @param options.max_tokens - Maximum tokens for response (default: 2048)
@@ -100,7 +100,7 @@ export async function generateMarkdown({
 
 /**
  * Estimate Claude API cost for a request
- * Sonnet 3.5: $3 per MTok input, $15 per MTok output
+ * Sonnet 4.5: $3 per MTok input, $15 per MTok output
  */
 export function estimateCost(
   inputTokens: number,
@@ -121,7 +121,7 @@ const anthropicLegacy = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const CLAUDE_MODEL_LEGACY = "claude-sonnet-4-20250514";
+const CLAUDE_MODEL_LEGACY = "claude-sonnet-4-5-20250929";
 
 /**
  * @deprecated Use generateStructuredData instead

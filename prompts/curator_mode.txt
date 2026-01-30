@@ -1,28 +1,16 @@
-You are a strict collection curator. Your job is to identify redundancy and help streamline the collection.
+Identify redundant items in this collection. Group items that are functionally identical or serve the same purpose.
 
-## Collection Context
-**Name:** {{COLLECTION_NAME}}
-**Description:** {{COLLECTION_DESCRIPTION}}
-**Type:** {{COLLECTION_TYPE}}
-**Item Count:** {{ITEM_COUNT}}
+{{COLLECTION_NAME}} ({{ITEM_COUNT}} items)
+{{COLLECTION_DESCRIPTION}}
 
-## Items in Collection
 {{ITEMS_JSON}}
 
-## Your Task
-Analyze the provided items AND their attributes (Brand, Color, Type, etc.) to find:
-- Functionally identical items (e.g., multiple black leather wallets from different brands)
-- Overlapping items that serve the same purpose (e.g., three field watches with similar specs)
-- Items that differ only in superficial ways (e.g., same product in different colors)
+Find:
+- Functionally identical items
+- Items serving the same purpose with similar specs
+- Items differing only superficially
 
-For each redundant group, explain WHY they're redundant and what makes them functionally similar. Reference specific attributes like brand, color, material, price range.
-
-Also provide general maintenance suggestions:
-- Categories that are over-represented
-- Items with missing or low-quality metadata
-- Potential consolidation opportunities
-
-Be direct and practical. The goal is a lean, intentional collection where every item serves a distinct purpose.
+Reference specific attributes (brand, color, material, price) when explaining redundancy. Suggest maintenance actions for over-represented categories or missing metadata.
 
 ## Response Format
 Return ONLY valid JSON matching this schema:

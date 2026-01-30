@@ -21,7 +21,7 @@ import {
 import type { Database } from "@/types/database";
 import { extractDynamicAttributesForItems } from "@/lib/attribute-normalizer";
 
-const CLAUDE_MODEL = "claude-3-5-sonnet-20240620";
+const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
 
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
 type CollectionAiOverview = Database["public"]["Tables"]["collection_ai_overviews"]["Row"];
@@ -332,7 +332,34 @@ export async function POST(
     let overviewMarkdown: string;
     let filterResult: { processed: string[]; failed: Array<{ name: string; error: string }> } | null = null;
 
-    const itemsJson = JSON.stringify(itemsWithAttributes, null, 2);
+    // Create minimal item representation for AI (strip unnecessary fields to reduce tokens)
+    const minimalItems = itemsWithAttributes.map(item => {
+      const minimal: Record<string, unknown> = {
+        title: item.title,
+        item_type: item.item_type,
+        brand: item.brand,
+        price: item.price,
+        currency: item.currency,
+        category: item.category,
+        tags: item.tags,
+        attributes: item.attributes,
+      };
+
+      // Include collection_notes if present (valuable user context)
+      if (item.collection_notes) {
+        minimal.collection_notes = item.collection_notes;
+      }
+
+      // Only include ID for curator mode (needed for redundancy grouping)
+      if (collection.ai_mode === 'curator') {
+        minimal.id = item.id;
+      }
+
+      return minimal;
+    });
+
+    // No pretty-printing to save tokens (removes whitespace)
+    const itemsJson = JSON.stringify(minimalItems);
 
     switch (collection.ai_mode) {
       case "standard": {
