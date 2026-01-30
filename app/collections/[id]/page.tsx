@@ -167,7 +167,8 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <div className="min-h-screen bg-void">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       {/* Toast Notifications */}
       {showEditToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-100 dark:bg-amber-900/90 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 px-6 py-3 rounded-lg shadow-lg animate-fade-in">
@@ -428,6 +429,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           collection={collection}
         />
       )}
+      </div>
     </div>
   )
 }

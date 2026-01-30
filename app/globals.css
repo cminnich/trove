@@ -3,11 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Force Terminal Noir dark theme */
+  --background: #0a0a0a;
+  --foreground: #ededed;
 
   /* Trove Design System */
-  --color-carbon: #1A1A1A;
+  --color-carbon: #FFFFFF;
   --color-white: #FFFFFF;
   --color-indigo-accent: #6366F1;
   --color-indigo-accent-dark: #4F46E5;
@@ -18,16 +19,6 @@
   --color-slate-deep: #0a0a0a;
   --color-slate-800: #1e293b;
   --color-open-green: #10b981;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-
-    /* Dark mode adjustments for logo */
-    --color-carbon: #FFFFFF;
-  }
 }
 
 body {
