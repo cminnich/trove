@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { GitFork } from 'lucide-react'
+import { StarButton } from '@/app/components/StarButton'
 
 interface PublicCollectionCardProps {
   collection: {
@@ -8,12 +9,15 @@ interface PublicCollectionCardProps {
     owner_username: string
     item_count: number
     fork_count: number
+    star_count?: number
     thumbnail_urls: string[]
+    owner_id?: string
   }
+  isStarred?: boolean
 }
 
-export function PublicCollectionCard({ collection }: PublicCollectionCardProps) {
-  const { id, name, owner_username, item_count, fork_count, thumbnail_urls } = collection
+export function PublicCollectionCard({ collection, isStarred = false }: PublicCollectionCardProps) {
+  const { id, name, owner_username, item_count, fork_count, star_count = 0, thumbnail_urls, owner_id } = collection
 
   // Fill missing thumbnails with placeholders
   const thumbnails = [...thumbnail_urls]
@@ -57,18 +61,26 @@ export function PublicCollectionCard({ collection }: PublicCollectionCardProps) 
           {item_count} {item_count === 1 ? 'item' : 'items'}
         </p>
 
-        {/* Attribution & Fork Count */}
-        <div className="flex items-center gap-2 text-xs font-mono text-slate-500">
-          <span className="text-open-green">@{owner_username}</span>
-          {fork_count > 0 && (
-            <>
-              <span>•</span>
-              <div className="flex items-center gap-1">
-                <GitFork className="w-3 h-3" />
-                <span>{fork_count}</span>
-              </div>
-            </>
-          )}
+        {/* Attribution, Fork Count, & Star Button */}
+        <div className="flex items-center justify-between gap-2 text-xs font-mono text-slate-500">
+          <div className="flex items-center gap-2">
+            <span className="text-open-green">@{owner_username}</span>
+            {fork_count > 0 && (
+              <>
+                <span>•</span>
+                <div className="flex items-center gap-1">
+                  <GitFork className="w-3 h-3" />
+                  <span>{fork_count}</span>
+                </div>
+              </>
+            )}
+          </div>
+          <StarButton
+            collectionId={id}
+            initialIsStarred={isStarred}
+            initialStarCount={star_count}
+            ownerId={owner_id}
+          />
         </div>
       </div>
     </Link>

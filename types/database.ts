@@ -62,6 +62,7 @@ export type Database = {
           ai_overview_valid: boolean;
           custom_prompt: string | null;
           fork_count: number;
+          star_count: number;
           is_forkable: boolean;
           created_at: string;
           updated_at: string;
@@ -79,6 +80,7 @@ export type Database = {
           ai_overview_valid?: boolean;
           custom_prompt?: string | null;
           fork_count?: number;
+          star_count?: number;
           is_forkable?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -96,6 +98,7 @@ export type Database = {
           ai_overview_valid?: boolean;
           custom_prompt?: string | null;
           fork_count?: number;
+          star_count?: number;
           is_forkable?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -125,6 +128,26 @@ export type Database = {
           forked_at?: string;
           source_owner_username?: string | null;
           source_collection_name?: string | null;
+        };
+      };
+      collection_stars: {
+        Row: {
+          id: string;
+          user_id: string;
+          collection_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          collection_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          collection_id?: string;
+          created_at?: string;
         };
       };
       items: {
