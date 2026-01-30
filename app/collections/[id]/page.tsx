@@ -207,11 +207,26 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           <span>Back to Collections</span>
         </Link>
 
-        {/* Title & Description - Stacked Vertically */}
+        {/* Title & Description - Stacked Vertically with Star in Top-Right */}
         <div className="mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {collection?.name || 'Loading...'}
-          </h1>
+          {/* Title Row with Star Button */}
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 flex-1">
+              {collection?.name || 'Loading...'}
+            </h1>
+            {/* Star Button - Icon only, top-right position */}
+            {collection && starData && (
+              <div className="flex-shrink-0 -mt-1">
+                <StarButton
+                  collectionId={id}
+                  initialIsStarred={starData.isStarred}
+                  initialStarCount={starData.starCount}
+                  ownerId={collection.owner_id || undefined}
+                  iconOnly={true}
+                />
+              </div>
+            )}
+          </div>
           {/* Fork Breadcrumb - shows if this collection is a fork */}
           <ForkBreadcrumb collectionId={id} />
           {collection?.description && (
@@ -245,19 +260,6 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
               collectionName={collection.name}
               itemCount={items.length}
             />
-          )}
-
-          {/* Star Button - Show for all collections with star data */}
-          {collection && starData && (
-            <div className="flex-shrink-0">
-              <StarButton
-                collectionId={id}
-                initialIsStarred={starData.isStarred}
-                initialStarCount={starData.starCount}
-                ownerId={collection.owner_id || undefined}
-                className="px-3 sm:px-4 py-2 bg-slate-deep border border-slate-800 hover:border-slate-600 rounded-lg"
-              />
-            </div>
           )}
 
           {/* Add Existing Button - Only for owner */}

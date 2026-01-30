@@ -11,6 +11,8 @@ interface StarButtonProps {
   initialStarCount: number;
   ownerId?: string;
   className?: string;
+  showCount?: boolean; // Whether to display the star count
+  iconOnly?: boolean; // Icon-only mode for minimal display
 }
 
 export function StarButton({
@@ -19,6 +21,8 @@ export function StarButton({
   initialStarCount,
   ownerId,
   className = "",
+  showCount = true,
+  iconOnly = false,
 }: StarButtonProps) {
   const [isStarred, setIsStarred] = useState(initialIsStarred);
   const [starCount, setStarCount] = useState(initialStarCount);
@@ -79,6 +83,34 @@ export function StarButton({
     }
   }
 
+  // Icon-only mode styling (minimal, ghost-like)
+  if (iconOnly) {
+    return (
+      <button
+        onClick={handleToggleStar}
+        disabled={isLoading}
+        className={`p-2 rounded-md transition-all hover:bg-slate-800/50 ${
+          isStarred
+            ? "text-amber-400 hover:text-amber-300"
+            : "text-slate-500 hover:text-slate-300"
+        } ${isLoading ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
+        title={isStarred ? "Remove from favorites" : "Add to favorites"}
+        aria-label={isStarred ? "Remove from favorites" : "Add to favorites"}
+      >
+        {isLoading ? (
+          <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
+        ) : (
+          <Star
+            className={`w-5 h-5 sm:w-6 sm:h-6 ${
+              isStarred ? "fill-amber-400 stroke-amber-400" : "fill-transparent"
+            }`}
+          />
+        )}
+      </button>
+    );
+  }
+
+  // Default mode with optional count
   return (
     <button
       onClick={handleToggleStar}
@@ -97,7 +129,7 @@ export function StarButton({
           className={`w-4 h-4 ${isStarred ? "fill-open-green" : ""}`}
         />
       )}
-      <span className="tabular-nums">{starCount}</span>
+      {showCount && <span className="tabular-nums">{starCount}</span>}
     </button>
   );
 }
