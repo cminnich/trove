@@ -136,14 +136,10 @@ export async function GET(
         return a.position - b.position;
       });
 
-    // Fetch AI overview if valid
-    let overview: CollectionOverview | null = null;
+    // Fetch AI overview if valid (now stored as markdown string)
+    let overview: string | null = null;
     if (collection.ai_overview_valid && collection.ai_overview) {
-      try {
-        overview = JSON.parse(collection.ai_overview) as CollectionOverview;
-      } catch (error) {
-        console.error("Failed to parse AI overview:", error);
-      }
+      overview = collection.ai_overview;
     }
 
     // Fetch collection filter preferences with attribute schemas

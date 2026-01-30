@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Sparkles, RefreshCw, Loader2, ChevronDown, ChevronUp, Settings, X, RotateCcw, FileText } from "lucide-react";
-import type { CollectionOverview as CollectionOverviewType } from "@/types/collection-overview";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Props {
   collectionId: string;
@@ -14,12 +15,13 @@ interface Props {
 const CONDENSED_HEIGHT = 120;
 
 export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = false }: Props) {
-  const [overview, setOverview] = useState<CollectionOverviewType | null>(null);
+  const [overview, setOverview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [needsGeneration, setNeedsGeneration] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasCustomPrompt, setHasCustomPrompt] = useState(false);
+  const [aiMode, setAiMode] = useState<string>("standard");
 
   // Collapsible state
   const [isExpanded, setIsExpanded] = useState(false);
@@ -73,6 +75,7 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
         setNeedsGeneration(true);
       }
       setHasCustomPrompt(!!data.has_custom_prompt);
+      setAiMode(data.ai_mode || "standard");
     } catch (err) {
       console.error("Failed to fetch overview:", err);
       setError("Failed to load overview");
@@ -94,6 +97,7 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
         setOverview(data.overview);
         setNeedsGeneration(false);
         setHasCustomPrompt(!!data.has_custom_prompt);
+        setAiMode(data.ai_mode || "standard");
         // Reset expanded state for new content
         setIsExpanded(false);
       } else {
@@ -463,67 +467,22 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
             ref={contentRef}
             className={needsTruncation && !isExpanded ? 'mask-fade-bottom' : ''}
           >
-            <p className="text-slate-300 mb-4 leading-relaxed font-mono text-sm">
-              {overview.summary}
-            </p>
-
-            {overview.themes && overview.themes.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
-                  # KEY_THEMES
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {overview.themes.map((theme, i) => (
-                    <span
-                      key={i}
-                      className="bg-slate-800/50 text-open-green px-3 py-1 rounded text-xs border border-slate-700 font-mono"
-                    >
-                      {theme}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {overview.insights && overview.insights.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
-                  # STRATEGIC_INSIGHTS
-                </h4>
-                <ul className="space-y-2">
-                  {overview.insights.map((insight, i) => (
-                    <li key={i} className="text-slate-300 text-sm font-mono">
-                      <span className="text-open-green">→</span>{" "}
-                      <span className="font-medium text-white">
-                        {insight.title}:
-                      </span>{" "}
-                      {insight.description}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {overview.relationships && overview.relationships.length > 0 && (
-              <div className="mb-4 pt-4 border-t border-slate-800">
-                <h4 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">
-                  # ITEM_RELATIONSHIPS
-                </h4>
-                <ul className="space-y-2 text-sm font-mono">
-                  {overview.relationships.map((rel, i) => (
-                    <li key={i} className="text-slate-300">
-                      <span className="text-open-green">→</span>{" "}
-                      <span className="font-medium capitalize text-white">{rel.relationship_type}:</span>{" "}
-                      {rel.description}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="pt-4 border-t border-slate-800 text-xs text-slate-600 font-mono">
-              confidence_score: <span className="text-open-green">{(overview.confidence_score * 100).toFixed(0)}%</span>
-            </div>
+            <article className="prose prose-invert prose-sm max-w-none font-mono
+              prose-headings:font-mono prose-headings:tracking-wider prose-headings:uppercase prose-headings:text-slate-300
+              prose-h1:text-base prose-h1:mb-3 prose-h1:border-b prose-h1:border-slate-800 prose-h1:pb-2
+              prose-h2:text-sm prose-h2:text-slate-400 prose-h2:mb-2 prose-h2:mt-4
+              prose-h3:text-xs prose-h3:text-slate-400 prose-h3:mb-1 prose-h3:mt-3
+              prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-3
+              prose-ul:text-slate-300 prose-ul:list-none prose-ul:pl-0
+              prose-li:text-sm prose-li:mb-2 prose-li:before:content-['→'] prose-li:before:text-open-green prose-li:before:mr-2
+              prose-strong:text-white prose-strong:font-medium
+              prose-code:text-open-green prose-code:bg-slate-800/50 prose-code:px-2 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+              prose-pre:bg-slate-800/50 prose-pre:border prose-pre:border-slate-700
+            ">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {overview}
+              </ReactMarkdown>
+            </article>
           </div>
         </div>
 
