@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
-import type { CollectionOverview } from "@/types/collection-overview";
 
 type Item = Database["public"]["Tables"]["items"]["Row"];
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
@@ -203,7 +202,7 @@ export async function GET(
 function generateContextMarkdown(
   collection: Collection,
   items: ItemWithCollectionMetadata[],
-  overview: CollectionOverview | null,
+  overview: string | null,
   filterPreferences: FilterPreferenceWithSchema[],
   level: VerbosityLevel
 ): string {
@@ -266,40 +265,12 @@ function generateContextMarkdown(
   lines.push("---");
   lines.push("");
 
-  // AI Curator's Analysis (if available)
+  // AI Analysis (if available) - now stored as markdown
   if (overview) {
-    lines.push("## AI Curator's Analysis");
+    lines.push("## AI Analysis");
     lines.push("");
-    lines.push(overview.summary);
-    lines.push("");
-
-    if (overview.themes && overview.themes.length > 0) {
-      lines.push("**Key Themes:**");
-      overview.themes.forEach((theme) => {
-        lines.push(`- ${theme}`);
-      });
-      lines.push("");
-    }
-
-    if (overview.insights && overview.insights.length > 0) {
-      lines.push("**Strategic Insights:**");
-      overview.insights.forEach((insight) => {
-        lines.push(`- **${insight.title}**: ${insight.description}`);
-      });
-      lines.push("");
-    }
-
-    if (overview.relationships && overview.relationships.length > 0) {
-      lines.push("**Item Relationships:**");
-      overview.relationships.forEach((rel) => {
-        lines.push(
-          `- *${rel.relationship_type}*: ${rel.description}`
-        );
-      });
-      lines.push("");
-    }
-
-    lines.push(`*Confidence: ${(overview.confidence_score * 100).toFixed(0)}%*`);
+    // Split markdown by lines and include it
+    lines.push(...overview.split('\n'));
     lines.push("");
     lines.push("---");
     lines.push("");
