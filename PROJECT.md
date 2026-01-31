@@ -1,54 +1,93 @@
-# Trove - Personal Knowledge Graph for AI
+# Open Trove - Social Collections for the AI Era
+
+**Live at [opentrove.app](https://www.opentrove.app)**
 
 ## Vision
-Personal collections (wishlists, inventories, research) that become persistent context for AI agents.
+A social platform where personal collections become persistent, shareable context for AI agents. Open Trove transforms how people organize, discover, and share curated knowledge in the age of AI.
 
-## Current Goal: POC
-Validate that the core loop works:
-1. Effortless capture (iPhone share sheet)
-2. AI-powered extraction (no manual data entry)
-3. Useful visualization
-4. AI-ready export
+## Core Principles
+1. **Effortless capture** - iPhone share sheet to collection in seconds
+2. **AI-powered intelligence** - No manual data entry, smart analysis
+3. **Beautiful design** - Terminal Noir aesthetic for focused curation
+4. **Open by default** - Public discovery, forking, starring
+5. **LLM-ready export** - Collections as persistent AI context
 
-## Status: Active Development
+## Status: Production
+
+Open Trove is live and fully functional with active users.
 
 ### What's Built
 
-**Core Features (All Complete)**
-1. **Smart Capture Flow**
+**1. Terminal Noir Design System**
+   - Distinctive dark, monospace aesthetic
+   - JetBrains Mono typography throughout
+   - Open Green (#10b981) accent color
+   - Void backgrounds (#050505) for immersion
+   - Hard shadows, sharp borders, uppercase headers
+   - Mobile-first responsive design
+
+**2. Smart Capture Flow**
    - Context-first UX: add notes while AI extracts
    - Deep link handler at /add?url=
-   - AI-powered extraction via Jina + Claude
+   - AI-powered extraction via Jina + Claude Sonnet 4.5
    - Duplicate detection and handling
    - Mobile-optimized for iPhone share sheet
+   - Confidence scoring with visual warnings
 
-2. **Collections & Visualization**
-   - Grid/list view toggle with persistence
-   - Drag-and-drop reordering
+**3. Collections & Visualization**
+   - Grid/list view toggle with localStorage persistence
+   - Drag-and-drop reordering (touch-optimized with @dnd-kit)
    - AI-generated collection overviews with thematic insights
    - Dynamic AI-powered filters with usefulness scoring
    - Per-collection filter visibility preferences
    - Sort by position, date, price, category
-   - Item detail bottom sheets
+   - Item detail bottom sheets with full editing
 
-3. **Item Attributes System**
+**4. AI Analysis Modes**
+   - **Standard**: Thematic analysis and general insights
+   - **Researcher**: Gap analysis with product recommendations
+   - **Curator**: Redundancy detection and optimization
+   - Vercel AI SDK for structured outputs
+   - Cached overviews with auto-invalidation
+
+**5. Social Platform Features**
+   - Public collection discovery with search
+   - Collection starring (bookmarking)
+   - Collection forking (clone and customize)
+   - User profiles with usernames
+   - Identity management (email, phone)
+   - Starred collections tab
+   - Fork count display
+   - Public/Private/Shared visibility
+
+**6. Item Attributes System**
    - Direct, computed, and semantic attributes
    - Automatic generation during extraction
    - Normalized attribute schemas per collection
    - Filtering by attribute values
+   - Backfill tool for existing items
 
-4. **Multi-User & Security**
-   - Google OAuth authentication
+**7. Authentication & Security**
+   - Google OAuth via Supabase Auth
    - Full Row-Level Security (RLS) policies
-   - SECURITY DEFINER functions for safe queries
-   - Public/private/shared collection visibility
+   - SECURITY DEFINER functions to prevent recursion
+   - Multi-user with complete data isolation
    - Email-based collection sharing invitations
+   - Session persistence with auto-refresh
 
-5. **Database Architecture**
-   - 13 migrations, many-to-many schema
-   - Items can belong to multiple collections
-   - Collection-specific notes and position
-   - Temporal snapshots for price tracking (foundation)
+**8. LLM-Ready Export**
+   - Context API at `/api/v1/collections/[id]/context`
+   - Markdown + JSON hybrid format
+   - Verbosity levels (minimal, standard, full)
+   - Filter preference controls
+   - Optimized for Claude and other LLMs
+
+**9. Database Architecture**
+   - 21+ migrations, many-to-many schema
+   - Items belong to multiple collections
+   - Collection-specific notes and positions
+   - Temporal snapshots for price tracking
+   - Normalized attributes with schemas
 
 ### API Endpoints (26+)
 - Extraction, items CRUD, collections CRUD
@@ -57,11 +96,19 @@ Validate that the core loop works:
 - Context export for AI agents
 
 ### What's NOT Built Yet
-- Native iOS app (PWA + shortcut for now)
-- Photo upload (URL only)
-- Price tracking alerts
-- Bulk import
-- Collection sharing UI (backend ready)
+- Native iOS app (PWA + shortcut currently working)
+- Photo upload (URL-only currently)
+- Price tracking alerts (snapshots table ready)
+- Bulk import from Amazon/other sources
+- Advanced search across all collections
+- Collection analytics and insights
+- Mobile app notifications
+
+### Current Focus
+- Platform refinement and polish
+- User feedback integration
+- Performance optimization
+- Community growth
 
 ## Tech Decisions
 
@@ -111,11 +158,19 @@ This separation enables AI reasoning like:
 - "What's similar to this watch?" → compare item attributes
 - "Why did I save this?" → read collection-specific notes
 
-## Success Metrics (POC)
+## Success Metrics
+
+**POC Goals (✅ Achieved):**
 - Can save 10 products via shortcut without friction
 - Extraction accuracy >80% (title, price, image)
 - Collection view is usable on iPhone
 - AI export is useful for actual Claude chat
+
+**Platform Goals (In Progress):**
+- Active users creating and sharing collections
+- Public collections being forked and starred
+- AI context exports being used in real workflows
+- Community engagement and feedback
 
 ## Resolved Questions
 - **Manual editing?** Yes - item detail sheet supports editing
@@ -129,11 +184,32 @@ This separation enables AI reasoning like:
 - Phase 7: Performance optimization
 
 ## Learnings
+
+**UX & Design:**
 - Context-first capture UX (add notes while AI works) is better than blocking extraction
+- Terminal Noir aesthetic creates strong brand identity and focused experience
+- Monospace typography throughout feels distinctive and purposeful
+- Dark themes with strategic green accents feel modern and intentional
+
+**Technical Architecture:**
 - Many-to-many schema unlocks powerful use cases (same item in multiple collections)
+- SECURITY DEFINER functions elegantly solve RLS infinite recursion issues
+- Vercel AI SDK simplifies structured outputs from Claude
+- SWR + Zustand combination provides excellent state management
+- Migration-based schema evolution is critical for production
+
+**AI Features:**
 - AI-generated collection overviews provide surprising value
+- Multiple AI modes (Standard, Researcher, Curator) unlock different use cases
 - Dynamic filter discovery helps users explore their data
-- SECURITY DEFINER functions solve RLS infinite recursion issues
+- Confidence scoring builds trust in AI extractions
+
+**Social Platform:**
+- Public-by-default creates network effects
+- Starring and forking drive discovery
+- Username management and identity are table stakes for social
+- Email invitations work well for private sharing
+- Fork counts signal collection quality
 
 ## Documentation
 

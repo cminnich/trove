@@ -1,101 +1,137 @@
-# Trove Design System
+# Open Trove Design System: Terminal Noir
 
 ## Core Philosophy
 
-Trove is a **Knowledge Workbench** for AI context, not a visual bookmarking tool. Every design decision prioritizes utility and information density over aesthetic flourish.
+Open Trove is a **Social Collections Platform** for the AI era. The design system, Terminal Noir, creates a distinctive, focused environment that honors the heritage of terminal interfaces while feeling modern and intentional.
 
-### The 3-Second Rule
-- **Capture must be invisible**: User provides *why* (notes), AI extracts *what* (metadata)
-- **Context over content**: The value is in relationships between items and collections
-- **AI-native density**: Prioritize metadata visibility for both humans and LLMs
+### Design Principles
+- **Monospace-first**: JetBrains Mono throughout creates consistency and technical feel
+- **Dark and focused**: Void backgrounds eliminate distractions
+- **Green accent**: Strategic use of "open green" for calls to action
+- **Terminal aesthetic**: Uppercase headers, hard shadows, sharp borders
+- **Information density**: Prioritize metadata visibility for both humans and AI
 
 ---
 
 ## Visual Identity
 
-### Logo: "T + Heart"
-A layered design combining a bold **T** (for Trove) with a subtle **heart** in the background.
+### Logo: "OPEN TROVE"
+Typographic logo in monospace uppercase with open green accent.
 
-**Design Features**:
-- **Primary T structure**: 4 main nodes representing objective, factual data
-  - What you saved: title, price, brand, URL
-  - Extracted by AI from web pages
-- **Heart layer**: Subtle background (35-40% opacity) representing emotional/personal context
-  - Why you saved it: notes, intentions, memories
-  - Added by the user
-- **Visual metaphor**: Facts + Feelings = Complete AI Context
-- **Convergence point**: Heart and T meet at (50,85), symbolizing the fusion of objective and subjective data
-
-**Implementation**:
-- Static SVGs: `/public/logo.svg` (light mode), `/public/logo-dark.svg` (dark mode)
-- React component: `<Logo />` in `app/components/Logo.tsx`
-- Variants: `variant="auto"` (default, responds to color scheme), `"light"`, `"dark"`
-- Sizes: `size={120}` (default), customizable via prop
-
-**Usage**:
+**Brand Treatment**:
 ```tsx
-import { Logo, LogoIcon } from '@/app/components/Logo'
-
-<Logo size={120} variant="auto" />  // Full logo with ghost network
-<LogoIcon size={48} />               // Icon-only for mobile/favicon
+<span className="text-open-green font-mono font-bold tracking-widest uppercase">
+  OPEN TROVE
+</span>
 ```
+
+**Visual Language**:
+- Always uppercase, wide tracking
+- JetBrains Mono font
+- Open green (#10b981) color
+- No icon or mark - pure typography
+- Terminal-inspired simplicity
 
 ### Color Palette
 
+Terminal Noir uses a minimal, high-contrast palette:
+
 ```css
-/* Primary - Already added to app/globals.css */
---color-carbon: #1A1A1A;          /* Dark background (inverts to white in dark mode) */
---color-white: #FFFFFF;            /* Light background */
---color-indigo-accent: #6366F1;    /* Primary actions, links */
---color-indigo-accent-dark: #4F46E5; /* Hover states */
---color-amber-status: #F59E0B;     /* Low confidence warnings */
+/* Backgrounds */
+--color-void: #050505;        /* Primary background - deep black */
+--color-slate-deep: #0a0a0a;  /* Secondary background - slightly lighter */
 
-/* Tailwind-native (use via utility classes) */
---gray-50: #F9FAFB;        /* Subtle backgrounds */
---gray-800: #1F2937;       /* Card backgrounds (dark) */
---gray-200: #E5E7EB;       /* Borders (light) */
---amber-50: #FFFBEB;       /* Low confidence background */
---amber-200: #FDE68A;      /* Low confidence border */
---amber-800: #92400E;      /* Low confidence text */
+/* Borders & Dividers */
+--color-slate-800: #1e293b;   /* Borders, dividers, inactive elements */
 
-/* Data/Monospace */
---mono-font: 'JetBrains Mono', 'SF Mono', 'Courier New', monospace;
+/* Accent */
+--color-open-green: #10b981;  /* Primary accent, CTAs, active states, links */
+
+/* Text */
+--color-slate-300: #cbd5e1;   /* Primary text */
+--color-slate-500: #64748b;   /* Secondary text, labels */
+--color-slate-400: #94a3b8;   /* Tertiary text, placeholders */
 ```
 
-**Status**: Core colors implemented in `app/globals.css`. Tailwind extension needed for gray/amber utilities.
+**Status**: Fully implemented in `app/globals.css` and used throughout the application.
 
 ### Typography
 
-- **Interface**: `Inter` (Variable font) - High legibility, mobile-optimized
-  - Body: 16px (1rem)
-  - Small: 14px (0.875rem)
-  - Tiny: 12px (0.75rem) for metadata
-- **Data/Code**: `JetBrains Mono` for prices, IDs, "Copy for AI" blocks
-  - Use tabular numerals for price alignment
+Terminal Noir uses **JetBrains Mono exclusively** for a consistent, terminal-inspired feel:
 
-**Next.js Integration**: Use `next/font/google` for Inter, load JetBrains Mono as fallback.
+- **All text**: JetBrains Mono via `font-mono` class
+- **Headers**: Uppercase with wide tracking (`tracking-widest`)
+  - Example: `className="font-mono text-xs uppercase tracking-widest"`
+- **Body text**: Slate-300 for readability on dark backgrounds
+- **Labels**: Slate-500, smaller sizes (text-xs, text-sm)
+- **Size scale**:
+  - Headers: text-xs to text-sm (uppercase makes them feel larger)
+  - Body: text-sm to text-base
+  - Metadata: text-xs
+
+**Implementation**:
+```tsx
+// Header
+<h2 className="font-mono text-xs uppercase tracking-widest text-slate-500">
+  COLLECTION SETTINGS
+</h2>
+
+// Body text
+<p className="font-mono text-sm text-slate-300">
+  Your collection description
+</p>
+
+// Logo
+<span className="text-open-green font-mono font-bold tracking-widest uppercase">
+  OPEN TROVE
+</span>
+```
 
 ---
 
-## UI Patterns & Information Density
+## Terminal Noir Component Patterns
 
-### Default View: Dense List
-Items default to **compact rows** with maximum metadata visibility:
-- **Row height**: 80-100px
-- **Visible metadata**: Brand, Price, Category, Tags, Item Type
-- **Thumbnail**: 64x64px, object-fit: contain
-- **Tap target**: Minimum 44x44px for mobile
+### Containers
+Standard container pattern with Terminal Noir styling:
+```tsx
+<div className="bg-void border border-slate-800 rounded-md shadow-hard">
+  {/* content */}
+</div>
+```
 
-### Hybrid View Toggle
-Provide a Grid/List toggle for visual-first collections (clothing, furniture):
-- **Grid mode**: 2 columns on mobile, 3-4 on tablet/desktop
-- **Card size**: Square aspect ratio, centered image
-- **Metadata overlay**: Price + Brand on hover/long-press
+### Terminal Headers
+Section headers use terminal-style typography:
+```tsx
+<div className="font-mono text-xs uppercase tracking-widest text-slate-500 border-b border-slate-800 px-4 py-2">
+  COLLECTION SETTINGS
+</div>
+```
 
-### Surface Style
-- **Borders**: 1px solid, gray-200 (light) / gray-800 (dark)
-- **No heavy shadows**: Use subtle elevation only for modals/dropdowns
-- **Border radius**: 8px for cards, 6px for buttons, 4px for badges
+### Primary Buttons
+Green accent for primary actions:
+```tsx
+<button className="bg-open-green hover:bg-emerald-400 text-void font-mono font-bold px-4 py-2 rounded-md">
+  SAVE CHANGES
+</button>
+```
+
+### Secondary Buttons
+Border-based for secondary actions:
+```tsx
+<button className="border border-slate-800 hover:border-slate-600 text-slate-300 font-mono px-4 py-2 rounded-md">
+  CANCEL
+</button>
+```
+
+### Navigation
+- **Active**: `bg-slate-800 text-open-green`
+- **Inactive**: `text-slate-400 hover:text-slate-200`
+
+### Collection Views
+- **Grid/List toggle**: Implemented with localStorage persistence
+- **Grid**: 2×2 thumbnail previews per collection card
+- **List**: Dense rows with metadata
+- **Drag handles**: Edit mode with 500ms long-press activation
 
 ---
 

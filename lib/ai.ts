@@ -54,15 +54,58 @@ export async function generateStructuredData<T extends z.ZodTypeAny>({
   max_tokens?: number;
   temperature?: number;
 }): Promise<z.infer<T>> {
-  const result = await generateObject({
-    model: anthropic(model),
-    schema,
-    system,
-    prompt,
-    temperature,
-  });
+  try {
+    const result = await generateObject({
+      model: anthropic(model),
+      schema,
+      ...(system ? { system } : {}),
+      prompt,
+      maxOutputTokens: max_tokens,
+      temperature,
+      providerOptions: {
+        anthropic: {
+          // Use tool-based structured output instead of the native beta
+          // which can return vague "Invalid request" errors
+          structuredOutputMode: "jsonTool",
+        },
+      },
+    });
 
-  return result.object;
+    return result.object;
+  } catch (error: any) {
+    // Enhanced error logging for debugging
+    console.error('=== AI Generation Error ===');
+    console.error('Model:', model);
+    console.error('Max Tokens:', max_tokens);
+    console.error('Temperature:', temperature);
+    console.error('System prompt length:', system?.length || 0);
+    console.error('Prompt length:', prompt.length);
+
+    // Estimate token count (rough: 1 token ≈ 4 chars)
+    const estimatedTokens = Math.ceil((prompt.length + (system?.length || 0)) / 4);
+    console.error('Estimated input tokens:', estimatedTokens);
+
+    if (estimatedTokens > 180000) {
+      console.error('⚠️  WARNING: Prompt may exceed context window (~200k tokens)');
+    }
+
+    console.error('Error details:', {
+      message: error.message,
+      statusCode: error.statusCode,
+      responseBody: error.responseBody,
+      data: error.data,
+    });
+
+    // Log the actual request body the SDK sent to the API
+    if (error.requestBodyValues) {
+      console.error('Request body sent to API:', JSON.stringify(error.requestBodyValues, null, 2));
+    }
+
+    // Log first 500 chars of prompt to help debug
+    console.error('Prompt preview:', prompt.substring(0, 500));
+
+    throw error;
+  }
 }
 
 /**
@@ -90,8 +133,9 @@ export async function generateMarkdown({
 }): Promise<string> {
   const result = await generateText({
     model: anthropic(model),
-    system,
+    ...(system ? { system } : {}),
     prompt,
+    maxOutputTokens: max_tokens,
     temperature,
   });
 

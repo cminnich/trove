@@ -466,6 +466,11 @@ Analyze this collection for redundant or overlapping items. Reference specific a
           ITEMS_JSON: itemsJson,
         });
 
+        // Debug logging for custom prompts
+        console.log('[Custom AI] Prompt length:', prompt.length);
+        console.log('[Custom AI] Estimated tokens:', Math.ceil(prompt.length / 4));
+        console.log('[Custom AI] Has schema suffix:', prompt.includes('REQUIRED RESPONSE FORMAT'));
+
         // Generate structured overview using custom prompt
         const overview = await generateStructuredData({
           model: CLAUDE_MODEL,
@@ -653,27 +658,15 @@ async function processDiscoveredFilters(
 }
 
 /**
- * Format standard overview to Markdown
+ * Format standard overview as structured JSON for rich rendering
  */
 function formatStandardOverview(overview: CollectionOverview): string {
-  let markdown = `# Collection Overview\n\n`;
-  markdown += `${overview.summary}\n\n`;
-
-  if (overview.themes && overview.themes.length > 0) {
-    markdown += `## Themes\n\n`;
-    for (const theme of overview.themes) {
-      markdown += `- ${theme}\n`;
-    }
-    markdown += `\n`;
-  }
-
-  if (overview.insights && overview.insights.length > 0) {
-    markdown += `## Insights\n\n`;
-    for (const insight of overview.insights) {
-      markdown += `### ${insight.title}\n`;
-      markdown += `${insight.description}\n\n`;
-    }
-  }
-
-  return markdown;
+  return JSON.stringify({
+    format: "structured_v1",
+    summary: overview.summary,
+    themes: overview.themes,
+    insights: overview.insights,
+    relationships: overview.relationships,
+    confidence_score: overview.confidence_score,
+  });
 }

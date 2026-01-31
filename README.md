@@ -1,61 +1,104 @@
-# Trove
+# Open Trove
 
-**Personal Knowledge Graph for AI**
+**Social Collections Platform for the AI Era**
 
-Trove is a proof-of-concept application that transforms personal collections (wishlists, inventories, research) into persistent context for AI agents. Capture products and items effortlessly from your iPhone, extract structured data using AI, and export collections in formats optimized for LLM context windows.
+[opentrove.app](https://www.opentrove.app)
+
+Open Trove transforms personal collections (wishlists, inventories, research) into rich, shareable context for AI agents. Capture items effortlessly from your iPhone, let AI extract and analyze structured data, discover and fork public collections, and export everything in LLM-optimized formats.
 
 ## Vision
 
-Personal collections that become persistent context for AI agents. Effortless capture, AI-powered extraction, useful visualization, and AI-ready export.
+A social platform where personal collections become persistent, shareable context for AI agents. Effortless capture, AI-powered extraction and analysis, beautiful Terminal Noir design, public discovery, and LLM-ready export.
 
-## Current Status: Active Development
+## Current Status: Production
 
-The core POC loop is complete and working:
+**Live at [opentrove.app](https://www.opentrove.app)**
+
+Open Trove is a fully-functional platform featuring:
 1. ✅ Effortless capture (iPhone share sheet via deep link)
 2. ✅ AI-powered extraction (Jina + Claude, no manual data entry)
-3. ✅ Useful visualization (grid/list views, sorting, filtering)
-4. ✅ AI-ready export (context endpoint for LLM consumption)
+3. ✅ Beautiful visualization (Terminal Noir design, grid/list views, dynamic filters)
+4. ✅ Social features (public collections, starring, forking)
+5. ✅ AI analysis modes (Standard, Researcher, Curator)
+6. ✅ LLM-ready export (context API for AI consumption)
 
 ## Features
 
-### Current
-- **Smart Capture Flow**: Context-first UX - add notes while AI extracts in background
-- **AI Extraction**: Automatic data extraction using Jina AI + Claude
-- **Collections**: Grid/list views, drag-and-drop reordering, sorting options
-- **AI Collection Overviews**: Thematic analysis and strategic insights per collection
-- **Dynamic Filters**: AI-discovered filters with usefulness scoring
-- **Item Attributes**: Direct, computed, and semantic attributes with schema normalization
-- **Multi-user Authentication**: Google OAuth with session persistence
+### Terminal Noir Design
+- **Distinctive Visual Language**: Dark, monospace-driven aesthetic inspired by terminal interfaces
+- **JetBrains Mono Typography**: Monospace font throughout with wide tracking on headers
+- **Open Green Accent**: Vibrant green (#10b981) for CTAs, active states, and branding
+- **Void Backgrounds**: Deep blacks (#050505) for immersive, distraction-free experience
+
+### Smart Capture
+- **Context-First UX**: Add notes while AI extracts in background
+- **AI Extraction**: Automatic data extraction using Jina AI + Claude Sonnet 4.5
+- **iPhone Integration**: Share sheet via deep link (/add?url=...)
+- **Duplicate Detection**: Prevents redundant extractions
+- **Confidence Scoring**: Visual warnings for low-confidence extractions
+
+### Collections & Visualization
+- **Grid/List Views**: Toggle views with localStorage persistence
+- **Drag-and-Drop Reordering**: Touch-optimized with @dnd-kit
+- **Dynamic AI Filters**: AI-discovered filters with usefulness scoring
+- **Item Attributes**: Direct, computed, and semantic attributes with normalization
+- **Sort Options**: By position, date, price, category
+
+### AI Analysis Modes
+- **Standard**: Thematic analysis and general insights
+- **Researcher**: Gap analysis with specific product recommendations
+- **Curator**: Redundancy detection and collection optimization
+
+### Social Platform
+- **Public Collections**: Discover and explore community collections
+- **Starring**: Bookmark favorite collections
+- **Forking**: Clone and customize public collections
+- **User Profiles**: Usernames, identity management, public presence
+
+### Authentication & Security
+- **Google OAuth**: Seamless authentication via Supabase
 - **Row-Level Security**: Full RLS policies with SECURITY DEFINER functions
+- **Multi-User**: Complete data isolation between users
 - **Collection Sharing**: Email-based invitations with viewer/editor permissions
-- **Public/Private Collections**: Visibility controls per collection
+- **Public/Private/Shared**: Granular visibility controls
+
+### AI Export
+- **Context API**: LLM-optimized export at `/api/v1/collections/[id]/context`
+- **Markdown + JSON**: Hybrid format for both human and AI consumption
+- **Verbosity Levels**: Control detail level in exports
+- **Filter Preferences**: Customize what gets exported
 
 ### Planned
-- Native iOS app (PWA + shortcut for now)
-- Photo upload (URL only currently)
-- Price tracking alerts
-- Bulk import
-- Collection sharing UI (backend ready)
+- Native iOS app (PWA + shortcut currently)
+- Photo upload (URL-only currently)
+- Price tracking alerts with snapshots
+- Bulk import from Amazon/other sources
 
 ## Tech Stack
 
 ### Frontend
 - **Next.js 15.5.9** (App Router, React 19)
 - **TypeScript** (strict mode)
-- **Tailwind CSS** (utility-first styling)
+- **Tailwind CSS** (utility-first styling with Terminal Noir design system)
+- **Framer Motion** (animations)
+- **@dnd-kit** (drag-and-drop)
+- **SWR** (server state management)
+- **Zustand** (client state)
 
 ### Backend
 - **Next.js API Routes** (serverless functions)
-- **Supabase** (Postgres database + future auth)
+- **Supabase** (Postgres database + Google OAuth)
+- **Resend** (transactional email)
 
 ### AI/ML
 - **Jina AI Reader** - URL to markdown conversion
   - Free tier: no API key needed
   - Endpoint: `https://r.jina.ai/{url}`
-  
-- **Anthropic Claude** - Data extraction
+
+- **Anthropic Claude** - Data extraction and analysis
   - Model: claude-sonnet-4-5-20250929
-  - Cost: ~$0.02 per product
+  - Cost: ~$0.02 per extraction
+  - Vercel AI SDK for structured outputs
 
 ## Getting Started
 
@@ -310,29 +353,41 @@ See [tests/README.md](tests/README.md) for comprehensive testing documentation.
 
 **Default to Playwright** for any feature involving UI, user interaction, or visual verification. Use Vitest for pure logic, schemas, and API contracts. Playwright provides the most value for a UI-heavy application like Trove.
 
-## Success Metrics (POC)
+## Design Philosophy
 
-- Can save 10 products via shortcut without friction
-- Extraction accuracy >80% (title, price, image)
-- Collection view is usable on iPhone
-- AI export is useful for actual Claude chat
+### Terminal Noir
+Open Trove uses a distinctive "Terminal Noir" visual language - a dark, monospace-driven aesthetic that honors the heritage of terminal interfaces while creating a modern, focused experience.
+
+**Core Elements:**
+- **Void backgrounds** (#050505) for immersion
+- **JetBrains Mono** throughout for consistency
+- **Open Green** (#10b981) as the primary accent
+- **Uppercase headers** with wide tracking
+- **Hard shadows** and sharp borders
+- **Monospace-first** typography
+
+See [CLAUDE.md](CLAUDE.md) for complete design system documentation.
 
 ## Deployment
 
-Trove is optimized for deployment on **Vercel** (Next.js's native platform).
+**Production:** [opentrove.app](https://www.opentrove.app)
 
-**Quick Deploy:**
-1. Push to GitHub
-2. Import to Vercel
-3. Add environment variables (Anthropic API, Supabase)
-4. Deploy in one click
+Open Trove is deployed on **Vercel** with Supabase for database and authentication.
+
+**Tech Infrastructure:**
+- **Hosting**: Vercel (serverless Next.js)
+- **Database**: Supabase Postgres (with Row-Level Security)
+- **Auth**: Supabase Auth with Google OAuth
+- **Email**: Resend (transactional emails)
+- **Domain**: opentrove.app
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide, including:
-- One-click Vercel deployment
-- Environment variables setup
-- iOS Shortcut configuration for testing
+- Vercel deployment setup
+- Environment variables configuration
+- Supabase migration management
+- iOS Shortcut configuration
 - Monitoring and debugging
-- Cost estimation
+- Cost estimation (~$0-5/month for POC usage)
 
 ## Documentation
 
@@ -345,12 +400,18 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide, including:
 - [[DEPLOYMENT]] - Vercel deployment guide
 - [[SETUP]] - Local development setup
 
+## About
+
+Open Trove was created by [Chris Minnich](https://github.com/cminnich) to explore how personal collections can become persistent context for AI agents in a social, open platform.
+
+**Built with:** Claude Code (Anthropic's official CLI)
+
 ## License
 
 Licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
 
 ## Contributing
 
-This is currently a personal project in early development. Contributions and feedback are welcome!
+Open Trove is an active project. Feedback, bug reports, and contributions are welcome via [GitHub Issues](https://github.com/cminnich/trove/issues).
 
 

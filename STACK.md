@@ -1,41 +1,68 @@
 # Tech Stack
 
+**Production:** [opentrove.app](https://www.opentrove.app)
+
 ## Frontend
-- **Next.js 15.5.9** (App Router, React 19, patched security vulnerabilities)
+- **Next.js 15.5.9** (App Router, React 19)
 - **TypeScript** (strict mode)
-- **Tailwind CSS** (utility-first styling)
+- **Tailwind CSS** (Terminal Noir design system)
+- **Framer Motion** (animations)
+- **@dnd-kit** (drag-and-drop, touch-optimized)
+- **SWR** (server state, caching, revalidation)
+- **Zustand** (client UI state)
+- **Lucide React** (icon library)
+- **React Markdown** (AI overview rendering)
 
 ## Backend
 - **Next.js API Routes** (serverless functions)
 - **Supabase** (Postgres database + Auth)
 - **Google OAuth** (authentication provider)
+- **Resend** (transactional email for invitations)
 
 ## AI/ML
 - **Jina AI Reader** - URL to markdown conversion
   - Free tier: no API key needed
-  - Rate limits: check docs
   - Endpoint: `https://r.jina.ai/{url}`
-  
-- **Anthropic Claude** - Data extraction
+  - Clean markdown output for AI processing
+
+- **Anthropic Claude Sonnet 4.5** - Data extraction and analysis
   - Model: claude-sonnet-4-5-20250929
-  - Cost: ~$0.02 per product
-  - API key: required
+  - Cost: ~$0.02 per extraction
+  - Used for: product extraction, collection analysis, filter discovery
+
+- **Vercel AI SDK** - Structured AI outputs
+  - `@ai-sdk/anthropic` provider
+  - `generateObject` for structured data (Zod schemas)
+  - `generateText` for markdown generation
+  - Type-safe AI responses
+
+- **AI Modes**:
+  - **Standard**: Thematic analysis and general insights
+  - **Researcher**: Gap analysis with product recommendations
+  - **Curator**: Redundancy detection and optimization
 
 ## Database Schema
 
-The database schema is defined across 13 migrations in `supabase/migrations/`:
+The database schema is defined across 21+ migrations in `supabase/migrations/`:
 
 **Core Tables:**
 - `profiles` - User profiles (synced from Supabase Auth via trigger)
+  - Includes username, identity fields (email/phone), default_visibility
 - `items` - Products with extracted metadata, attributes, confidence scores
 - `collections` - User collections with visibility (public/private/shared)
+  - Includes ai_mode (standard/researcher/curator), star_count, fork_count
 - `collection_items` - Many-to-many junction with position, notes, added_at
 
 **AI Features:**
-- `collection_overviews` - Cached AI-generated summaries
+- `collection_ai_overviews` - Cached AI-generated summaries (per mode)
 - `item_attributes` - Normalized attributes (direct/computed/semantic)
 - `collection_attribute_schemas` - Discovered filters with usefulness scoring
 - `collection_filter_preferences` - Per-user filter visibility
+
+**Social Features:**
+- `collection_stars` - User starring (bookmarking) of collections
+- `collection_forks` - Track collection forking relationships
+- Public collection discovery with search
 
 **Sharing & History:**
 - `collection_access` - Sharing invitations (email/phone-based, viewer/editor)
@@ -45,6 +72,7 @@ The database schema is defined across 13 migrations in `supabase/migrations/`:
 - Full Row-Level Security (RLS) on all tables
 - SECURITY DEFINER functions to prevent infinite recursion
 - Identity claiming trigger for pre-signup invitations
+- Comprehensive policies for public/private/shared access
 
 See individual migration files for exact SQL definitions:
 - `001_initial_schema.sql` - Core tables
@@ -99,10 +127,39 @@ SUPABASE_SECRET_KEY=sb_secret_...     # Secret Key (server-side only)
 - **zustand** - Lightweight client state management for UI state
 - **lucide-react** - Icon library for UI components
 
+## Terminal Noir Design System
+
+Open Trove uses a distinctive "Terminal Noir" visual language:
+
+**Color Palette:**
+```css
+--color-void: #050505;        /* Primary background */
+--color-slate-deep: #0a0a0a;  /* Secondary background */
+--color-slate-800: #1e293b;   /* Borders, dividers */
+--color-open-green: #10b981;  /* Primary accent, CTAs, active states */
+```
+
+**Typography:**
+- **Primary font**: JetBrains Mono (monospace) via `font-mono`
+- **Headers**: Uppercase, wide tracking (`tracking-widest`)
+- **Body text**: Slate-300 for primary, slate-500 for secondary
+- **Logo**: "OPEN TROVE" in open-green, bold, uppercase
+
+**Component Patterns:**
+- Containers: `bg-void border border-slate-800 rounded-md shadow-hard`
+- Terminal headers: `font-mono text-xs uppercase tracking-widest text-slate-500`
+- Primary buttons: `bg-open-green hover:bg-emerald-400 text-void font-mono`
+- Active nav: `bg-slate-800 text-open-green`
+
+See [CLAUDE.md](CLAUDE.md) for complete design system documentation.
+
 ## Deployment
-- **Hosting**: Vercel (free tier)
-- **Database**: Supabase (free tier)
+- **Hosting**: Vercel (production)
+- **Database**: Supabase (Postgres with RLS)
+- **Auth**: Supabase Auth (Google OAuth)
+- **Email**: Resend (transactional)
 - **Domain**: [opentrove.app](https://www.opentrove.app)
+- **Cost**: ~$0-5/month for POC usage levels
 
 ## Testing
 

@@ -11,6 +11,114 @@ interface Props {
   isOwner?: boolean;
 }
 
+interface StructuredOverview {
+  format: "structured_v1";
+  summary: string;
+  themes: string[];
+  insights: Array<{ title: string; description: string }>;
+  relationships?: Array<{
+    item_ids: string[];
+    relationship_type: string;
+    description: string;
+  }>;
+  confidence_score: number;
+}
+
+function tryParseStructured(overview: string): StructuredOverview | null {
+  try {
+    const parsed = JSON.parse(overview);
+    if (parsed.format === "structured_v1") return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function StructuredOverviewView({ data }: { data: StructuredOverview }) {
+  return (
+    <div className="space-y-5">
+      {/* Summary */}
+      <p className="text-sm text-slate-300 leading-relaxed font-mono">
+        {data.summary}
+      </p>
+
+      {/* Key Themes */}
+      {data.themes && data.themes.length > 0 && (
+        <div>
+          <h2 className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3">
+            # KEY_THEMES
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {data.themes.map((theme, i) => (
+              <span
+                key={i}
+                className="inline-block px-3 py-1.5 text-sm font-mono text-open-green border border-open-green/40 rounded-md bg-open-green/5"
+              >
+                {theme}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Strategic Insights */}
+      {data.insights && data.insights.length > 0 && (
+        <div>
+          <h2 className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3">
+            # STRATEGIC_INSIGHTS
+          </h2>
+          <div className="space-y-3">
+            {data.insights.map((insight, i) => (
+              <div key={i} className="flex gap-2 text-sm font-mono">
+                <span className="text-open-green flex-shrink-0 mt-0.5">&rarr;</span>
+                <p className="text-slate-300 leading-relaxed">
+                  <strong className="text-white font-medium">{insight.title}:</strong>{" "}
+                  {insight.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Item Relationships */}
+      {data.relationships && data.relationships.length > 0 && (
+        <div>
+          <h2 className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3">
+            # ITEM_RELATIONSHIPS
+          </h2>
+          <div className="space-y-3">
+            {data.relationships.map((rel, i) => (
+              <div key={i} className="flex gap-2 text-sm font-mono">
+                <span className="text-open-green flex-shrink-0 mt-0.5">&rarr;</span>
+                <p className="text-slate-300 leading-relaxed">
+                  <strong className="text-white font-medium capitalize">
+                    {rel.relationship_type}:
+                  </strong>{" "}
+                  {rel.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Confidence Score */}
+      {data.confidence_score != null && (
+        <>
+          <hr className="border-slate-800" />
+          <p className="font-mono text-xs text-slate-500">
+            confidence_score:{" "}
+            <span className="text-open-green">
+              {Math.round(data.confidence_score * 100)}%
+            </span>
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 // Condensed height in pixels (approximately 3-4 lines)
 const CONDENSED_HEIGHT = 120;
 
@@ -519,22 +627,30 @@ export function EnhancedCollectionOverview({ collectionId, isPrivate, isOwner = 
             ref={contentRef}
             className={needsTruncation && !isExpanded ? 'mask-fade-bottom' : ''}
           >
-            <article className="prose prose-invert prose-sm max-w-none font-mono
-              prose-headings:font-mono prose-headings:tracking-wider prose-headings:uppercase prose-headings:text-slate-300
-              prose-h1:text-base prose-h1:mb-3 prose-h1:border-b prose-h1:border-slate-800 prose-h1:pb-2
-              prose-h2:text-sm prose-h2:text-slate-400 prose-h2:mb-2 prose-h2:mt-4
-              prose-h3:text-xs prose-h3:text-slate-400 prose-h3:mb-1 prose-h3:mt-3
-              prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-3
-              prose-ul:text-slate-300 prose-ul:list-none prose-ul:pl-0
-              prose-li:text-sm prose-li:mb-2 prose-li:before:content-['→'] prose-li:before:text-open-green prose-li:before:mr-2
-              prose-strong:text-white prose-strong:font-medium
-              prose-code:text-open-green prose-code:bg-slate-800/50 prose-code:px-2 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
-              prose-pre:bg-slate-800/50 prose-pre:border prose-pre:border-slate-700
-            ">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {overview}
-              </ReactMarkdown>
-            </article>
+            {(() => {
+              const structured = tryParseStructured(overview);
+              if (structured) {
+                return <StructuredOverviewView data={structured} />;
+              }
+              return (
+                <article className="prose prose-invert prose-sm max-w-none font-mono
+                  prose-headings:font-mono prose-headings:tracking-wider prose-headings:uppercase prose-headings:text-slate-300
+                  prose-h1:text-base prose-h1:mb-3 prose-h1:border-b prose-h1:border-slate-800 prose-h1:pb-2
+                  prose-h2:text-sm prose-h2:text-slate-400 prose-h2:mb-2 prose-h2:mt-4
+                  prose-h3:text-xs prose-h3:text-slate-400 prose-h3:mb-1 prose-h3:mt-3
+                  prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-3
+                  prose-ul:text-slate-300 prose-ul:list-none prose-ul:pl-0
+                  prose-li:text-sm prose-li:mb-2 prose-li:before:content-['→'] prose-li:before:text-open-green prose-li:before:mr-2
+                  prose-strong:text-white prose-strong:font-medium
+                  prose-code:text-open-green prose-code:bg-slate-800/50 prose-code:px-2 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+                  prose-pre:bg-slate-800/50 prose-pre:border prose-pre:border-slate-700
+                ">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {overview}
+                  </ReactMarkdown>
+                </article>
+              );
+            })()}
           </div>
         </div>
 
