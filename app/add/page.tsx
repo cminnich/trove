@@ -11,6 +11,8 @@ import { CollectionSelector } from './components/CollectionSelector'
 import { ExtractedItemCard } from './components/ExtractedItemCard'
 import { ProcessingCard } from './components/ProcessingCard'
 import { CaptureActions } from './components/CaptureActions'
+import { PhotoCapture } from './components/PhotoCapture'
+import { PhotoBatchResults } from './components/PhotoBatchResults'
 import { getClient } from '@/lib/supabase-client'
 
 type Item = Database['public']['Tables']['items']['Row']
@@ -478,10 +480,18 @@ function ProcessingView({
   )
 }
 
+// Photo identification state types
+type PhotoState =
+  | { stage: 'idle' }
+  | { stage: 'identifying' }
+  | { stage: 'results'; items: any[]; sceneDescription: string }
+  | { stage: 'error'; message: string }
+
 // Manual Entry View Component
 function ManualEntryView({ user }: { user: any }) {
   const [url, setUrl] = useState('')
   const [isValid, setIsValid] = useState(true)
+  const [photoState, setPhotoState] = useState<PhotoState>({ stage: 'idle' })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -496,6 +506,57 @@ function ManualEntryView({ user }: { user: any }) {
     }
   }
 
+  const handlePhotoCapture = async (imageBase64: string, mimeType: string) => {
+    setPhotoState({ stage: 'identifying' })
+
+    try {
+      const response = await fetch('/api/items/photo-identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageBase64, mimeType }),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        setPhotoState({ stage: 'error', message: result.error || 'Identification failed' })
+        return
+      }
+
+      if (!result.items || result.items.length === 0) {
+        setPhotoState({
+          stage: 'error',
+          message: result.scene_description
+            ? `No products identified. Scene: ${result.scene_description}`
+            : 'No products could be identified in this photo',
+        })
+        return
+      }
+
+      setPhotoState({
+        stage: 'results',
+        items: result.items,
+        sceneDescription: result.scene_description || '',
+      })
+    } catch (err) {
+      setPhotoState({
+        stage: 'error',
+        message: err instanceof Error ? err.message : 'Failed to identify photo',
+      })
+    }
+  }
+
+  const handleSelectUrl = (selectedUrl: string) => {
+    window.location.href = `/add?url=${encodeURIComponent(selectedUrl)}`
+  }
+
+  const handleCreateWithoutUrl = (item: any) => {
+    // Future: create item directly from photo data
+    // For now, pre-fill the URL field with a search
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(item.search_query)}`
+    window.open(searchUrl, '_blank')
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-void">
       <div className="w-full max-w-md">
@@ -504,46 +565,100 @@ function ManualEntryView({ user }: { user: any }) {
             ADD TO TROVE
           </h1>
           <p className="text-slate-400 font-mono text-sm">
-            // Enter a URL to extract and save
+            // Enter a URL or snap a photo
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="url" className="block text-sm font-mono font-medium text-slate-300 mb-2">
-              URL
-            </label>
-            <input
-              type="text"
-              id="url"
-              value={url}
-              onChange={(e) => {
-                setUrl(e.target.value)
-                setIsValid(true)
-              }}
-              placeholder="https://example.com/product"
-              className={`w-full px-4 py-3 rounded-lg border font-mono ${
-                isValid
-                  ? 'border-slate-800'
-                  : 'border-red-500'
-              } bg-slate-deep text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-open-green`}
-              autoFocus
+        {/* Photo results view */}
+        {photoState.stage === 'results' && (
+          <div className="mb-6">
+            <PhotoBatchResults
+              items={photoState.items}
+              sceneDescription={photoState.sceneDescription}
+              onSelectUrl={handleSelectUrl}
+              onCreateWithoutUrl={handleCreateWithoutUrl}
+              onCancel={() => setPhotoState({ stage: 'idle' })}
             />
-            {!isValid && (
-              <p className="mt-2 text-sm text-red-400 font-mono">
-                Please enter a valid URL
-              </p>
-            )}
           </div>
+        )}
 
-          <button
-            type="submit"
-            disabled={!url.trim()}
-            className="w-full bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-void font-mono font-medium py-3 px-4 rounded-lg transition-colors"
-          >
-            Extract & Save
-          </button>
-        </form>
+        {/* Photo error */}
+        {photoState.stage === 'error' && (
+          <div className="mb-6 p-4 rounded-lg border border-red-500/30 bg-red-500/5">
+            <p className="text-sm font-mono text-red-400 mb-2">{photoState.message}</p>
+            <button
+              onClick={() => setPhotoState({ stage: 'idle' })}
+              className="text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {/* Identifying spinner */}
+        {photoState.stage === 'identifying' && (
+          <div className="mb-6 flex flex-col items-center py-8">
+            <div className="inline-block w-10 h-10 border-4 border-slate-800 border-t-open-green rounded-full animate-spin mb-4" />
+            <p className="text-sm font-mono text-slate-400">Identifying products...</p>
+            <p className="text-xs font-mono text-slate-600 mt-1">Analyzing photo with AI</p>
+          </div>
+        )}
+
+        {/* URL form (always visible unless showing results) */}
+        {photoState.stage !== 'results' && (
+          <>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="url" className="block text-sm font-mono font-medium text-slate-300 mb-2">
+                  URL
+                </label>
+                <input
+                  type="text"
+                  id="url"
+                  value={url}
+                  onChange={(e) => {
+                    setUrl(e.target.value)
+                    setIsValid(true)
+                  }}
+                  placeholder="https://example.com/product"
+                  className={`w-full px-4 py-3 rounded-lg border font-mono ${
+                    isValid
+                      ? 'border-slate-800'
+                      : 'border-red-500'
+                  } bg-slate-deep text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-open-green`}
+                  autoFocus
+                  disabled={photoState.stage === 'identifying'}
+                />
+                {!isValid && (
+                  <p className="mt-2 text-sm text-red-400 font-mono">
+                    Please enter a valid URL
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={!url.trim() || photoState.stage === 'identifying'}
+                className="w-full bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-void font-mono font-medium py-3 px-4 rounded-lg transition-colors"
+              >
+                Extract & Save
+              </button>
+            </form>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4 my-6">
+              <div className="flex-1 border-t border-slate-800" />
+              <span className="text-xs font-mono text-slate-600">or</span>
+              <div className="flex-1 border-t border-slate-800" />
+            </div>
+
+            {/* Photo capture */}
+            <PhotoCapture
+              onCapture={handlePhotoCapture}
+              disabled={photoState.stage === 'identifying'}
+            />
+          </>
+        )}
 
         <div className="mt-8 pt-8 border-t border-slate-800">
           <p className="text-sm text-slate-400 font-mono text-center mb-2">

@@ -3,6 +3,7 @@ import { generateObject, generateText } from "ai";
 import { z } from "zod";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { PhotoIdentificationSchema } from "@/types/extraction";
 
 const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
 
@@ -153,6 +154,59 @@ export function estimateCost(
   const inputCost = (inputTokens / 1_000_000) * 3.0;
   const outputCost = (outputTokens / 1_000_000) * 15.0;
   return inputCost + outputCost;
+}
+
+/**
+ * Identify products from a photo using Claude Vision
+ *
+ * @param imageBase64 - Base64-encoded image data
+ * @param mimeType - Image MIME type (image/jpeg, image/png, etc.)
+ * @returns Structured identification with search queries
+ */
+export async function identifyFromPhoto(
+  imageBase64: string,
+  mimeType: string
+) {
+  const prompt = loadPrompt("photo_identification.txt");
+
+  try {
+    const result = await generateObject({
+      model: anthropic(DEFAULT_MODEL),
+      schema: PhotoIdentificationSchema,
+      messages: [
+        {
+          role: "user" as const,
+          content: [
+            {
+              type: "image" as const,
+              image: imageBase64,
+              mediaType: mimeType,
+            },
+            { type: "text" as const, text: prompt },
+          ],
+        },
+      ],
+      maxOutputTokens: 2048,
+      temperature: 1.0,
+      providerOptions: {
+        anthropic: {
+          structuredOutputMode: "jsonTool" as const,
+        },
+      },
+    });
+
+    return result.object;
+  } catch (error: any) {
+    console.error("=== Photo Identification Error ===");
+    console.error("Model:", DEFAULT_MODEL);
+    console.error("MimeType:", mimeType);
+    console.error("Image size (chars):", imageBase64.length);
+    console.error("Error details:", {
+      message: error.message,
+      statusCode: error.statusCode,
+    });
+    throw error;
+  }
 }
 
 // ============================================================================

@@ -1,0 +1,21 @@
+Identify the product(s) visible in this photo for an online product search.
+
+For each distinct item visible:
+
+1. **Product name**: Include brand, model, and any specific variant (color, edition, size) visible
+2. **Search query**: Write a precise Google search query that would find the exact product listing (include brand + model + distinguishing details)
+3. **Distinguishing features**: Note specific visual details (color, pattern, model number on label, edition text, packaging details) that help verify a search result matches this exact item
+4. **Confidence**: Rate 0-1 how confident you are in the identification
+   - 0.9+ = clearly identifiable brand/model (logo visible, distinctive design)
+   - 0.7-0.9 = likely identification but some ambiguity (generic packaging, partial view)
+   - 0.5-0.7 = rough guess (blurry, generic item, no branding visible)
+   - Below 0.5 = can't meaningfully identify
+
+Rules:
+- Focus on products/collectibles, not background objects or furniture
+- If a label, price tag, or model number is visible, include it in the search query
+- For books: include author and exact title
+- For wine/spirits: include producer, name, and vintage if visible
+- For electronics: include brand and model number
+- If the photo is too blurry or unclear, return a single item with low confidence and note this in distinguishing_features
+- If no identifiable products are visible, return an empty items array with item_count: 0

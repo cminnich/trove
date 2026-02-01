@@ -28,6 +28,27 @@ export const ProductExtractionSchema = z.object({
 
 export type ProductExtraction = z.infer<typeof ProductExtractionSchema>;
 
+// Photo identification schemas (for photo → product URL flow)
+export const PhotoIdentificationItemSchema = z.object({
+  title: z.string().describe("Best guess at product name including brand"),
+  brand: z.string().nullable().describe("Brand or manufacturer if identifiable"),
+  item_type: z.string().default("product").describe("Entity type (watch, wine, book, sneaker, etc.)"),
+  category: z.string().nullable().describe("Product category"),
+  search_query: z.string().describe("Precise search query to find this exact product online"),
+  confidence_score: z.number().min(0).max(1).describe("Confidence in identification (0-1)"),
+  distinguishing_features: z.string().describe("Key visual features for matching against search results"),
+});
+
+export type PhotoIdentificationItem = z.infer<typeof PhotoIdentificationItemSchema>;
+
+export const PhotoIdentificationSchema = z.object({
+  items: z.array(PhotoIdentificationItemSchema),
+  item_count: z.number(),
+  scene_description: z.string().describe("Brief description of what the photo shows"),
+});
+
+export type PhotoIdentification = z.infer<typeof PhotoIdentificationSchema>;
+
 // API request/response types
 export interface ExtractRequest {
   url: string;
