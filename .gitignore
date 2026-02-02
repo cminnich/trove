@@ -45,6 +45,7 @@ next-env.d.ts
 # Claude Code session files (ephemeral working memory)
 CONTEXT.md
 TODO-*.md
+.clauderc
 
 # Playwright MCP cache
 .playwright-mcp/

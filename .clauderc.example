@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "trove": {
+      "command": "npx",
+      "args": ["tsx", "mcp/src/index.ts"],
+      "env": {
+        "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
+        "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key-here",
+        "TROVE_USER_ID": "your-user-uuid-here",
+        "ANTHROPIC_API_KEY": "sk-ant-your-key-here",
+        "JINA_API_KEY": "jina_your-key-here-optional"
+      }
+    }
+  }
+}
