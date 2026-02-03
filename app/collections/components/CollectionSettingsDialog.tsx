@@ -164,29 +164,29 @@ export function CollectionSettingsDialog({
         <div className="space-y-6">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
+              <p className="text-sm text-red-200">{error}</p>
             </div>
           )}
 
           {/* Success Message */}
           {saveSuccess && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center gap-2">
-              <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-              <p className="text-sm text-green-800 dark:text-green-200">Settings saved successfully!</p>
+            <div className="bg-green-900/20 border border-green-800 rounded-lg p-3 flex items-center gap-2">
+              <Check className="w-4 h-4 text-green-400" />
+              <p className="text-sm text-green-200">Settings saved successfully!</p>
             </div>
           )}
 
           {/* Section 1: General Info */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
               <Settings className="w-5 h-5" />
               General Info
             </h3>
 
             {/* Name */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-1">
                 Collection Name
               </label>
               <input
@@ -195,14 +195,14 @@ export function CollectionSettingsDialog({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={saving}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
+                className="w-full px-4 py-2 border border-slate-800 rounded-lg bg-slate-deep text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                 placeholder="My Collection"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-1">
                 Description
               </label>
               <textarea
@@ -211,14 +211,14 @@ export function CollectionSettingsDialog({
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={saving}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 resize-none"
+                className="w-full px-4 py-2 border border-slate-800 rounded-lg bg-slate-deep text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 resize-none"
                 placeholder="Optional description..."
               />
             </div>
 
             {/* Type */}
             <div>
-              <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="type" className="block text-sm font-medium text-slate-300 mb-1">
                 Collection Type
               </label>
               <select
@@ -226,7 +226,7 @@ export function CollectionSettingsDialog({
                 value={type}
                 onChange={(e) => setType(e.target.value)}
                 disabled={saving}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
+                className="w-full px-4 py-2 border border-slate-800 rounded-lg bg-slate-deep text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
               >
                 {COLLECTION_TYPES.map((ct) => (
                   <option key={ct.value} value={ct.value}>
@@ -238,10 +238,10 @@ export function CollectionSettingsDialog({
 
             {/* AI Persona */}
             <div>
-              <label htmlFor="ai_mode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="ai_mode" className="block text-sm font-medium text-slate-300 mb-1">
                 AI Persona
               </label>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              <p className="text-xs text-slate-400 mb-2">
                 Choose how AI analyzes this collection
               </p>
               <select
@@ -249,7 +249,7 @@ export function CollectionSettingsDialog({
                 value={aiMode}
                 onChange={(e) => setAiMode(e.target.value as "standard" | "researcher" | "curator" | "custom")}
                 disabled={saving}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
+                className="w-full px-4 py-2 border border-slate-800 rounded-lg bg-slate-deep text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
               >
                 <option value="standard">Standard - General insights and themes</option>
                 <option value="researcher">Researcher - Gap analysis and recommendations</option>
@@ -259,8 +259,8 @@ export function CollectionSettingsDialog({
 
               {/* Show edit custom prompt notice when custom mode selected */}
               {aiMode === "custom" && (
-                <div className="mt-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                  <p className="text-xs text-blue-800 dark:text-blue-300">
+                <div className="mt-2 bg-blue-900/20 border border-blue-800 rounded-lg p-3">
+                  <p className="text-xs text-blue-300">
                     Custom mode requires a custom prompt. You can edit your custom prompt from the collection overview page.
                   </p>
                 </div>
@@ -269,12 +269,12 @@ export function CollectionSettingsDialog({
           </div>
 
           {/* Section 2: Privacy & AI Access */}
-          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <div className="space-y-4 pt-6 border-t border-slate-800">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
               {visibility === "public" ? (
-                <Signal className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <Signal className="w-5 h-5 text-green-400" />
               ) : (
-                <Shield className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <Shield className="w-5 h-5 text-slate-400" />
               )}
               Privacy & AI Access
             </h3>
@@ -283,10 +283,10 @@ export function CollectionSettingsDialog({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="visibility" className="block text-sm font-medium text-slate-300">
                     Collection Privacy
                   </label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-slate-400 mt-1">
                     {visibility === "public"
                       ? "Visible to you and can be accessed by AI agents"
                       : "Only visible to you"}
@@ -298,8 +298,8 @@ export function CollectionSettingsDialog({
                   disabled={saving}
                   className={`relative inline-flex h-7 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 ${
                     visibility === "public"
-                      ? "bg-green-600 dark:bg-green-500"
-                      : "bg-gray-300 dark:bg-gray-600"
+                      ? "bg-green-500"
+                      : "bg-slate-800"
                   }`}
                   aria-pressed={visibility === "public"}
                   aria-label="Toggle collection privacy"
@@ -321,13 +321,13 @@ export function CollectionSettingsDialog({
 
               {/* Privacy Warning */}
               {visibility === "private" && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-4 flex gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-amber-900 dark:text-amber-200 mb-1">
+                    <p className="text-sm font-medium text-amber-200 mb-1">
                       AI Features Disabled
                     </p>
-                    <p className="text-xs text-amber-800 dark:text-amber-300">
+                    <p className="text-xs text-amber-300">
                       Private collections cannot be accessed by AI Agents. This will disable the Context URL
                       and automated reasoning for this collection.
                     </p>
@@ -337,8 +337,8 @@ export function CollectionSettingsDialog({
 
               {/* Public Benefits */}
               {visibility === "public" && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex gap-3">
-                  <Signal className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                <div className="bg-green-900/20 border border-green-800 rounded-lg p-4 flex gap-3">
+                  <Signal className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">
                       AI Connected
@@ -354,32 +354,32 @@ export function CollectionSettingsDialog({
           </div>
 
           {/* Section 3: Data & Export */}
-          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <div className="space-y-4 pt-6 border-t border-slate-800">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
               <Download className="w-5 h-5" />
               Data & Export
             </h3>
 
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-slate-400">
               Export your collection data for backups or use with external AI agents and tools.
             </p>
 
             {/* AI Context URL */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-slate-300">
                 Full AI Context URL
               </label>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              <p className="text-xs text-slate-400 mb-2">
                 Markdown + JSON hybrid format with full product metadata for AI agents
               </p>
               <button
                 onClick={handleCopyContextUrl}
-                className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                className="w-full px-4 py-2 bg-slate-deep border border-slate-800 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 text-sm"
               >
                 {copySuccess ? (
                   <>
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    <span className="text-green-600 dark:text-green-400">Copied!</span>
+                    <Check className="w-4 h-4 text-green-400" />
+                    <span className="text-green-400">Copied!</span>
                   </>
                 ) : (
                   <>
@@ -392,20 +392,20 @@ export function CollectionSettingsDialog({
 
             {/* Legacy Export Options */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-slate-300">
                 Legacy Export
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handleExport("json")}
-                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                  className="px-4 py-2 bg-slate-deep border border-slate-800 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   <FileJson className="w-4 h-4" />
                   JSON
                 </button>
                 <button
                   onClick={() => handleExport("csv")}
-                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                  className="px-4 py-2 bg-slate-deep border border-slate-800 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
                   CSV
@@ -415,13 +415,13 @@ export function CollectionSettingsDialog({
           </div>
 
           {/* Section 4: Danger Zone */}
-          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
+          <div className="space-y-4 pt-6 border-t border-slate-800">
+            <h3 className="text-lg font-semibold text-red-400 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
               Danger Zone
             </h3>
 
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h4 className="text-sm font-semibold text-red-900 dark:text-red-200 mb-1">
@@ -444,11 +444,11 @@ export function CollectionSettingsDialog({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-3 pt-4 border-t border-slate-800">
             <button
               onClick={handleClose}
               disabled={saving}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 border border-slate-800 text-slate-300 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
@@ -482,18 +482,18 @@ export function CollectionSettingsDialog({
           onClick={() => setShowDeleteConfirm(false)}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md mx-4 p-6"
+            className="bg-slate-deep rounded-xl shadow-xl max-w-md mx-4 p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-4 mb-4">
               <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                <AlertTriangle className="w-6 h-6 text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <h3 className="text-lg font-semibold text-white mb-2">
                   Delete Collection?
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-slate-400">
                   Are you sure you want to delete "{collection.name}"? This will remove the collection but
                   will <strong>NOT</strong> delete the individual items within it.
                 </p>
@@ -502,7 +502,7 @@ export function CollectionSettingsDialog({
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="flex-1 px-4 py-2 border border-slate-800 text-slate-300 rounded-lg hover:bg-slate-800 transition-colors"
               >
                 Cancel
               </button>

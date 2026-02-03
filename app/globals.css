@@ -4,6 +4,7 @@
 
 :root {
   /* Force Terminal Noir dark theme */
+  color-scheme: dark;
   --background: #0a0a0a;
   --foreground: #ededed;
 

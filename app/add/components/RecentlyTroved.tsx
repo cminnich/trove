@@ -16,14 +16,14 @@ export function RecentlyTroved({ items, loading = false, onItemClick }: Recently
   if (loading) {
     return (
       <div className="w-full">
-        <h3 className="text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">
+        <h3 className="text-sm font-medium mb-3 text-slate-300">
           Recently Troved
         </h3>
         <div className="flex gap-3 overflow-x-auto pb-2">
           {[1, 2, 3].map(i => (
             <div
               key={i}
-              className="flex-shrink-0 w-32 h-40 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"
+              className="flex-shrink-0 w-32 h-40 bg-slate-800 rounded-lg animate-pulse"
             />
           ))}
         </div>
@@ -37,7 +37,7 @@ export function RecentlyTroved({ items, loading = false, onItemClick }: Recently
 
   return (
     <div className="w-full">
-      <h3 className="text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">
+      <h3 className="text-sm font-medium mb-3 text-slate-300">
         Recently Troved
       </h3>
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
@@ -46,11 +46,11 @@ export function RecentlyTroved({ items, loading = false, onItemClick }: Recently
             key={item.id}
             type="button"
             onClick={() => onItemClick?.(item.id)}
-            className="flex-shrink-0 w-32 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:border-indigo-400 transition-colors group"
+            className="flex-shrink-0 w-32 bg-slate-deep rounded-lg border border-slate-800 overflow-hidden hover:border-indigo-400 transition-colors group"
           >
             {/* Thumbnail */}
             {item.image_url ? (
-              <div className="w-full h-24 overflow-hidden bg-gray-100 dark:bg-gray-700">
+              <div className="w-full h-24 overflow-hidden bg-slate-800">
                 <img
                   src={item.image_url}
                   alt={item.title || 'Item image'}
@@ -58,18 +58,18 @@ export function RecentlyTroved({ items, loading = false, onItemClick }: Recently
                 />
               </div>
             ) : (
-              <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+              <div className="w-full h-24 bg-slate-800 flex items-center justify-center">
                 <span className="text-gray-400 text-2xl">📦</span>
               </div>
             )}
 
             {/* Details */}
             <div className="p-2">
-              <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate mb-1">
+              <p className="text-xs font-medium text-white truncate mb-1">
                 {item.title}
               </p>
               {item.price && item.currency && (
-                <p className="text-xs font-bold text-gray-700 dark:text-gray-300 font-mono">
+                <p className="text-xs font-bold text-slate-300 font-mono">
                   {item.currency === 'USD' && '$'}
                   {item.price.toLocaleString()}
                 </p>
