@@ -63,11 +63,11 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
 
   if (variant === 'list') {
     return (
-      <div className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors p-4">
+      <div className="w-full bg-slate-deep rounded-lg border border-slate-800 hover:border-slate-700 transition-colors p-4">
         <div className="flex gap-4">
           {/* Thumbnail */}
           <div
-            className="flex-shrink-0 w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden flex items-center justify-center cursor-pointer"
+            className="flex-shrink-0 w-16 h-16 bg-slate-800 rounded overflow-hidden flex items-center justify-center cursor-pointer"
             onClick={onClick}
           >
             {item.image_url ? (
@@ -78,21 +78,21 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
                 loading="lazy"
               />
             ) : (
-              <div className="text-2xl text-gray-300 dark:text-gray-600">📦</div>
+              <div className="text-2xl text-slate-600">📦</div>
             )}
           </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0" onClick={onClick}>
             <div className="flex items-start justify-between gap-2 mb-1">
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate flex-1 cursor-pointer">
+              <h3 className="font-semibold text-white truncate flex-1 cursor-pointer">
                 {displayTitle}
               </h3>
               {needsRetry && (
                 <button
                   onClick={handleRetry}
                   disabled={retrying}
-                  className="flex-shrink-0 p-1.5 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors disabled:opacity-50"
+                  className="flex-shrink-0 p-1.5 text-slate-500 hover:text-indigo-400 transition-colors disabled:opacity-50"
                   title={item.extraction_status === 'failed' ? 'Retry extraction' : 'Retry stuck extraction'}
                 >
                   {retrying ? (
@@ -106,26 +106,26 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
               )}
             </div>
             {item.brand && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{item.brand}</p>
+              <p className="text-sm text-slate-400 mb-1">{item.brand}</p>
             )}
             {item.price && item.currency && (
-              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 font-mono">
+              <p className="text-lg font-bold text-white font-mono">
                 {formatPrice(item.price, item.currency)}
               </p>
             )}
             <div className="flex gap-2 mt-2 flex-wrap">
               {item.category && (
-                <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+                <span className="text-xs px-2 py-1 bg-slate-800 text-slate-400 rounded">
                   {item.category}
                 </span>
               )}
               {displayType && (
-                <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded capitalize">
+                <span className="text-xs px-2 py-1 bg-slate-800 text-slate-400 rounded capitalize">
                   {displayType}
                 </span>
               )}
               {needsReview && (
-                <span className="text-xs px-2 py-1 bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded">
+                <span className="text-xs px-2 py-1 bg-amber-900/20 text-amber-200 rounded">
                   ⚠️ Review
                 </span>
               )}
@@ -219,13 +219,13 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
 
   // Grid variant
   return (
-    <div className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors p-4 relative">
+    <div className="w-full bg-slate-deep rounded-lg border border-slate-800 hover:border-slate-700 transition-colors p-4 relative">
       {/* Retry Button - Top Right */}
       {needsRetry && (
         <button
           onClick={handleRetry}
           disabled={retrying}
-          className="absolute top-2 right-2 p-1.5 bg-white dark:bg-gray-800 rounded-full shadow-sm text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors disabled:opacity-50 z-10"
+          className="absolute top-2 right-2 p-1.5 bg-slate-deep rounded-full shadow-sm text-slate-500 hover:text-indigo-400 transition-colors disabled:opacity-50 z-10"
           title={item.extraction_status === 'failed' ? 'Retry extraction' : 'Retry stuck extraction'}
         >
           {retrying ? (
@@ -245,14 +245,14 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
         {/* Confidence Badge */}
         {needsReview && (
           <div className="mb-3">
-            <span className="text-xs px-2 py-1 bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded">
+            <span className="text-xs px-2 py-1 bg-amber-900/20 text-amber-200 rounded">
               ⚠️ Review
             </span>
           </div>
         )}
 
         {/* Image */}
-        <div className="w-full aspect-square bg-gray-100 dark:bg-gray-700 rounded overflow-hidden flex items-center justify-center mb-3">
+        <div className="w-full aspect-square bg-slate-800 rounded overflow-hidden flex items-center justify-center mb-3">
           {item.image_url ? (
             <img
               src={item.image_url}
@@ -261,27 +261,27 @@ export function ItemCard({ item, variant = 'grid', onClick, onUpdate }: ItemCard
               loading="lazy"
             />
           ) : (
-            <div className="text-6xl text-gray-300 dark:text-gray-600">📦</div>
+            <div className="text-6xl text-slate-600">📦</div>
           )}
         </div>
 
         {/* Details */}
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
+        <h3 className="font-semibold text-white mb-1 line-clamp-2">
           {displayTitle}
         </h3>
 
         {item.brand && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{item.brand}</p>
+          <p className="text-sm text-slate-400 mb-2">{item.brand}</p>
         )}
 
         {item.price && item.currency && (
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 font-mono mb-2">
+          <p className="text-xl font-bold text-white font-mono mb-2">
             {formatPrice(item.price, item.currency)}
           </p>
         )}
 
         {displayType && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+          <p className="text-xs text-slate-400 capitalize">
             {displayType}
           </p>
         )}

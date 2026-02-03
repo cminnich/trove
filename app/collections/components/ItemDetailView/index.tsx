@@ -138,22 +138,22 @@ export function ItemDetailView({ items, isOwner, onUpdate }: ItemDetailViewProps
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col"
+      className="fixed inset-0 z-50 bg-void flex flex-col"
       role="dialog"
       aria-modal="true"
       aria-label="Item details"
     >
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-void">
         <div className="flex items-center gap-3">
           <button
             onClick={closeItemDetail}
-            className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2 -ml-2 rounded-lg hover:bg-slate-800 transition-colors"
             aria-label="Close"
           >
-            <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <X className="w-5 h-5 text-slate-400" />
           </button>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[200px] md:max-w-none">
+          <h1 className="text-lg font-semibold text-white truncate max-w-[200px] md:max-w-none">
             {currentItem.title || 'Item Details'}
           </h1>
         </div>
@@ -162,7 +162,7 @@ export function ItemDetailView({ items, isOwner, onUpdate }: ItemDetailViewProps
         {activeFilter && (
           <button
             onClick={clearFilter}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-900/30 text-indigo-300 rounded-full text-sm font-medium hover:bg-indigo-900/50 transition-colors"
           >
             <Filter className="w-3.5 h-3.5" />
             <span>Filtered</span>
@@ -172,7 +172,7 @@ export function ItemDetailView({ items, isOwner, onUpdate }: ItemDetailViewProps
       </div>
 
       {/* Connection Chips */}
-      <div className="flex-shrink-0 px-4 py-2 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+      <div className="flex-shrink-0 px-4 py-2 border-b border-slate-800 bg-slate-deep">
         <ConnectionChips
           attributes={attributes}
           activeFilter={activeFilter}
@@ -209,14 +209,14 @@ export function ItemDetailView({ items, isOwner, onUpdate }: ItemDetailViewProps
       </div>
 
       {/* Position Indicator */}
-      <div className="flex-shrink-0 px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+      <div className="flex-shrink-0 px-4 py-2 border-t border-slate-800 bg-void">
         <PositionIndicator
           currentIndex={currentIndex}
           totalCount={totalCount}
           onNavigate={navigateToIndex}
         />
         {/* Text indicator */}
-        <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-center text-xs text-slate-400 mt-1">
           {currentIndex + 1} of {totalCount}
           {activeFilter && ' (filtered)'}
         </p>

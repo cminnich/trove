@@ -26,7 +26,7 @@ export function PositionIndicator({
       {startIndex > 0 && (
         <button
           onClick={() => onNavigate(0)}
-          className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+          className="w-1.5 h-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors"
           aria-label="Go to first item"
         />
       )}
@@ -57,8 +57,8 @@ export function PositionIndicator({
               ${sizeClass}
               ${
                 isActive
-                  ? 'bg-indigo-600 dark:bg-indigo-500 shadow-sm'
-                  : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                  ? 'bg-indigo-500 shadow-sm'
+                  : 'bg-slate-700 hover:bg-slate-600'
               }
             `}
             aria-label={`Go to item ${index + 1}`}
@@ -71,7 +71,7 @@ export function PositionIndicator({
       {startIndex + dots.length < totalCount && (
         <button
           onClick={() => onNavigate(totalCount - 1)}
-          className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+          className="w-1.5 h-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors"
           aria-label="Go to last item"
         />
       )}

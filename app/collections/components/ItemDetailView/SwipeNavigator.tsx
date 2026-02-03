@@ -85,19 +85,19 @@ export function SwipeNavigator({
       {canSwipeLeft && (
         <button
           onClick={onSwipeRight}
-          className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-white/90 dark:bg-gray-800/90 shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+          className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-slate-800/90 shadow-lg hover:bg-slate-800 transition-colors"
           aria-label="Previous item"
         >
-          <ChevronLeft className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+          <ChevronLeft className="w-6 h-6 text-slate-300" />
         </button>
       )}
       {canSwipeRight && (
         <button
           onClick={onSwipeLeft}
-          className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-white/90 dark:bg-gray-800/90 shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+          className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-slate-800/90 shadow-lg hover:bg-slate-800 transition-colors"
           aria-label="Next item"
         >
-          <ChevronRight className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+          <ChevronRight className="w-6 h-6 text-slate-300" />
         </button>
       )}
 

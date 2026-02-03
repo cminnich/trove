@@ -18,7 +18,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#6366f1",
+  themeColor: "#050505",
 };
 
 export const metadata: Metadata = {
@@ -40,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body className={`${inter.className} ${jetbrainsMono.variable}`}>
         <NavigationWrapper />
         <MainContent>{children}</MainContent>

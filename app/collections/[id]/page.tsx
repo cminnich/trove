@@ -171,7 +171,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       {/* Toast Notifications */}
       {showEditToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-100 dark:bg-amber-900/90 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 px-6 py-3 rounded-lg shadow-lg animate-fade-in">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-900/90 border border-amber-700 text-amber-100 px-6 py-3 rounded-lg shadow-lg animate-fade-in">
           Switch to &quot;Position&quot; sort to reorder items
         </div>
       )}
@@ -202,7 +202,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
       <div className="mb-6 sm:mb-8">
         <Link
           href="/collections"
-          className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4 text-sm"
+          className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-4 text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Collections</span>
@@ -212,7 +212,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         <div className="mb-4">
           {/* Title Row with Star Button */}
           <div className="flex items-start justify-between gap-4 mb-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white flex-1">
               {collection?.name || 'Loading...'}
             </h1>
             {/* Star Button - Icon only, top-right position */}
@@ -231,11 +231,11 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           {/* Fork Breadcrumb - shows if this collection is a fork */}
           <ForkBreadcrumb collectionId={id} />
           {collection?.description && (
-            <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base mb-2 mt-2">
+            <p className="text-slate-400 text-sm sm:text-base mb-2 mt-2">
               {collection.description}
             </p>
           )}
-          <p className="text-sm text-gray-500 dark:text-gray-500">
+          <p className="text-sm text-slate-500">
             {items.length} {items.length === 1 ? 'item' : 'items'}
             {collection?.type && (
               <span className="ml-2 text-gray-400">• {collection.type}</span>
@@ -247,7 +247,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
               <span className="ml-2 text-gray-400">• {collection.fork_count} {collection.fork_count === 1 ? 'fork' : 'forks'}</span>
             )}
             {!isOwner && collection?.visibility === 'public' && (
-              <span className="ml-2 text-green-500 dark:text-green-400">• Public Collection</span>
+              <span className="ml-2 text-green-400">• Public Collection</span>
             )}
           </p>
         </div>
@@ -292,7 +292,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           {isOwner && (
             <button
               onClick={() => setShareOpen(true)}
-              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 text-sm"
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-slate-deep border border-slate-800 rounded-lg hover:border-slate-600 transition-colors flex items-center gap-2 text-sm"
               title="Share collection with collaborators"
             >
               <Users className="w-4 h-4" />
@@ -304,7 +304,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           {isOwner && (
             <button
               onClick={() => setSettingsOpen(true)}
-              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 text-sm"
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-slate-deep border border-slate-800 rounded-lg hover:border-slate-600 transition-colors flex items-center gap-2 text-sm"
               title="Collection settings"
             >
               <Settings className="w-4 h-4" />
@@ -313,13 +313,13 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           )}
 
           {/* Divider - Only for owner (before edit/sort controls) */}
-          {isOwner && <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 flex-shrink-0" />}
+          {isOwner && <div className="w-px h-8 bg-slate-800 flex-shrink-0" />}
 
           {/* Edit Button - Only show for owner when sort is position and view is grid */}
           {isOwner && sortOrder === 'position' && viewMode === 'grid' && !editMode && items.length > 0 && (
             <button
               onClick={handleEnterEditMode}
-              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 text-sm"
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-slate-deep border border-slate-800 rounded-lg hover:border-slate-600 transition-colors flex items-center gap-2 text-sm"
               title="Reorder items"
             >
               <GripVertical className="w-4 h-4" />
@@ -332,7 +332,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             <button
               onClick={() => setSortSheetOpen(true)}
               disabled={editMode}
-              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="flex-shrink-0 px-3 sm:px-4 py-2 bg-slate-deep border border-slate-800 rounded-lg hover:border-slate-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               title="Sort items"
             >
               <SortAsc className="w-4 h-4" />
@@ -356,8 +356,8 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
 
       {/* Error State */}
       {isError && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-          <p className="text-red-800 dark:text-red-200 text-sm">
+        <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 mb-6">
+          <p className="text-red-200 text-sm">
             <strong>Error loading items:</strong> {error?.toString()}
           </p>
         </div>

@@ -15,11 +15,11 @@ export function ConfidenceBadge({ score, needsReview, size = 'md' }: ConfidenceB
 
   return (
     <div
-      className={`${sizeClasses[size]} bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg`}
+      className={`${sizeClasses[size]} bg-amber-900/20 border border-amber-800 rounded-lg`}
       role="alert"
       aria-label={`Low confidence extraction${score ? `: ${Math.round(score * 100)}%` : ''}`}
     >
-      <p className="text-amber-800 dark:text-amber-200 flex items-center gap-2">
+      <p className="text-amber-200 flex items-center gap-2">
         <span className="text-base">⚠️</span>
         <span>
           <strong>Review needed:</strong> Low confidence extraction.

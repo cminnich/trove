@@ -8,13 +8,13 @@ interface ViewToggleProps {
 
 export function ViewToggle({ viewMode, onViewModeChange }: ViewToggleProps) {
   return (
-    <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+    <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
       <button
         onClick={() => onViewModeChange('grid')}
         className={`p-2 rounded transition-colors ${
           viewMode === 'grid'
-            ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+            ? 'bg-slate-800 text-indigo-400 shadow-sm'
+            : 'text-slate-400 hover:text-white'
         }`}
         aria-label="Grid view"
         aria-pressed={viewMode === 'grid'}
@@ -25,8 +25,8 @@ export function ViewToggle({ viewMode, onViewModeChange }: ViewToggleProps) {
         onClick={() => onViewModeChange('list')}
         className={`p-2 rounded transition-colors ${
           viewMode === 'list'
-            ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+            ? 'bg-slate-800 text-indigo-400 shadow-sm'
+            : 'text-slate-400 hover:text-white'
         }`}
         aria-label="List view"
         aria-pressed={viewMode === 'list'}

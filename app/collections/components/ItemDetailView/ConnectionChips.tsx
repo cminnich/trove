@@ -87,7 +87,7 @@ export function ConnectionChips({
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse flex-shrink-0"
+            className="h-8 w-24 bg-slate-800 rounded-full animate-pulse flex-shrink-0"
           />
         ))}
       </div>
@@ -189,7 +189,7 @@ export function ConnectionChips({
                   ${
                     isActive
                       ? 'bg-indigo-600 text-white shadow-md scale-105'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }
                 `}
               >
@@ -200,7 +200,7 @@ export function ConnectionChips({
                     ${
                       isActive
                         ? 'bg-white/20 text-white'
-                        : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+                        : 'bg-slate-700 text-slate-400'
                     }
                   `}
                 >
@@ -212,7 +212,7 @@ export function ConnectionChips({
 
           {/* Show placeholder if all chips are hidden */}
           {visibleAttributes.length === 0 && allAttributeTypes.length > 0 && (
-            <span className="text-sm text-gray-500 dark:text-gray-400 italic py-1.5">
+            <span className="text-sm text-slate-400 italic py-1.5">
               All filters hidden
             </span>
           )}
@@ -228,27 +228,27 @@ export function ConnectionChips({
                 p-2 rounded-lg transition-colors
                 ${
                   isSettingsOpen
-                    ? 'bg-gray-200 dark:bg-gray-700'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                    ? 'bg-slate-800'
+                    : 'hover:bg-slate-800'
                 }
               `}
               aria-label="Filter settings"
               aria-expanded={isSettingsOpen}
             >
-              <Settings2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <Settings2 className="w-4 h-4 text-slate-400" />
             </button>
 
             {/* Settings popover */}
             {isSettingsOpen && (
               <div
                 ref={settingsRef}
-                className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+                className="absolute right-0 top-full mt-2 w-64 bg-slate-deep rounded-lg shadow-lg border border-slate-800 z-50"
               >
-                <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div className="p-3 border-b border-slate-800">
+                  <h3 className="text-sm font-medium text-white">
                     Filter Visibility
                   </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-slate-400 mt-1">
                     Choose which filters to show. Filters shared by all items are auto-hidden.
                   </p>
                 </div>
@@ -275,24 +275,24 @@ export function ConnectionChips({
                     return (
                       <div
                         key={attr.attribute.id}
-                        className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        className="flex items-center justify-between px-3 py-2 hover:bg-slate-800/50"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-900 dark:text-gray-100 capitalize truncate">
+                            <span className="text-sm text-white capitalize truncate">
                               {attr.attribute.schema?.display_name || attr.attribute.schema?.name}
                             </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                            <span className="text-xs text-slate-400 flex-shrink-0">
                               ({attr.related_count})
                             </span>
                             {isCollectionSchema && (
-                              <span className="text-xs text-indigo-500 dark:text-indigo-400">
+                              <span className="text-xs text-indigo-400">
                                 AI
                               </span>
                             )}
                           </div>
                           {isAutoHidden && !isCollectionSchema && (
-                            <span className="text-xs text-amber-600 dark:text-amber-400">
+                            <span className="text-xs text-amber-400">
                               Auto-hidden (all items)
                             </span>
                           )}
@@ -321,8 +321,8 @@ export function ConnectionChips({
                               p-1.5 rounded transition-colors
                               ${
                                 isVisible
-                                  ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                                  : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                  ? 'text-green-400 bg-green-900/20'
+                                  : 'text-slate-500 hover:bg-slate-800'
                               }
                             `}
                             title={isVisible ? 'Hide filter' : 'Show filter'}
@@ -338,7 +338,7 @@ export function ConnectionChips({
                           {!isCollectionSchema && pref && onResetFilter && (
                             <button
                               onClick={() => onResetFilter(attr.attribute.schema.id)}
-                              className="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              className="p-1.5 rounded text-slate-500 hover:bg-slate-800 transition-colors"
                               title="Reset to auto-hide"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />

@@ -90,12 +90,12 @@ export function SortableItemGrid({
         {[...Array(6)].map((_, i) => (
           <div
             key={i}
-            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse"
+            className="bg-slate-deep rounded-lg border border-slate-800 p-4 animate-pulse"
           >
-            <div className="w-full aspect-square bg-gray-200 dark:bg-gray-700 rounded mb-3" />
-            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2" />
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-2/3" />
+            <div className="w-full aspect-square bg-slate-800 rounded mb-3" />
+            <div className="h-5 bg-slate-800 rounded w-3/4 mb-2" />
+            <div className="h-4 bg-slate-800 rounded w-1/2 mb-2" />
+            <div className="h-6 bg-slate-800 rounded w-2/3" />
           </div>
         ))}
       </div>

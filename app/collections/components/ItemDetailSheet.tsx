@@ -325,17 +325,17 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
       <div className="space-y-6" data-testid="item-detail-sheet">
         {/* Extraction Status & Retry */}
         {needsRetry && (
-          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+          <div className="p-4 bg-amber-900/20 border border-amber-700 rounded-lg">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                <p className="text-sm font-medium text-amber-200 mb-2">
                   {item.extraction_status === 'failed' 
                     ? 'Extraction failed'
                     : 'Extraction appears to be stuck'}
                 </p>
                 {item.extraction_error && (
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                  <p className="text-xs text-amber-300 mb-3">
                     {item.extraction_error}
                   </p>
                 )}
@@ -368,7 +368,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
 
         {/* Image */}
         {(item.image_url || imageUrl || editMode) && (
-          <div className="w-full aspect-square max-h-96 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center">
+          <div className="w-full aspect-square max-h-96 bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center">
             {(editMode && imageUrl) || item.image_url ? (
               <img
                 src={editMode ? (imageUrl || item.image_url || '') : (item.image_url || '')}
@@ -389,7 +389,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
 
         {/* Image URL - Editable */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-slate-300 mb-2">
             Image URL
           </label>
           {editMode ? (
@@ -397,11 +397,11 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
               type="url"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-deep text-white"
               placeholder="https://example.com/image.jpg"
             />
           ) : (
-            <p className="text-gray-900 dark:text-gray-100 text-sm truncate">
+            <p className="text-white text-sm truncate">
               {item.image_url || <span className="text-gray-400">No image</span>}
             </p>
           )}
@@ -409,11 +409,11 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
 
         {/* Title & Brand */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          <h2 className="text-2xl font-bold text-white mb-2">
             {displayTitle}
           </h2>
           {item.brand && (
-            <p className="text-lg text-gray-600 dark:text-gray-400">{item.brand}</p>
+            <p className="text-lg text-slate-400">{item.brand}</p>
           )}
         </div>
 
@@ -428,7 +428,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
         {/* Price */}
         {item.price && item.currency && (
           <div>
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 font-mono">
+            <div className="text-3xl font-bold text-white font-mono">
               {item.currency === 'USD' && '$'}
               {item.price.toLocaleString()}
               {item.currency !== 'USD' && ` ${item.currency}`}
@@ -439,7 +439,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
               <div className="mt-2">
                 <button
                   onClick={() => setShowPriceHistory(!showPriceHistory)}
-                  className="inline-flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                  className="inline-flex items-center gap-2 text-sm text-indigo-400 hover:underline"
                 >
                   <Clock className="w-4 h-4" />
                   <span>{snapshots.length} price snapshots captured</span>
@@ -447,8 +447,8 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
 
                 {/* Price History Display */}
                 {showPriceHistory && (
-                  <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Price History</h3>
+                  <div className="mt-4 p-4 bg-slate-deep rounded-lg space-y-3">
+                    <h3 className="text-sm font-medium text-slate-300">Price History</h3>
                     <div className="space-y-2">
                       {snapshots.map((snapshot, index) => {
                         const isLatest = index === 0
@@ -469,26 +469,26 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
                         return (
                           <div
                             key={snapshot.id}
-                            className={`flex items-center justify-between p-2 rounded ${isLatest ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'bg-white dark:bg-gray-900'}`}
+                            className={`flex items-center justify-between p-2 rounded ${isLatest ? 'bg-indigo-900/20' : 'bg-void'}`}
                           >
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-medium text-gray-900 dark:text-gray-100">
+                                <span className="font-mono font-medium text-white">
                                   {snapshot.currency === 'USD' && '$'}
                                   {snapshot.price?.toLocaleString() || 'N/A'}
                                   {snapshot.currency !== 'USD' && snapshot.currency && ` ${snapshot.currency}`}
                                 </span>
                                 {priceChange === 'down' && (
-                                  <span className="text-xs text-green-600 dark:text-green-400">↓ Price drop</span>
+                                  <span className="text-xs text-green-400">↓ Price drop</span>
                                 )}
                                 {priceChange === 'up' && (
-                                  <span className="text-xs text-red-600 dark:text-red-400">↑ Price increase</span>
+                                  <span className="text-xs text-red-400">↑ Price increase</span>
                                 )}
                                 {isLatest && (
                                   <span className="text-xs px-2 py-0.5 bg-indigo-600 text-white rounded-full">Current</span>
                                 )}
                               </div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              <p className="text-xs text-slate-400 mt-1">
                                 {capturedDate.toLocaleDateString()} at {capturedDate.toLocaleTimeString()}
                               </p>
                             </div>
@@ -503,7 +503,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
 
             {/* Last Extracted Indicator */}
             {item.last_extracted_at && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              <p className="text-xs text-slate-400 mt-2">
                 Last captured: {new Date(item.last_extracted_at).toLocaleDateString()}
               </p>
             )}
@@ -512,7 +512,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
 
         {/* Category - Editable */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-slate-300 mb-2">
             Category
           </label>
           {editMode ? (
@@ -520,11 +520,11 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
               type="text"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-deep text-white"
               placeholder="e.g., Electronics"
             />
           ) : (
-            <p className="text-gray-900 dark:text-gray-100">
+            <p className="text-white">
               {item.category || <span className="text-gray-400">Not set</span>}
             </p>
           )}
@@ -539,7 +539,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
           />
         ) : (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
               Tags
             </label>
             <div className="flex flex-wrap gap-2">
@@ -547,7 +547,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
                 item.tags.map((tag, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm"
+                    className="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm"
                   >
                     {tag}
                   </span>
@@ -563,29 +563,29 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
         <div className="grid grid-cols-2 gap-4">
           {item.item_type && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-slate-300 mb-1">
                 Type
               </label>
-              <p className="text-gray-900 dark:text-gray-100 capitalize">
+              <p className="text-white capitalize">
                 {item.item_type === 'article' && !item.title ? (formattedUrl || 'article') : item.item_type}
               </p>
             </div>
           )}
           {item.retailer && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-slate-300 mb-1">
                 Retailer
               </label>
-              <p className="text-gray-900 dark:text-gray-100">{item.retailer}</p>
+              <p className="text-white">{item.retailer}</p>
             </div>
           )}
         </div>
 
         {/* Collections Manager */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <div className="border-t border-slate-800 pt-4">
           <button
             onClick={() => setShowCollectionsManager(!showCollectionsManager)}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-indigo-400 transition-colors"
             data-testid="collections-manager-toggle"
           >
             <FolderOpen className="w-4 h-4" />
@@ -596,15 +596,15 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
             <div className="mt-4 space-y-3">
               {/* Current Collections */}
               <div data-testid="current-collections">
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                <label className="block text-xs font-medium text-slate-400 mb-2">
                   CURRENT COLLECTIONS
                 </label>
                 {loadingUserCollections ? (
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-500">
+                  <div className="p-3 bg-slate-deep rounded-lg text-sm text-gray-500">
                     Loading collections...
                   </div>
                 ) : userCollections.length === 0 ? (
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-500">
+                  <div className="p-3 bg-slate-deep rounded-lg text-sm text-gray-500">
                     No collections found
                   </div>
                 ) : (
@@ -612,16 +612,16 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
                     {userCollections.map((collection) => (
                       <div
                         key={collection.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-slate-deep rounded-lg"
                       >
-                        <span className="text-sm text-gray-900 dark:text-gray-100 font-medium">
+                        <span className="text-sm text-white font-medium">
                           {collection.name}
                         </span>
                         {userCollections.length > 1 && (
                           <button
                             onClick={() => handleRemoveFromCollection(collection.id)}
                             disabled={removingFromCollection === collection.id}
-                            className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
+                            className="p-1 text-red-400 hover:text-red-300 disabled:opacity-50"
                             title="Remove from collection"
                             data-testid={`remove-from-${collection.name}`}
                           >
@@ -637,7 +637,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
               {/* Available Collections */}
               {availableCollections.length > 0 && (
                 <div data-testid="available-collections">
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  <label className="block text-xs font-medium text-slate-400 mb-2">
                     ADD TO COLLECTION
                   </label>
                   <div className="space-y-2">
@@ -646,10 +646,10 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
                         key={collection.id}
                         onClick={() => handleAddToCollection(collection.id)}
                         disabled={addingToCollection}
-                        className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                        className="w-full flex items-center justify-between p-3 bg-void border border-slate-800 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
                         data-testid={`add-to-collection-${collection.name}`}
                       >
-                        <span className="text-sm text-gray-900 dark:text-gray-100">
+                        <span className="text-sm text-white">
                           {collection.name}
                         </span>
                         <Plus className="w-4 h-4 text-gray-400" />
@@ -664,23 +664,23 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
 
         {/* Collection Notes - Editable */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-slate-300 mb-2">
             Notes (Collection-Specific)
           </label>
 
           {/* Inconsistent Notes Warning */}
           {notesAreInconsistent && !editMode && (
-            <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg" data-testid="inconsistent-notes-warning">
+            <div className="mb-3 p-3 bg-amber-900/20 border border-amber-700 rounded-lg" data-testid="inconsistent-notes-warning">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                  <p className="text-sm text-amber-200 font-medium">
                     Notes are inconsistent across your collections
                   </p>
                   <button
                     onClick={handleSyncAllNotes}
                     disabled={saving}
-                    className="mt-2 text-xs text-amber-700 dark:text-amber-300 hover:underline disabled:opacity-50"
+                    className="mt-2 text-xs text-amber-300 hover:underline disabled:opacity-50"
                     data-testid="sync-all-notes-button"
                   >
                     Sync all to this version
@@ -696,14 +696,14 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none"
+                className="w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-deep text-white resize-none"
                 placeholder="Add notes specific to this collection..."
                 data-testid="notes-textarea"
               />
 
               {/* Sync Toggle */}
               {userCollections.length > 1 && (
-                <label className="mt-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                <label className="mt-2 flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={syncNotes}
@@ -716,7 +716,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
               )}
             </>
           ) : (
-            <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap" data-testid="item-notes">
+            <p className="text-white whitespace-pre-wrap" data-testid="item-notes">
               {item.notes || <span className="text-gray-400">No notes</span>}
             </p>
           )}
@@ -725,10 +725,10 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
         {/* Confidence Score */}
         {item.confidence_score !== null && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-300 mb-1">
               Extraction Confidence
             </label>
-            <p className="text-gray-900 dark:text-gray-100 font-mono">
+            <p className="text-white font-mono">
               {Math.round(item.confidence_score * 100)}%
             </p>
           </div>
@@ -737,17 +737,17 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
         {/* Attributes (JSONB) */}
         {item.attributes && Object.keys(item.attributes).length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
               Additional Details
             </label>
-            <pre className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg text-xs overflow-x-auto">
+            <pre className="bg-void p-3 rounded-lg text-xs overflow-x-auto">
               {JSON.stringify(item.attributes, null, 2)}
             </pre>
           </div>
         )}
 
         {/* Edit/Save Buttons */}
-        <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex gap-3 pt-4 border-t border-slate-800">
           {editMode ? (
             <>
               <button
@@ -763,7 +763,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
               <button
                 onClick={handleCancel}
                 disabled={saving}
-                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                 data-testid="cancel-edit-button"
               >
                 <X className="w-4 h-4" />
@@ -782,15 +782,15 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
         </div>
 
         {/* Danger Zone - Move to Trash */}
-        <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+        <div className="pt-6 border-t border-slate-800">
+          <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h4 className="text-sm font-semibold text-red-900 dark:text-red-200 mb-1 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-red-200 mb-1 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" />
                   Danger Zone
                 </h4>
-                <p className="text-xs text-red-800 dark:text-red-300">
+                <p className="text-xs text-red-300">
                   Move this item to Trash. It will be removed from all your collections.
                 </p>
               </div>
@@ -815,23 +815,23 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
           onClick={() => setShowTrashConfirm(false)}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md mx-4 p-6"
+            className="bg-slate-deep rounded-xl shadow-xl max-w-md mx-4 p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-4 mb-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-900/30 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <h3 className="text-lg font-semibold text-white mb-2">
                   Move to Trash?
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-slate-400">
                   This item will be removed from{' '}
                   <strong>all {userCollections.length} collection{userCollections.length !== 1 ? 's' : ''}</strong>.
                   It will no longer appear in your Trove.
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                <p className="text-xs text-slate-500 mt-2">
                   You can undo this action immediately after.
                 </p>
               </div>
@@ -840,7 +840,7 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
               <button
                 onClick={() => setShowTrashConfirm(false)}
                 disabled={trashing}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2 border border-slate-800 text-slate-300 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
