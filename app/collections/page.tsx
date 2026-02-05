@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useCollections } from '@/app/hooks/useCollections'
+import { useCollections, type CollectionWithThumbnails } from '@/app/hooks/useCollections'
 import { useStarredCollections } from '@/app/hooks/useStarredCollections'
 import { CollectionGrid } from './components/CollectionGrid'
 import { PublicCollectionCard } from './components/PublicCollectionCard'
@@ -17,6 +17,10 @@ export default function CollectionsPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('my-collections')
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false)
+
+  // Split into owned vs shared with edit (for "Shared with you" section)
+  const ownedCollections = collections.filter((c) => c.access_type !== 'editor')
+  const sharedWithEditCollections = collections.filter((c) => c.access_type === 'editor')
 
   const handleCreateCollection = () => {
     setIsCreateSheetOpen(true)
@@ -107,7 +111,30 @@ export default function CollectionsPage() {
                 }}
               />
             ) : (
-              <CollectionGrid collections={collections} isLoading={isLoading} />
+              <div className="space-y-8">
+                {isLoading ? (
+                  <CollectionGrid collections={[]} isLoading={true} />
+                ) : (
+                  <>
+                    {ownedCollections.length > 0 && (
+                      <section>
+                        <h2 className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3">
+                          My Troves
+                        </h2>
+                        <CollectionGrid collections={ownedCollections} isLoading={false} />
+                      </section>
+                    )}
+                    {sharedWithEditCollections.length > 0 && (
+                      <section>
+                        <h2 className="font-mono text-xs uppercase tracking-widest text-slate-500 mb-3">
+                          Shared with you
+                        </h2>
+                        <CollectionGrid collections={sharedWithEditCollections} isLoading={false} />
+                      </section>
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </>
         )}

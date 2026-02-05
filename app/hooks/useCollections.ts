@@ -3,9 +3,12 @@ import type { Database } from '@/types/database'
 
 type Collection = Database['public']['Tables']['collections']['Row']
 
-interface CollectionWithThumbnails extends Collection {
+/** Collection as returned by GET /api/collections (includes shared-with-edit) */
+export interface CollectionWithThumbnails extends Collection {
   item_count: number
   thumbnail_urls: string[]
+  /** 'owner' = owned by current user, 'editor' = shared with user with edit access */
+  access_type?: 'owner' | 'editor'
 }
 
 interface CollectionsResponse {

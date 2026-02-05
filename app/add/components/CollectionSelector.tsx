@@ -224,6 +224,9 @@ export function CollectionSelector({
           >
             {getInboxIcon(collection)}
             {collection.name}
+            {(collection as { access_type?: string }).access_type === "editor" && (
+              <span className="ml-1.5 text-xs opacity-80">(Shared)</span>
+            )}
           </button>
         ))}
 

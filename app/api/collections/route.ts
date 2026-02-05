@@ -4,6 +4,14 @@ import type { Database } from "@/types/database";
 
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
 
+/** Collection row plus API-only fields for list responses */
+export interface CollectionWithMetadata extends Collection {
+  thumbnail_urls: string[];
+  item_count: number;
+  /** Present when returned from GET /api/collections: 'owner' = owned by user, 'editor' = shared with edit */
+  access_type?: "owner" | "editor";
+}
+
 interface CreateCollectionRequest {
   name: string;
   description?: string;
@@ -12,14 +20,50 @@ interface CreateCollectionRequest {
 
 interface CollectionResponse {
   success: boolean;
-  data?: Collection | Collection[];
+  data?: Collection | Collection[] | CollectionWithMetadata[];
   error?: string;
 }
 
-// GET /api/collections - List all collections with thumbnails and item counts
+// Use service role for aggregations (bypasses RLS for performance)
+async function addCollectionMetadata(
+  supabase: ReturnType<typeof getServiceRoleClient>,
+  collections: Collection[],
+  access_type: "owner" | "editor"
+): Promise<CollectionWithMetadata[]> {
+  return Promise.all(
+    collections.map(async (collection) => {
+      const { data: items } = await supabase
+        .from("collection_items")
+        .select(`
+          items!inner (
+            image_url
+          )
+        `)
+        .eq("collection_id", collection.id)
+        .limit(4);
+
+      const thumbnails = items
+        ?.map((item: { items?: { image_url?: string } }) => item.items?.image_url)
+        .filter((url): url is string => !!url) || [];
+
+      const { count } = await supabase
+        .from("collection_items")
+        .select("*", { count: "exact", head: true })
+        .eq("collection_id", collection.id);
+
+      return {
+        ...collection,
+        thumbnail_urls: thumbnails,
+        item_count: count || 0,
+        access_type,
+      };
+    })
+  );
+}
+
+// GET /api/collections - List collections user owns or can edit (shared with editor)
 export async function GET() {
   try {
-    // Get authenticated user
     const { client, user, error: authError } = await getAuthenticatedServerClient();
 
     if (authError || !user) {
@@ -29,55 +73,56 @@ export async function GET() {
       );
     }
 
-    // Get all collections owned by this user
-    // Note: The Inbox collection is now guaranteed to exist via database trigger (migration 017)
-    const { data: collections, error } = await client
+    const supabase = getServiceRoleClient();
+
+    // 1. Collections owned by this user
+    const { data: owned, error: ownedError } = await client
       .from("collections")
       .select("*")
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Failed to fetch collections:", error);
+    if (ownedError) {
+      console.error("Failed to fetch owned collections:", ownedError);
       return NextResponse.json(
-        { success: false, error: error.message } as CollectionResponse,
+        { success: false, error: ownedError.message } as CollectionResponse,
         { status: 500 }
       );
     }
 
-    // Use server client for aggregations (bypasses RLS for performance)
-    const supabase = getServiceRoleClient();
+    const ownedList = (owned || []) as Collection[];
 
-    // For each collection, fetch item count and first 4 thumbnails
-    const collectionsWithMetadata = await Promise.all(
-      (collections as Collection[]).map(async (collection) => {
-        const { data: items } = await supabase
-          .from("collection_items")
-          .select(`
-            items!inner (
-              image_url
-            )
-          `)
-          .eq("collection_id", collection.id)
-          .limit(4);
+    // 2. Collections shared with this user with editor access
+    const { data: accessRows } = await client
+      .from("collection_access")
+      .select("collection_id")
+      .eq("user_id", user.id)
+      .eq("access_level", "editor");
 
-        const thumbnails = items
-          ?.map((item: any) => item.items?.image_url)
-          .filter((url): url is string => !!url) || [];
+    const sharedIds = (accessRows || [])
+      .map((r: { collection_id: string }) => r.collection_id)
+      .filter((id: string) => !ownedList.some((c) => c.id === id)); // exclude if user also owns
 
-        // Get total item count
-        const { count } = await supabase
-          .from("collection_items")
-          .select("*", { count: "exact", head: true })
-          .eq("collection_id", collection.id);
+    let sharedList: Collection[] = [];
+    if (sharedIds.length > 0) {
+      const { data: shared, error: sharedError } = await client
+        .from("collections")
+        .select("*")
+        .in("id", sharedIds)
+        .order("created_at", { ascending: false });
 
-        return {
-          ...collection,
-          thumbnail_urls: thumbnails,
-          item_count: count || 0,
-        };
-      })
-    );
+      if (!sharedError && shared) {
+        sharedList = shared as Collection[];
+      }
+    }
+
+    const ownedWithMeta = await addCollectionMetadata(supabase, ownedList, "owner");
+    const sharedWithMeta = await addCollectionMetadata(supabase, sharedList, "editor");
+
+    const collectionsWithMetadata: CollectionWithMetadata[] = [
+      ...ownedWithMeta,
+      ...sharedWithMeta,
+    ];
 
     return NextResponse.json({
       success: true,

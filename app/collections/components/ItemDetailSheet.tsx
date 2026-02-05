@@ -641,20 +641,26 @@ export function ItemDetailSheet({ open, onClose, item, collectionId, onUpdate }:
                     ADD TO COLLECTION
                   </label>
                   <div className="space-y-2">
-                    {availableCollections.map((collection) => (
-                      <button
-                        key={collection.id}
-                        onClick={() => handleAddToCollection(collection.id)}
-                        disabled={addingToCollection}
-                        className="w-full flex items-center justify-between p-3 bg-void border border-slate-800 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
-                        data-testid={`add-to-collection-${collection.name}`}
-                      >
-                        <span className="text-sm text-white">
-                          {collection.name}
-                        </span>
-                        <Plus className="w-4 h-4 text-gray-400" />
-                      </button>
-                    ))}
+                    {availableCollections.map((collection) => {
+                      const isShared = (collection as { access_type?: string }).access_type === "editor";
+                      return (
+                        <button
+                          key={collection.id}
+                          onClick={() => handleAddToCollection(collection.id)}
+                          disabled={addingToCollection}
+                          className="w-full flex items-center justify-between p-3 bg-void border border-slate-800 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
+                          data-testid={`add-to-collection-${collection.name}`}
+                        >
+                          <span className="text-sm text-white">
+                            {collection.name}
+                            {isShared && (
+                              <span className="ml-2 text-xs text-slate-500">(Shared)</span>
+                            )}
+                          </span>
+                          <Plus className="w-4 h-4 text-gray-400" />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

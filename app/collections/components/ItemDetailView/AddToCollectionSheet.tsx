@@ -93,33 +93,39 @@ export function AddToCollectionSheet({
             </div>
           ) : (
             <div className="space-y-2">
-              {collections.map((collection) => (
-                <button
-                  key={collection.id}
-                  onClick={() => setSelectedCollectionId(collection.id)}
-                  className={`w-full p-3 rounded-lg border transition-colors text-left ${
-                    selectedCollectionId === collection.id
-                      ? "border-open-green bg-open-green/10"
-                      : "border-slate-800 hover:border-slate-700 bg-slate-deep"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-mono font-semibold text-white text-sm truncate">
-                        {collection.name}
-                      </h3>
-                      {collection.description && (
-                        <p className="text-xs font-mono text-slate-500 truncate mt-0.5">
-                          {collection.description}
-                        </p>
+              {collections.map((collection) => {
+                const isShared = (collection as { access_type?: string }).access_type === "editor";
+                return (
+                  <button
+                    key={collection.id}
+                    onClick={() => setSelectedCollectionId(collection.id)}
+                    className={`w-full p-3 rounded-lg border transition-colors text-left ${
+                      selectedCollectionId === collection.id
+                        ? "border-open-green bg-open-green/10"
+                        : "border-slate-800 hover:border-slate-700 bg-slate-deep"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-mono font-semibold text-white text-sm truncate flex items-center gap-2">
+                          {collection.name}
+                          {isShared && (
+                            <span className="text-xs font-normal text-slate-500">(Shared)</span>
+                          )}
+                        </h3>
+                        {collection.description && (
+                          <p className="text-xs font-mono text-slate-500 truncate mt-0.5">
+                            {collection.description}
+                          </p>
+                        )}
+                      </div>
+                      {selectedCollectionId === collection.id && (
+                        <Check className="w-5 h-5 text-open-green ml-2 flex-shrink-0" />
                       )}
                     </div>
-                    {selectedCollectionId === collection.id && (
-                      <Check className="w-5 h-5 text-open-green ml-2 flex-shrink-0" />
-                    )}
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
