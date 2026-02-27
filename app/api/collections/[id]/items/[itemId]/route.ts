@@ -71,17 +71,30 @@ export async function DELETE(
       );
     }
 
-    // Check if the item exists in any other collections owned by this user
-    const { data: otherCollections, error: checkError } = await client
-      .from("collection_items")
-      .select("collection_id, collections!inner(owner_id)")
-      .eq("item_id", itemId)
-      .eq("collections.owner_id", user.id);
+    // Check if the item exists in any other collections owned by this user.
+    // Split into two queries to avoid ambiguous column reference from RLS join on collection_access.user_id.
+    const { data: ownedCollections, error: ownedError } = await client
+      .from("collections")
+      .select("id")
+      .eq("owner_id", user.id);
 
-    if (checkError) {
-      console.error("Failed to check other collections:", checkError);
+    const ownedCollectionIds = (ownedCollections ?? [])
+      .map((c: { id: string }) => c.id)
+      .filter((cId: string) => cId !== collectionId);
+
+    const { data: otherCollections, error: checkError } = ownedCollectionIds.length === 0
+      ? { data: [], error: null }
+      : await client
+          .from("collection_items")
+          .select("collection_id")
+          .eq("item_id", itemId)
+          .in("collection_id", ownedCollectionIds);
+
+    if (ownedError || checkError) {
+      const err = ownedError || checkError;
+      console.error("Failed to check other collections:", err);
       return NextResponse.json(
-        { success: false, error: checkError.message } as DeleteItemResponse,
+        { success: false, error: err?.message ?? "Failed to check other collections" } as DeleteItemResponse,
         { status: 500 }
       );
     }

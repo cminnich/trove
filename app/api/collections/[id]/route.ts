@@ -207,22 +207,43 @@ export async function DELETE(
       );
     }
 
+    // Fetch all collection IDs owned by this user once, to avoid per-item joins
+    // that trigger ambiguous column references in RLS policies (collection_access.user_id).
+    const { data: ownedCollectionsData, error: ownedCollectionsError } = await client
+      .from("collections")
+      .select("id")
+      .eq("owner_id", user.id);
+
+    if (ownedCollectionsError) {
+      console.error("Failed to fetch owned collections:", ownedCollectionsError);
+      return NextResponse.json(
+        { success: false, error: ownedCollectionsError.message } as CollectionResponse,
+        { status: 500 }
+      );
+    }
+
+    const ownedCollectionIds: string[] = (ownedCollectionsData ?? []).map((c: { id: string }) => c.id);
+
     // Find which items would become orphans (only in this collection)
     const orphanItemIds: string[] = [];
     if (itemsInCollection && itemsInCollection.length > 0) {
       for (const item of itemsInCollection) {
         const typedItem = item as { item_id: string };
-        // Check if this item exists in any OTHER collection owned by this user
-        const { data: otherCollections, error: checkError } = await client
-          .from("collection_items")
-          .select("collection_id, collections!inner(owner_id)")
-          .eq("item_id", typedItem.item_id)
-          .neq("collection_id", id)
-          .eq("collections.owner_id", user.id);
+        // Check if this item exists in any OTHER collection owned by this user.
+        const otherOwnedIds = ownedCollectionIds.filter(cId => cId !== id);
+        let otherCollections: { collection_id: string }[] | null = [];
+        if (otherOwnedIds.length > 0) {
+          const { data: otherData, error: checkError } = await client
+            .from("collection_items")
+            .select("collection_id")
+            .eq("item_id", typedItem.item_id)
+            .in("collection_id", otherOwnedIds);
 
-        if (checkError) {
-          console.error("Failed to check other collections:", checkError);
-          continue;
+          if (checkError) {
+            console.error("Failed to check other collections:", checkError);
+            continue;
+          }
+          otherCollections = otherData as { collection_id: string }[] | null;
         }
 
         // If no other collections, this item will be orphaned

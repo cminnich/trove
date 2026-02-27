@@ -152,12 +152,28 @@ export async function DELETE(
       );
     }
 
-    // Get all collections this item belongs to (owned by this user)
+    // Get all collections owned by this user
+    const { data: ownedCollections, error: ownedError } = await client
+      .from("collections")
+      .select("id")
+      .eq("owner_id", user.id);
+
+    if (ownedError) {
+      console.error("Failed to fetch user collections:", ownedError);
+      return NextResponse.json(
+        { success: false, error: ownedError.message } as TrashItemResponse,
+        { status: 500 }
+      );
+    }
+
+    const ownedCollectionIds = (ownedCollections ?? []).map((c: { id: string }) => c.id);
+
+    // Find which of those collections contain this item
     const { data: userCollections, error: collectionsError } = await client
       .from("collection_items")
-      .select("collection_id, collections!inner(owner_id, name)")
+      .select("collection_id")
       .eq("item_id", itemId)
-      .eq("collections.owner_id", user.id);
+      .in("collection_id", ownedCollectionIds);
 
     if (collectionsError) {
       console.error("Failed to fetch user collections for item:", collectionsError);
@@ -175,10 +191,7 @@ export async function DELETE(
     }
 
     // Remove item from ALL user's collections
-    const collectionIds = userCollections.map(uc => {
-      const typedUC = uc as { collection_id: string; collections: { owner_id: string; name: string } };
-      return typedUC.collection_id;
-    });
+    const collectionIds = userCollections.map((uc: { collection_id: string }) => uc.collection_id);
 
     const { error: deleteError } = await client
       .from("collection_items")
