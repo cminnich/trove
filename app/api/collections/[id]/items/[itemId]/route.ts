@@ -78,6 +78,14 @@ export async function DELETE(
       .select("id")
       .eq("owner_id", user.id);
 
+    if (ownedError) {
+      console.error("Failed to fetch owned collections:", ownedError);
+      return NextResponse.json(
+        { success: false, error: ownedError.message } as DeleteItemResponse,
+        { status: 500 }
+      );
+    }
+
     const ownedCollectionIds = (ownedCollections ?? [])
       .map((c: { id: string }) => c.id)
       .filter((cId: string) => cId !== collectionId);
@@ -90,11 +98,10 @@ export async function DELETE(
           .eq("item_id", itemId)
           .in("collection_id", ownedCollectionIds);
 
-    if (ownedError || checkError) {
-      const err = ownedError || checkError;
-      console.error("Failed to check other collections:", err);
+    if (checkError) {
+      console.error("Failed to check other collections:", checkError);
       return NextResponse.json(
-        { success: false, error: err?.message ?? "Failed to check other collections" } as DeleteItemResponse,
+        { success: false, error: checkError.message } as DeleteItemResponse,
         { status: 500 }
       );
     }

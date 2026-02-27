@@ -169,11 +169,13 @@ export async function DELETE(
     const ownedCollectionIds = (ownedCollections ?? []).map((c: { id: string }) => c.id);
 
     // Find which of those collections contain this item
-    const { data: userCollections, error: collectionsError } = await client
-      .from("collection_items")
-      .select("collection_id")
-      .eq("item_id", itemId)
-      .in("collection_id", ownedCollectionIds);
+    const { data: userCollections, error: collectionsError } = ownedCollectionIds.length === 0
+      ? { data: [], error: null }
+      : await client
+          .from("collection_items")
+          .select("collection_id")
+          .eq("item_id", itemId)
+          .in("collection_id", ownedCollectionIds);
 
     if (collectionsError) {
       console.error("Failed to fetch user collections for item:", collectionsError);
