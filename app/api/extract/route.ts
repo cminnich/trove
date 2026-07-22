@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { ProductExtractionSchema, type ExtractRequest, type ExtractResponse } from "@/types/extraction";
+import { CLAUDE_MODEL } from "@/lib/models";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -9,7 +10,6 @@ const anthropic = new Anthropic({
 });
 
 const JINA_READER_BASE = "https://r.jina.ai/";
-const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
 const LOW_CONFIDENCE_THRESHOLD = 0.7;
 
 // Load extraction prompt from file
@@ -74,6 +74,11 @@ export async function POST(req: NextRequest) {
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
       max_tokens: 2048,
+      // Keep extraction fast and deterministic. Sonnet 5 enables adaptive
+      // thinking by default, which shares the max_tokens budget (risking a
+      // truncated JSON output) and can make content[0] a thinking block.
+      // @ts-expect-error `thinking` is honored by the API but missing from @anthropic-ai/sdk 0.32 types.
+      thinking: { type: "disabled" },
       messages: [
         {
           role: "user",

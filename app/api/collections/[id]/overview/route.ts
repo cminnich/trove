@@ -20,8 +20,7 @@ import {
 } from "@/lib/ai/prompts";
 import type { Database } from "@/types/database";
 import { extractDynamicAttributesForItems } from "@/lib/attribute-normalizer";
-
-const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
+import { CLAUDE_MODEL } from "@/lib/models";
 
 type Collection = Database["public"]["Tables"]["collections"]["Row"];
 type CollectionAiOverview = Database["public"]["Tables"]["collection_ai_overviews"]["Row"];

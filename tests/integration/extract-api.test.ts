@@ -105,7 +105,7 @@ describe('/api/extract', () => {
         // Check metadata fields added by API
         expect(data.data.source_url).toBe(TEST_URLS.watch_hodinkee)
         expect(data.data.raw_markdown).toBeTruthy()
-        expect(data.data.extraction_model).toBe('claude-sonnet-4-5-20250929')
+        expect(data.data.extraction_model).toBe('claude-sonnet-5')
 
         // Log extraction for manual review
         console.log('\n📊 Watch extraction:', {

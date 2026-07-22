@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ANTHROPIC_API_KEY, JINA_API_KEY } from "../config.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
+const CLAUDE_MODEL = "claude-sonnet-5";
 
 // Inlined from types/extraction.ts to avoid CJS/ESM boundary issues
 const PhotoIdentificationItemSchema = z.object({
@@ -114,6 +114,8 @@ export function registerIdentifyPhoto(server: McpServer) {
         const response = await anthropic.messages.create({
           model: CLAUDE_MODEL,
           max_tokens: 2048,
+          // @ts-expect-error `thinking` is honored by the API but missing from @anthropic-ai/sdk 0.32 types.
+          thinking: { type: "disabled" },
           messages: [{
             role: "user",
             content: [

@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const JINA_READER_BASE = "https://r.jina.ai/";
-const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
+const CLAUDE_MODEL = "claude-sonnet-5";
 const EXTRACTION_TIMEOUT_MS = 90000; // 90 seconds
 
 // Extraction prompt template (optimized for token efficiency)
@@ -288,6 +288,9 @@ serve(async (req) => {
         body: JSON.stringify({
           model: CLAUDE_MODEL,
           max_tokens: 2048,
+          // Sonnet 5 enables adaptive thinking by default; disable it so the
+          // full token budget stays available for the JSON output.
+          thinking: { type: "disabled" },
           messages: [
             {
               role: "user",

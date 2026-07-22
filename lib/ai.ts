@@ -4,8 +4,9 @@ import { z } from "zod";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { PhotoIdentificationSchema } from "@/types/extraction";
+import { CLAUDE_MODEL } from "@/lib/models";
 
-const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
+const DEFAULT_MODEL = CLAUDE_MODEL;
 
 /**
  * Load a prompt template from the prompts directory
@@ -32,7 +33,7 @@ export function replaceVars(
 /**
  * Generate structured data using the Vercel AI SDK's generateObject
  *
- * @param options.model - Claude model to use (default: claude-sonnet-4-5-20250929)
+ * @param options.model - Claude model to use (default: CLAUDE_MODEL from lib/models)
  * @param options.schema - Zod schema for validation
  * @param options.system - System prompt (optional)
  * @param options.prompt - User prompt content
@@ -68,6 +69,9 @@ export async function generateStructuredData<T extends z.ZodTypeAny>({
           // Use tool-based structured output instead of the native beta
           // which can return vague "Invalid request" errors
           structuredOutputMode: "jsonTool",
+          // Sonnet 5 turns on adaptive thinking by default; disable it so the
+          // full max_tokens budget is available for the structured output.
+          thinking: { type: "disabled" },
         },
       },
     });
@@ -112,7 +116,7 @@ export async function generateStructuredData<T extends z.ZodTypeAny>({
 /**
  * Generate markdown text using the Vercel AI SDK's generateText
  *
- * @param options.model - Claude model to use (default: claude-sonnet-4-5-20250929)
+ * @param options.model - Claude model to use (default: CLAUDE_MODEL from lib/models)
  * @param options.system - System prompt (optional)
  * @param options.prompt - User prompt content
  * @param options.max_tokens - Maximum tokens for response (default: 2048)
@@ -138,6 +142,13 @@ export async function generateMarkdown({
     prompt,
     maxOutputTokens: max_tokens,
     temperature,
+    providerOptions: {
+      anthropic: {
+        // Sonnet 5 enables adaptive thinking by default; disable it to keep the
+        // full max_tokens budget for output.
+        thinking: { type: "disabled" },
+      },
+    },
   });
 
   return result.text;
@@ -145,7 +156,7 @@ export async function generateMarkdown({
 
 /**
  * Estimate Claude API cost for a request
- * Sonnet 4.5: $3 per MTok input, $15 per MTok output
+ * Sonnet 5: $3 per MTok input, $15 per MTok output (standard rates)
  */
 export function estimateCost(
   inputTokens: number,
@@ -191,6 +202,7 @@ export async function identifyFromPhoto(
       providerOptions: {
         anthropic: {
           structuredOutputMode: "jsonTool" as const,
+          thinking: { type: "disabled" as const },
         },
       },
     });
@@ -219,7 +231,7 @@ const anthropicLegacy = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const CLAUDE_MODEL_LEGACY = "claude-sonnet-4-5-20250929";
+const CLAUDE_MODEL_LEGACY = CLAUDE_MODEL;
 
 /**
  * @deprecated Use generateStructuredData instead
@@ -237,6 +249,8 @@ export async function callClaudeJSON<T>(
     model: options?.model || CLAUDE_MODEL_LEGACY,
     max_tokens: options?.max_tokens || 2048,
     temperature: options?.temperature || 1.0,
+    // @ts-expect-error `thinking` is honored by the API but missing from @anthropic-ai/sdk 0.32 types.
+    thinking: { type: "disabled" },
     messages: [{ role: "user", content: prompt }],
   });
 
