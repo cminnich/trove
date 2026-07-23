@@ -64,6 +64,7 @@ const spec = {
             type: "string",
             enum: ["pending", "processing", "complete", "failed"],
           },
+          confidence_score: { type: "number", nullable: true },
           created_at: { type: "string", format: "date-time" },
           updated_at: { type: "string", format: "date-time" },
         },
@@ -88,6 +89,20 @@ const spec = {
         },
       },
     },
+    parameters: {
+      LimitParam: {
+        name: "limit",
+        in: "query",
+        description: "Max results to return (default 50, max 100).",
+        schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      OffsetParam: {
+        name: "offset",
+        in: "query",
+        description: "Number of results to skip for pagination (default 0).",
+        schema: { type: "integer", minimum: 0, default: 0 },
+      },
+    },
   },
   paths: {
     "/api/v1/collections": {
@@ -95,7 +110,11 @@ const spec = {
         operationId: "listCollections",
         summary: "List your collections",
         description:
-          "Returns all collections owned by the authenticated user, sorted by last updated.",
+          "Returns collections owned by the authenticated user, sorted by last updated.",
+        parameters: [
+          { $ref: "#/components/parameters/LimitParam" },
+          { $ref: "#/components/parameters/OffsetParam" },
+        ],
         responses: {
           "200": {
             description: "List of collections",
@@ -210,7 +229,7 @@ const spec = {
         operationId: "listCollectionItems",
         summary: "List items in a collection",
         description:
-          "Returns all items in a collection, sorted by position. Includes collection-specific metadata (notes, position, added_at).",
+          "Returns items in a collection, sorted by position. Includes collection-specific metadata (notes, position, added_at).",
         parameters: [
           {
             name: "id",
@@ -218,6 +237,8 @@ const spec = {
             required: true,
             schema: { type: "string", format: "uuid" },
           },
+          { $ref: "#/components/parameters/LimitParam" },
+          { $ref: "#/components/parameters/OffsetParam" },
         ],
         responses: {
           "200": {
@@ -312,7 +333,8 @@ const spec = {
         operationId: "getCollectionContext",
         summary: "Get collection context for AI consumption",
         description:
-          "Returns a Markdown + JSON hybrid format optimized for LLM consumption. Only works for public collections.",
+          "Returns a Markdown + JSON hybrid format optimized for LLM consumption. Public endpoint — no API key required; only works for public collections.",
+        security: [],
         parameters: [
           {
             name: "id",
@@ -416,7 +438,7 @@ const spec = {
         operationId: "searchItems",
         summary: "Search your items",
         description:
-          "Search items across all your collections by title, brand, or category. Returns up to 50 results.",
+          "Search items across all your collections by title, brand, or category.",
         parameters: [
           {
             name: "q",
@@ -425,6 +447,8 @@ const spec = {
             schema: { type: "string" },
             description: "Search query (matches title, brand, category)",
           },
+          { $ref: "#/components/parameters/LimitParam" },
+          { $ref: "#/components/parameters/OffsetParam" },
         ],
         responses: {
           "200": {

@@ -56,3 +56,23 @@ export function isErrorResponse(
 ): result is NextResponse {
   return result instanceof NextResponse;
 }
+
+/**
+ * Parse limit/offset pagination from a request URL, clamped to safe bounds.
+ * Defaults to 50 per page, hard-capped at 100.
+ */
+export function parsePagination(
+  url: string,
+  { defaultLimit = 50, maxLimit = 100 }: { defaultLimit?: number; maxLimit?: number } = {}
+): { limit: number; offset: number } {
+  const { searchParams } = new URL(url);
+
+  let limit = parseInt(searchParams.get("limit") ?? "", 10);
+  if (!Number.isFinite(limit) || limit < 1) limit = defaultLimit;
+  if (limit > maxLimit) limit = maxLimit;
+
+  let offset = parseInt(searchParams.get("offset") ?? "", 10);
+  if (!Number.isFinite(offset) || offset < 0) offset = 0;
+
+  return { limit, offset };
+}

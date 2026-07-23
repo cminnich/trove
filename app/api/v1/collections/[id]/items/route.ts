@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateV1Request, isErrorResponse } from "@/lib/v1-handler";
+import {
+  authenticateV1Request,
+  isErrorResponse,
+  parsePagination,
+  V1_ITEM_COLUMNS,
+} from "@/lib/v1-handler";
 import type { Database } from "@/types/database";
 
 type Item = Database["public"]["Tables"]["items"]["Row"];
@@ -59,34 +64,32 @@ export async function GET(
       );
     }
 
+    const { limit, offset } = parsePagination(req.url);
+
     const { data, error } = await ctx.supabase
       .from("collection_items")
       .select(`
         added_at,
         position,
         notes,
-        items (*)
+        items (${V1_ITEM_COLUMNS})
       `)
-      .eq("collection_id", id);
+      .eq("collection_id", id)
+      .order("position", { ascending: true, nullsFirst: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const items = (data as CollectionItemWithItem[])
-      .map((ci) => ({
-        ...ci.items,
-        added_at: ci.added_at,
-        position: ci.position,
-        notes: ci.notes,
-      }))
-      .sort((a, b) => {
-        if (a.position === null) return 1;
-        if (b.position === null) return -1;
-        return a.position - b.position;
-      });
+    const items = (data as unknown as CollectionItemWithItem[]).map((ci) => ({
+      ...ci.items,
+      added_at: ci.added_at,
+      position: ci.position,
+      notes: ci.notes,
+    }));
 
-    return NextResponse.json({ items });
+    return NextResponse.json({ items, limit, offset });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },

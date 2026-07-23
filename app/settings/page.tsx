@@ -754,6 +754,15 @@ export default function SettingsPage() {
                   <div>
                     <h2 className="text-xl font-mono font-bold text-white mb-2">DEVELOPER</h2>
                     <p className="text-slate-400 font-mono text-sm">// Manage API keys for external integrations</p>
+                    <a
+                      href="/developers"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-2 text-open-green hover:underline font-mono text-xs"
+                    >
+                      <Code className="w-3.5 h-3.5" />
+                      View API documentation →
+                    </a>
                   </div>
 
                   {/* Key reveal modal */}
