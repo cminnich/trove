@@ -72,12 +72,15 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   const transportRef = useRef(
     new DefaultChatTransport({
       api: '/api/chat',
-      body: () => ({
-        collectionId:
-          typeof window !== 'undefined'
-            ? extractCollectionId(window.location.pathname)
-            : null,
-      }),
+      // Evaluated per request, so context follows client-side navigation
+      body: () => {
+        const pathname =
+          typeof window !== 'undefined' ? window.location.pathname : ''
+        return {
+          pathname,
+          collectionId: extractCollectionId(pathname),
+        }
+      },
     })
   )
 

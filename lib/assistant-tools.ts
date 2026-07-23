@@ -98,6 +98,31 @@ export async function listCollectionsForUser(userId: string) {
   }));
 }
 
+/**
+ * Resolve a collection the user can access (owner or editor) to a small
+ * context object for the system prompt. Returns null when inaccessible.
+ */
+export async function getCollectionContextForUser(userId: string, collectionId: string) {
+  const { owned, editor } = await getAccessibleCollectionIds(userId);
+  if (!owned.has(collectionId) && !editor.has(collectionId)) return null;
+
+  const supabase = getServiceRoleClient();
+  const { data } = await supabase
+    .from("collections")
+    .select("id, name, type")
+    .eq("id", collectionId)
+    .single();
+
+  if (!data) return null;
+  const row = data as { id: string; name: string; type: string | null };
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    access: owned.has(collectionId) ? ("owner" as const) : ("editor" as const),
+  };
+}
+
 export async function getCollectionItemsForUser(userId: string, collectionId: string) {
   // Access check BEFORE any service-role fetch — a bare id must not leak
   // someone else's collection.

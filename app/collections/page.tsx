@@ -177,7 +177,7 @@ export default function CollectionsPage() {
         {!isLoading && collections.length > 0 && (
           <button
             onClick={handleCreateCollection}
-            className="fixed bottom-24 md:bottom-8 right-6 w-14 h-14 bg-open-green hover:bg-emerald-400 text-void rounded-lg shadow-hard flex items-center justify-center transition-all hover:scale-105 z-40"
+            className="fixed bottom-40 md:bottom-24 right-4 md:right-6 w-12 h-12 bg-open-green hover:bg-emerald-400 text-void rounded-lg shadow-hard flex items-center justify-center transition-all hover:scale-105 z-40"
             aria-label="Create new collection"
           >
             <svg

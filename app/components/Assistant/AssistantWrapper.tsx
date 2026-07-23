@@ -12,24 +12,46 @@ import { AssistantPanel } from './AssistantPanel'
  */
 export function AssistantWrapper() {
   const pathname = usePathname()
-  const [isAuthed, setIsAuthed] = useState(false)
+  const [enabled, setEnabled] = useState(false)
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
     const supabase = getClient()
+    let cancelled = false
 
-    supabase.auth.getUser().then(({ data }) => setIsAuthed(!!data.user))
+    // The assistant is per-user opt-in (profiles.assistant_enabled) — hide the
+    // button entirely for users it isn't enabled for. The API enforces the
+    // same gate server-side.
+    const checkAccess = async (userId: string | undefined) => {
+      if (!userId) {
+        if (!cancelled) setEnabled(false)
+        return
+      }
+      const { data } = await supabase
+        .from('profiles')
+        .select('assistant_enabled')
+        .eq('id', userId)
+        .single()
+      if (!cancelled) {
+        setEnabled(!!(data as { assistant_enabled?: boolean } | null)?.assistant_enabled)
+      }
+    }
+
+    supabase.auth.getUser().then(({ data }) => checkAccess(data.user?.id))
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthed(!!session?.user)
+      checkAccess(session?.user?.id)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [])
 
-  if (!isAuthed || pathname === '/' || pathname.startsWith('/auth')) {
+  if (!enabled || pathname === '/' || pathname.startsWith('/auth')) {
     return null
   }
 

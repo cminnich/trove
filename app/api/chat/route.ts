@@ -13,11 +13,13 @@ import { ASSISTANT_MODEL } from "@/lib/models";
 import {
   listCollectionsForUser,
   getCollectionItemsForUser,
+  getCollectionContextForUser,
   searchItemsForUser,
   createCollectionForUser,
   addItemsToCollectionForUser,
   removeItemsFromCollectionForUser,
 } from "@/lib/assistant-tools";
+import { getServiceRoleClient } from "@/lib/supabase-server";
 
 export const maxDuration = 60;
 
@@ -43,6 +45,15 @@ You help the user query and organize their Trove in natural language.
 - Be concise. Terminal tone: lowercase-friendly, no emoji, no filler. Short lists over prose. When a task completes, summarize in one or two lines.
 - If a tool returns an error or truncated: true, say so plainly.`;
 
+/** Human description of the page the user is on, for the system prompt. */
+function describePage(pathname: string): string | null {
+  if (pathname === "/collections") return "their My Troves page (list of their collections)";
+  if (pathname === "/add") return "the Add page (capturing a new item)";
+  if (pathname === "/explore") return "the Explore page (browsing public collections)";
+  if (pathname === "/settings") return "their Settings page";
+  return null;
+}
+
 export async function POST(req: Request) {
   const { client, user, error: authError } = await getAuthenticatedServerClient();
 
@@ -50,9 +61,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Access gate: the assistant burns real model tokens, so it's opt-in per
+  // user (profiles.assistant_enabled). Anyone can sign up for Trove; only
+  // authorized profiles can use the assistant.
+  const { data: profile } = await getServiceRoleClient()
+    .from("profiles")
+    .select("assistant_enabled")
+    .eq("id", user.id)
+    .single();
+
+  if (!(profile as { assistant_enabled?: boolean } | null)?.assistant_enabled) {
+    return NextResponse.json(
+      { error: "The assistant is not enabled for your account." },
+      { status: 403 }
+    );
+  }
+
   const body = await req.json();
   const uiMessages = (body.messages ?? []) as UIMessage[];
   const collectionId: string | null = body.collectionId ?? null;
+  const pathname: string = typeof body.pathname === "string" ? body.pathname : "";
 
   // Context guard: keep the tail of long conversations
   const messages = uiMessages.slice(-MAX_MESSAGES);
@@ -130,8 +158,21 @@ export async function POST(req: Request) {
     }),
   };
 
-  const system = collectionId
-    ? `${SYSTEM_PROMPT}\n\n## Current context\nThe user is currently viewing collection ${collectionId}. When they say "this collection", they mean that one — fetch its items with get_collection_items if needed.`
+  // Page context: resolve the viewed collection to its real name so "this
+  // collection" / "here" needs no explanation from the user.
+  let contextNote: string | null = null;
+  if (collectionId) {
+    const collection = await getCollectionContextForUser(userId, collectionId);
+    if (collection) {
+      contextNote = `The user is currently viewing their collection "${collection.name}" (id: ${collection.id}, access: ${collection.access}). When they say "this collection", "here", or refer to items without naming a collection, they mean this one — fetch its items with get_collection_items when needed.`;
+    }
+  } else {
+    const page = describePage(pathname);
+    if (page) contextNote = `The user is currently on ${page}.`;
+  }
+
+  const system = contextNote
+    ? `${SYSTEM_PROMPT}\n\n## Current context\n${contextNote}`
     : SYSTEM_PROMPT;
 
   const result = streamText({

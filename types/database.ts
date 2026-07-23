@@ -7,6 +7,7 @@ export type Database = {
           email: string | null;
           phone: string | null;
           avatar_url: string | null;
+          assistant_enabled: boolean;
           default_visibility: 'public' | 'private';
           username: string | null;
           bio: string | null;
@@ -22,6 +23,7 @@ export type Database = {
           email?: string | null;
           phone?: string | null;
           avatar_url?: string | null;
+          assistant_enabled?: boolean;
           default_visibility?: 'public' | 'private';
           username?: string | null;
           bio?: string | null;
@@ -37,6 +39,7 @@ export type Database = {
           email?: string | null;
           phone?: string | null;
           avatar_url?: string | null;
+          assistant_enabled?: boolean;
           default_visibility?: 'public' | 'private';
           username?: string | null;
           bio?: string | null;
