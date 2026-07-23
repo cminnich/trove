@@ -43,11 +43,13 @@ export async function POST(req: NextRequest) {
 
     // Step 1: Fetch content from Jina AI
     const jinaUrl = `${JINA_READER_BASE}${url.toString()}`;
-    const jinaResponse = await fetch(jinaUrl, {
-      headers: {
-        "Accept": "text/plain",
-      },
-    });
+    const jinaHeaders: Record<string, string> = { "Accept": "text/plain" };
+    // Authenticated requests get a much higher Jina rate limit; without the key
+    // the anonymous tier returns 429 (Too Many Requests) under load.
+    if (process.env.JINA_API_KEY) {
+      jinaHeaders["Authorization"] = `Bearer ${process.env.JINA_API_KEY}`;
+    }
+    const jinaResponse = await fetch(jinaUrl, { headers: jinaHeaders });
 
     if (!jinaResponse.ok) {
       return NextResponse.json(

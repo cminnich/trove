@@ -258,13 +258,20 @@ serve(async (req) => {
     try {
       // Step 1: Fetch content from Jina AI
       const jinaUrl = `${JINA_READER_BASE}${item.source_url}`;
+      const jinaHeaders: Record<string, string> = { "Accept": "text/plain" };
+      // Authenticated requests get a much higher Jina rate limit; without the
+      // key the anonymous tier returns 429 (Too Many Requests) under load.
+      const jinaApiKey = Deno.env.get("JINA_API_KEY");
+      if (jinaApiKey) {
+        jinaHeaders["Authorization"] = `Bearer ${jinaApiKey}`;
+      }
       const jinaResponse = await fetch(jinaUrl, {
-        headers: { "Accept": "text/plain" },
+        headers: jinaHeaders,
         signal: abortController.signal,
       });
 
       if (!jinaResponse.ok) {
-        throw new Error(`Jina AI fetch failed: ${jinaResponse.statusText}`);
+        throw new Error(`Jina AI fetch failed: ${jinaResponse.status} ${jinaResponse.statusText}`);
       }
 
       const markdown = await jinaResponse.text();
