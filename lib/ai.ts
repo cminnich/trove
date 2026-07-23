@@ -259,11 +259,14 @@ export async function callClaudeJSON<T>(
     throw new Error("Unexpected response format from Claude");
   }
 
-  // Strip markdown code blocks if present
-  let jsonText = content.text.trim();
-  if (jsonText.startsWith("```")) {
-    jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+  // Extract the outermost JSON object so any markdown fences or surrounding
+  // prose the model adds are ignored.
+  const firstBrace = content.text.indexOf("{");
+  const lastBrace = content.text.lastIndexOf("}");
+  if (firstBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error("No JSON object found in Claude response");
   }
+  const jsonText = content.text.slice(firstBrace, lastBrace + 1);
 
   const data = JSON.parse(jsonText) as T;
   return { data, raw: content.text };

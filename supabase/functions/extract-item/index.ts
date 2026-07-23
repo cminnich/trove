@@ -322,11 +322,15 @@ serve(async (req) => {
         throw new Error("Unexpected response format from Claude");
       }
 
-      // Parse Claude's response
-      let jsonText = content.text.trim();
-      if (jsonText.startsWith("```")) {
-        jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+      // Parse Claude's response. Extract the outermost JSON object so any
+      // markdown fences or surrounding prose the model adds are ignored.
+      const rawText = content.text;
+      const firstBrace = rawText.indexOf("{");
+      const lastBrace = rawText.lastIndexOf("}");
+      if (firstBrace === -1 || lastBrace <= firstBrace) {
+        throw new Error(`No JSON object found in Claude response: ${rawText.slice(0, 200)}`);
       }
+      const jsonText = rawText.slice(firstBrace, lastBrace + 1);
 
       const extracted = JSON.parse(jsonText);
 
