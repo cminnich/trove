@@ -483,6 +483,41 @@ export type Database = {
           updated_at?: string;
         };
       };
+      api_keys: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          key_prefix: string;
+          key_hash: string;
+          is_active: boolean;
+          last_used_at: string | null;
+          created_at: string;
+          expires_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          key_prefix: string;
+          key_hash: string;
+          is_active?: boolean;
+          last_used_at?: string | null;
+          created_at?: string;
+          expires_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          key_prefix?: string;
+          key_hash?: string;
+          is_active?: boolean;
+          last_used_at?: string | null;
+          created_at?: string;
+          expires_at?: string | null;
+        };
+      };
       collection_attribute_schemas: {
         Row: {
           id: string;
@@ -549,6 +584,13 @@ export type Database = {
           collection_visibility?: string;
         };
         Returns: string;
+      };
+      user_can_access_item: {
+        Args: {
+          p_item_id: string;
+          p_user_id: string;
+        };
+        Returns: boolean;
       };
     };
     Enums: {

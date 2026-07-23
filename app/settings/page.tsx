@@ -4,9 +4,19 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getClient } from '@/lib/supabase-client'
 import { User } from '@supabase/supabase-js'
-import { Settings, User as UserIcon, Globe, Lock, Bug, LogOut, Loader2, Shield, AtSign, Link2, Github } from 'lucide-react'
+import { Settings, User as UserIcon, Globe, Lock, Bug, LogOut, Loader2, Shield, AtSign, Link2, Github, Code, Copy, Check, Trash2, Plus, Eye, EyeOff } from 'lucide-react'
 
-type Section = 'identity' | 'privacy' | 'account' | 'debug'
+type Section = 'identity' | 'privacy' | 'account' | 'developer' | 'debug'
+
+interface ApiKeyData {
+  id: string
+  name: string
+  key_prefix: string
+  is_active: boolean
+  last_used_at: string | null
+  created_at: string
+  expires_at: string | null
+}
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -32,6 +42,15 @@ export default function SettingsPage() {
   const [defaultVisibility, setDefaultVisibility] = useState<'public' | 'private'>('public')
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false)
   const [preferencesLoading, setPreferencesLoading] = useState(true)
+
+  // Developer / API keys state
+  const [apiKeys, setApiKeys] = useState<ApiKeyData[]>([])
+  const [apiKeysLoading, setApiKeysLoading] = useState(true)
+  const [newKeyName, setNewKeyName] = useState('')
+  const [isCreatingKey, setIsCreatingKey] = useState(false)
+  const [revealedKey, setRevealedKey] = useState<string | null>(null)
+  const [copiedKey, setCopiedKey] = useState(false)
+  const [revokingKeyId, setRevokingKeyId] = useState<string | null>(null)
 
   // Track original values for change detection
   const [originalIdentity, setOriginalIdentity] = useState({
@@ -125,6 +144,19 @@ export default function SettingsPage() {
         console.error('Failed to load profile:', error)
       } finally {
         setIdentityLoading(false)
+      }
+
+      // Load API keys
+      try {
+        const response = await fetch('/api/keys')
+        const data = await response.json()
+        if (data.keys) {
+          setApiKeys(data.keys)
+        }
+      } catch (error) {
+        console.error('Failed to load API keys:', error)
+      } finally {
+        setApiKeysLoading(false)
       }
     }
 
@@ -225,6 +257,65 @@ export default function SettingsPage() {
     }
   }
 
+  const handleCreateApiKey = async () => {
+    if (!newKeyName.trim()) return
+    try {
+      setIsCreatingKey(true)
+      const response = await fetch('/api/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newKeyName.trim() }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        console.error('Failed to create API key:', data.error)
+        return
+      }
+      setRevealedKey(data.key)
+      setCopiedKey(false)
+      setNewKeyName('')
+      // Add the new key to the list (without the full key)
+      setApiKeys((prev) => [
+        {
+          id: data.id,
+          name: data.name,
+          key_prefix: data.key_prefix,
+          is_active: true,
+          last_used_at: null,
+          created_at: data.created_at,
+          expires_at: null,
+        },
+        ...prev,
+      ])
+    } catch (error) {
+      console.error('Failed to create API key:', error)
+    } finally {
+      setIsCreatingKey(false)
+    }
+  }
+
+  const handleRevokeApiKey = async (keyId: string) => {
+    try {
+      setRevokingKeyId(keyId)
+      const response = await fetch(`/api/keys/${keyId}`, { method: 'DELETE' })
+      if (response.ok) {
+        setApiKeys((prev) =>
+          prev.map((k) => (k.id === keyId ? { ...k, is_active: false } : k))
+        )
+      }
+    } catch (error) {
+      console.error('Failed to revoke API key:', error)
+    } finally {
+      setRevokingKeyId(null)
+    }
+  }
+
+  const handleCopyKey = async (key: string) => {
+    await navigator.clipboard.writeText(key)
+    setCopiedKey(true)
+    setTimeout(() => setCopiedKey(false), 2000)
+  }
+
   if (loading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-void">
@@ -298,6 +389,18 @@ export default function SettingsPage() {
               >
                 <Lock className="w-5 h-5" />
                 <span className="font-medium">Account</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSection('developer')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-mono text-sm ${
+                  activeSection === 'developer'
+                    ? 'bg-slate-800 text-open-green'
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                }`}
+              >
+                <Code className="w-5 h-5" />
+                <span className="font-medium">Developer</span>
               </button>
 
               <button
@@ -641,6 +744,157 @@ export default function SettingsPage() {
                         </>
                       )}
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Developer Section */}
+              {activeSection === 'developer' && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-xl font-mono font-bold text-white mb-2">DEVELOPER</h2>
+                    <p className="text-slate-400 font-mono text-sm">// Manage API keys for external integrations</p>
+                  </div>
+
+                  {/* Key reveal modal */}
+                  {revealedKey && (
+                    <div className="bg-open-green/10 border border-open-green/30 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-open-green" />
+                        <p className="text-sm font-mono font-bold text-open-green">New API Key Created</p>
+                      </div>
+                      <p className="text-xs text-amber-300 font-mono">
+                        Copy this key now. It won&apos;t be shown again.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-xs text-white font-mono bg-void px-3 py-2 rounded border border-slate-800 break-all">
+                          {revealedKey}
+                        </code>
+                        <button
+                          onClick={() => handleCopyKey(revealedKey)}
+                          className="flex-shrink-0 p-2 bg-void border border-slate-800 rounded hover:border-open-green transition-colors"
+                        >
+                          {copiedKey ? (
+                            <Check className="w-4 h-4 text-open-green" />
+                          ) : (
+                            <Copy className="w-4 h-4 text-slate-400" />
+                          )}
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => setRevealedKey(null)}
+                        className="text-xs text-slate-500 font-mono hover:text-slate-300 transition-colors"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Create new key */}
+                  <div className="bg-void border border-slate-800 rounded-lg p-4">
+                    <label className="block text-sm font-mono font-medium text-slate-300 mb-2">
+                      Create API Key
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newKeyName}
+                        onChange={(e) => setNewKeyName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newKeyName.trim()) handleCreateApiKey()
+                        }}
+                        placeholder="Key name (e.g. Claude Desktop)"
+                        maxLength={100}
+                        className="flex-1 px-3 py-2 bg-slate-deep border border-slate-800 rounded-lg text-white font-mono text-sm focus:ring-2 focus:ring-open-green focus:border-transparent"
+                      />
+                      <button
+                        onClick={handleCreateApiKey}
+                        disabled={isCreatingKey || !newKeyName.trim()}
+                        className="flex items-center gap-2 px-4 py-2 bg-open-green hover:bg-emerald-400 disabled:bg-slate-700 disabled:opacity-50 text-void font-mono font-bold text-sm rounded-lg transition-colors"
+                      >
+                        {isCreatingKey ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                        <span>Generate</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Keys list */}
+                  <div className="bg-void border border-slate-800 rounded-lg overflow-hidden">
+                    <div className="px-4 py-2 border-b border-slate-800">
+                      <span className="font-mono text-xs uppercase tracking-widest text-slate-500">
+                        Your API Keys
+                      </span>
+                    </div>
+
+                    {apiKeysLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 text-open-green animate-spin" />
+                      </div>
+                    ) : apiKeys.length === 0 ? (
+                      <div className="px-4 py-8 text-center">
+                        <Code className="w-8 h-8 text-slate-700 mx-auto mb-3" />
+                        <p className="text-sm text-slate-500 font-mono mb-1">No API keys yet</p>
+                        <p className="text-xs text-slate-600 font-mono">
+                          Create a key to access your Trove data from external tools like Claude, ChatGPT, or custom scripts.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-800">
+                        {apiKeys.map((apiKey) => (
+                          <div key={apiKey.id} className="px-4 py-3 flex items-center justify-between gap-4">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-mono text-white truncate">
+                                  {apiKey.name}
+                                </span>
+                                {!apiKey.is_active && (
+                                  <span className="text-xs font-mono text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">
+                                    revoked
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 mt-1">
+                                <code className="text-xs text-slate-500 font-mono">
+                                  {apiKey.key_prefix}...
+                                </code>
+                                <span className="text-xs text-slate-600 font-mono">
+                                  Created {new Date(apiKey.created_at).toLocaleDateString()}
+                                </span>
+                                {apiKey.last_used_at && (
+                                  <span className="text-xs text-slate-600 font-mono">
+                                    Last used {new Date(apiKey.last_used_at).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {apiKey.is_active && (
+                              <button
+                                onClick={() => handleRevokeApiKey(apiKey.id)}
+                                disabled={revokingKeyId === apiKey.id}
+                                className="flex-shrink-0 p-2 text-slate-500 hover:text-red-400 transition-colors"
+                                title="Revoke key"
+                              >
+                                {revokingKeyId === apiKey.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-800">
+                    <p className="text-xs text-slate-500 font-mono italic">
+                      // API keys grant full read/write access to your data. Keep them secret.
+                    </p>
                   </div>
                 </div>
               )}
