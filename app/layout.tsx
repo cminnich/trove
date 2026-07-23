@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { NavigationWrapper } from "@/app/components/Navigation/NavigationWrapper";
 import { MainContent } from "@/app/components/Navigation/MainContent";
+import { AssistantWrapper } from "@/app/components/Assistant/AssistantWrapper";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -44,6 +45,7 @@ export default function RootLayout({
       <body className={`${inter.className} ${jetbrainsMono.variable}`}>
         <NavigationWrapper />
         <MainContent>{children}</MainContent>
+        <AssistantWrapper />
         <Toaster position="top-center" richColors closeButton />
       </body>
     </html>
