@@ -258,7 +258,13 @@ serve(async (req) => {
     try {
       // Step 1: Fetch content from Jina AI
       const jinaUrl = `${JINA_READER_BASE}${item.source_url}`;
-      const jinaHeaders: Record<string, string> = { "Accept": "text/plain" };
+      const jinaHeaders: Record<string, string> = {
+        "Accept": "text/plain",
+        // Jina renders JS by default; X-Timeout is a max ceiling (not a fixed
+        // delay), so this only gives slow JS-heavy pages more time to finish
+        // rendering — fast pages still return as soon as they're ready.
+        "X-Timeout": "20",
+      };
       // Authenticated requests get a much higher Jina rate limit; without the
       // key the anonymous tier returns 429 (Too Many Requests) under load.
       const jinaApiKey = Deno.env.get("JINA_API_KEY");
