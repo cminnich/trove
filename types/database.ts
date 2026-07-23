@@ -486,6 +486,32 @@ export type Database = {
           updated_at?: string;
         };
       };
+      assistant_chats: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string | null;
+          messages: unknown;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id: string;
+          title?: string | null;
+          messages?: unknown;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string | null;
+          messages?: unknown;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       api_keys: {
         Row: {
           id: string;

@@ -82,7 +82,14 @@ export async function POST(req: Request) {
   const collectionId: string | null = body.collectionId ?? null;
   const pathname: string = typeof body.pathname === "string" ? body.pathname : "";
 
-  // Context guard: keep the tail of long conversations
+  // Chat id doubles as the persistence key (assistant_chats.id, UUID)
+  const chatId: string = typeof body.id === "string" ? body.id : "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(chatId)) {
+    return NextResponse.json({ error: "Invalid chat id" }, { status: 400 });
+  }
+
+  // Context guard: the model sees the tail of long conversations; the full
+  // thread is still persisted.
   const messages = uiMessages.slice(-MAX_MESSAGES);
 
   const userId = user.id;
@@ -183,5 +190,30 @@ export async function POST(req: Request) {
     stopWhen: stepCountIs(10),
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    originalMessages: uiMessages,
+    onFinish: async ({ messages: finalMessages }) => {
+      // Persist the full thread (RLS scopes writes to the owner). Title from
+      // the first user message, set once.
+      const firstUserMessage = finalMessages.find((m) => m.role === "user");
+      const titleText = firstUserMessage?.parts
+        .filter((p) => p.type === "text")
+        .map((p) => (p as { text: string }).text)
+        .join(" ")
+        .trim()
+        .slice(0, 80);
+
+      const { error } = await (client as any).from("assistant_chats").upsert({
+        id: chatId,
+        user_id: userId,
+        title: titleText || "New chat",
+        messages: finalMessages,
+        updated_at: new Date().toISOString(),
+      });
+
+      if (error) {
+        console.error("Failed to persist assistant chat:", error);
+      }
+    },
+  });
 }

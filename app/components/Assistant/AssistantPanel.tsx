@@ -1,13 +1,25 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useChat } from '@ai-sdk/react'
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
   lastAssistantMessageIsCompleteWithApprovalResponses,
+  type UIMessage,
 } from 'ai'
-import { X, Send, Loader2, Check, Ban, Wrench } from 'lucide-react'
+import {
+  X,
+  Send,
+  Loader2,
+  Check,
+  Ban,
+  Wrench,
+  History,
+  SquarePen,
+  ArrowLeft,
+  Trash2,
+} from 'lucide-react'
 
 /** Minimal structural view of a tool UI part (states we render). */
 interface ToolPartView {
@@ -23,6 +35,12 @@ interface ToolPartView {
   output?: unknown
   errorText?: string
   approval?: { id: string; approved?: boolean; reason?: string }
+}
+
+interface ChatThread {
+  id: string
+  title: string | null
+  updated_at: string
 }
 
 const WRITE_TOOLS = new Set([
@@ -66,7 +84,23 @@ function describeWrite(name: string, input: Record<string, unknown> | undefined)
   }
 }
 
-export function AssistantPanel({ onClose }: { onClose: () => void }) {
+function relativeTime(iso: string): string {
+  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (seconds < 60) return 'just now'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+  return `${Math.floor(seconds / 86400)}d ago`
+}
+
+// ── Chat view (one thread; remounted via key when the thread changes) ───────
+
+function ChatView({
+  chatId,
+  initialMessages,
+}: {
+  chatId: string
+  initialMessages: UIMessage[]
+}) {
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const transportRef = useRef(
@@ -85,6 +119,8 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   )
 
   const { messages, sendMessage, addToolApprovalResponse, status } = useChat({
+    id: chatId,
+    messages: initialMessages,
     transport: transportRef.current,
     sendAutomaticallyWhen: (options) =>
       lastAssistantMessageIsCompleteWithToolCalls(options) ||
@@ -190,21 +226,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 md:inset-y-0 md:left-auto md:right-0 md:w-[420px] z-[70] flex flex-col bg-void border-l border-slate-800 shadow-hard h-[100dvh]">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-        <p className="font-mono text-xs uppercase tracking-widest text-open-green">
-          Trove Assistant
-        </p>
-        <button
-          onClick={onClose}
-          aria-label="Close assistant"
-          className="text-slate-500 hover:text-slate-200"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
+    <>
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 && (
@@ -293,6 +315,172 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
+    </>
+  )
+}
+
+// ── Threads view ─────────────────────────────────────────────────────────────
+
+function ThreadsView({
+  onSelect,
+  activeChatId,
+}: {
+  onSelect: (chatId: string, messages: UIMessage[]) => void
+  activeChatId: string
+}) {
+  const [threads, setThreads] = useState<ChatThread[] | null>(null)
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch('/api/chats')
+      const data = await res.json()
+      setThreads(res.ok ? (data.chats ?? []) : [])
+    } catch {
+      setThreads([])
+    }
+  }, [])
+
+  useEffect(() => {
+    refresh()
+  }, [refresh])
+
+  const openThread = async (id: string) => {
+    setLoadingId(id)
+    try {
+      const res = await fetch(`/api/chats/${id}`)
+      const data = await res.json()
+      if (res.ok && data.chat) {
+        onSelect(data.chat.id, (data.chat.messages ?? []) as UIMessage[])
+      }
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const deleteThread = async (id: string) => {
+    setThreads((prev) => (prev ? prev.filter((t) => t.id !== id) : prev))
+    await fetch(`/api/chats/${id}`, { method: 'DELETE' }).catch(() => refresh())
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1.5">
+      {threads === null && (
+        <p className="flex items-center gap-2 font-mono text-xs text-slate-500">
+          <Loader2 className="w-3 h-3 animate-spin" /> loading threads…
+        </p>
+      )}
+      {threads?.length === 0 && (
+        <p className="font-mono text-sm text-slate-500">
+          No previous conversations yet.
+        </p>
+      )}
+      {threads?.map((thread) => (
+        <div
+          key={thread.id}
+          className={`group flex items-center gap-2 rounded-md border px-3 py-2.5 ${
+            thread.id === activeChatId
+              ? 'border-open-green/40 bg-slate-deep'
+              : 'border-slate-800 hover:border-slate-600'
+          }`}
+        >
+          <button
+            onClick={() => openThread(thread.id)}
+            className="flex-1 min-w-0 text-left"
+          >
+            <p className="font-mono text-sm text-slate-200 truncate">
+              {loadingId === thread.id ? 'loading…' : thread.title || 'Untitled chat'}
+            </p>
+            <p className="font-mono text-xs text-slate-600">
+              {relativeTime(thread.updated_at)}
+            </p>
+          </button>
+          <button
+            onClick={() => deleteThread(thread.id)}
+            aria-label="Delete chat"
+            className="shrink-0 text-slate-600 hover:text-red-400 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Panel shell ──────────────────────────────────────────────────────────────
+
+export function AssistantPanel({ onClose }: { onClose: () => void }) {
+  const [chatId, setChatId] = useState(() => crypto.randomUUID())
+  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([])
+  const [view, setView] = useState<'chat' | 'threads'>('chat')
+
+  const startNewChat = () => {
+    setChatId(crypto.randomUUID())
+    setInitialMessages([])
+    setView('chat')
+  }
+
+  const resumeThread = (id: string, messages: UIMessage[]) => {
+    setChatId(id)
+    setInitialMessages(messages)
+    setView('chat')
+  }
+
+  return (
+    <div className="fixed inset-0 md:inset-y-0 md:left-auto md:right-0 md:w-[420px] z-[70] flex flex-col bg-void border-l border-slate-800 shadow-hard h-[100dvh]">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+        <div className="flex items-center gap-3">
+          {view === 'threads' ? (
+            <button
+              onClick={() => setView('chat')}
+              aria-label="Back to chat"
+              className="text-slate-500 hover:text-slate-200"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          ) : null}
+          <p className="font-mono text-xs uppercase tracking-widest text-open-green">
+            {view === 'threads' ? 'Conversations' : 'Trove Assistant'}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {view === 'chat' && (
+            <>
+              <button
+                onClick={() => setView('threads')}
+                aria-label="Previous conversations"
+                title="Previous conversations"
+                className="text-slate-500 hover:text-slate-200"
+              >
+                <History className="w-4 h-4" />
+              </button>
+              <button
+                onClick={startNewChat}
+                aria-label="New chat"
+                title="New chat"
+                className="text-slate-500 hover:text-slate-200"
+              >
+                <SquarePen className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          <button
+            onClick={onClose}
+            aria-label="Close assistant"
+            className="text-slate-500 hover:text-slate-200"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {view === 'threads' ? (
+        <ThreadsView onSelect={resumeThread} activeChatId={chatId} />
+      ) : (
+        <ChatView key={chatId} chatId={chatId} initialMessages={initialMessages} />
+      )}
     </div>
   )
 }
