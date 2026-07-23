@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useMemo, Suspense } from 'react'
 import type { Database } from '@/types/database'
 import { useCaptureState } from './hooks/useCaptureState'
 import { SourceUrlBadge } from './components/SourceUrlBadge'
@@ -14,6 +14,7 @@ import { CaptureActions } from './components/CaptureActions'
 import { PhotoCapture } from './components/PhotoCapture'
 import { PhotoBatchResults } from './components/PhotoBatchResults'
 import { getClient } from '@/lib/supabase-client'
+import { getCollectionRecency, sortCollectionsByRecency } from '@/lib/collection-recency'
 
 type Item = Database['public']['Tables']['items']['Row']
 type Collection = Database['public']['Tables']['collections']['Row']
@@ -123,6 +124,14 @@ function AddPageContent() {
   useEffect(() => {
     loadCollections()
   }, [user]) // Re-run when user changes
+
+  // Order collections so the ones you've most recently added to appear first.
+  // Re-reads recency on every stage change, so the next capture reflects the
+  // collection you just used. (state.stage is the intentional refresh trigger.)
+  const orderedCollections = useMemo(
+    () => sortCollectionsByRecency(collections, getCollectionRecency()),
+    [collections, state.stage]
+  )
 
   // Validation: Check if save is allowed
   // With smart inbox fallback, we can always save (inbox is default target)
@@ -256,7 +265,7 @@ function AddPageContent() {
 
         {/* Collection Selector */}
         <CollectionSelector
-          collections={collections}
+          collections={orderedCollections}
           value={context}
           onChange={updateContext}
           disabled={isSaving}

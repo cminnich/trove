@@ -10,6 +10,7 @@ import type {
   ExistingCollectionMembership
 } from '@/types/capture'
 import type { Database } from '@/types/database'
+import { recordCollectionsUsed } from '@/lib/collection-recency'
 
 type Item = Database['public']['Tables']['items']['Row']
 type Collection = Database['public']['Tables']['collections']['Row']
@@ -305,6 +306,10 @@ export function useCaptureState({
         })
 
         await Promise.all(collectionRequests)
+
+        // Remember these collections so the picker floats them to the front
+        // on the next capture.
+        recordCollectionsUsed(targetCollectionIds)
       }
 
       if (!isMountedRef.current) return
